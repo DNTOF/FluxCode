@@ -1122,13 +1122,19 @@ mod tests {
 
     #[test]
     fn uris_and_language_ids() {
+        // A root-relative path isn't absolute on Windows, so it would pick up
+        // the current drive; use a real absolute path per platform instead.
+        #[cfg(windows)]
+        let (spaced, plus, base) = (r"C:\home\u\my file.rs", r"C:\home\u\a+b.rs", "file:///C:");
+        #[cfg(not(windows))]
+        let (spaced, plus, base) = ("/home/u/my file.rs", "/home/u/a+b.rs", "file://");
         assert_eq!(
-            uri_for_path(Path::new("/home/u/my file.rs")),
-            "file:///home/u/my%20file.rs"
+            uri_for_path(Path::new(spaced)),
+            format!("{base}/home/u/my%20file.rs")
         );
         assert_eq!(
-            uri_for_path(Path::new("/home/u/a+b.rs")),
-            "file:///home/u/a%2Bb.rs"
+            uri_for_path(Path::new(plus)),
+            format!("{base}/home/u/a%2Bb.rs")
         );
         assert_eq!(language_id("tsx"), "typescriptreact");
         assert_eq!(language_id("bash"), "shellscript");
