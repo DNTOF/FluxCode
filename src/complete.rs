@@ -191,7 +191,11 @@ impl CompletionProvider for Words {
                     for w in text[scan_start..scan_end]
                         .split(|c: char| !(is_word(c) || (lang == "css" && c == '-')))
                     {
-                        if w.len() > prefix.len() && w.len() < 60 && w.to_lowercase().starts_with(&lower) && !w.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+                        if w.len() > prefix.len()
+                            && w.len() < 60
+                            && w.to_lowercase().starts_with(&lower)
+                            && !w.chars().next().is_some_and(|c| c.is_ascii_digit())
+                        {
                             words.insert(w);
                         }
                         if words.len() > 200 {

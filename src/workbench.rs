@@ -922,7 +922,11 @@ impl Workbench {
                 cx.notify();
             }
         });
-        let name: SharedString = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default().into();
+        let name: SharedString = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
+            .into();
         let banner = banner.map(SharedString::from);
         // A large Flux document shows its first part at once; the rest is read (and its
         // text packed) on another thread, then takes its place.
@@ -982,7 +986,11 @@ impl Workbench {
         let size = image::image_dimensions(&path).ok();
         let editor = cx.new(|cx| EditorState::new(window, cx));
         let sub = cx.subscribe(&editor, |_, _, _: &InputEvent, _| {});
-        let name: SharedString = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default().into();
+        let name: SharedString = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
+            .into();
         let icon = files::icon_for(&name);
         self.docs.push(Doc {
             path,
@@ -1162,7 +1170,13 @@ impl Workbench {
         }
         let (text, path, crlf, gen, name) = {
             let doc = &self.docs[ix];
-            (doc.editor.read(cx).value(), doc.path.clone(), doc.crlf, doc.gen, doc.name.clone())
+            (
+                doc.editor.read(cx).value(),
+                doc.path.clone(),
+                doc.crlf,
+                doc.gen,
+                doc.name.clone(),
+            )
         };
         // A big file is written off the UI thread, for the same reason it is read there.
         if text.len() as u64 > SAVE_OFF_THREAD_BYTES {

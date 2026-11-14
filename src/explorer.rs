@@ -376,7 +376,10 @@ impl Workbench {
     }
 
     fn target_item(&self) -> Option<PathBuf> {
-        self.ctx_target.borrow_mut().take().or_else(|| self.selected.clone())
+        self.ctx_target
+            .borrow_mut()
+            .take()
+            .or_else(|| self.selected.clone())
     }
 
     /// The file icon the pending row shows for the name typed so far.
@@ -410,7 +413,13 @@ impl Workbench {
         }
     }
 
-    fn start_pending(&mut self, op: PendingOp, value: &str, window: &mut Window, cx: &mut Context<Self>) {
+    fn start_pending(
+        &mut self,
+        op: PendingOp,
+        value: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.view = SideView::Explorer;
         self.sidebar_open = true;
         // A new file or folder types inside its folder: open the folder first, so
@@ -638,7 +647,9 @@ fn delete_row(ix: usize, depth: usize, path: &Path, view: &Entity<Workbench>) ->
 }
 
 fn short(p: &Path) -> String {
-    p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string())
+    p.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| p.display().to_string())
 }
 
 #[cfg(test)]
