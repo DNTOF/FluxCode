@@ -138,7 +138,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: System libraries for GPUI
-              run: sh .github/scripts/setup-apt-gpui.sh
+        run: sh .github/scripts/setup-apt-gpui.sh
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
