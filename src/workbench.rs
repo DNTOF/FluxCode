@@ -2246,7 +2246,11 @@ impl Workbench {
                     self.docs[ix].flux.is_some() && !self.docs[ix].flux_source,
                     |v| {
                         let weak = cx.entity().downgrade();
-                        let view = self.docs[ix].flux.as_ref().unwrap().render(move |cx| {
+                        // Guarded by the .when above; this is the backstop.
+                        let Some(flux) = self.docs[ix].flux.as_ref() else {
+                            return v;
+                        };
+                        let view = flux.render(move |cx| {
                             _ = weak.update(cx, |_, cx| cx.notify());
                         });
                         v.child(div().flex_1().min_h_0().child(view))

@@ -451,8 +451,8 @@ impl Copilot {
             let shared = Arc::clone(&self.shared);
             std::thread::spawn(move || {
                 let msg = serde_json::json!({"jsonrpc": "2.0", "method": "textDocument/didClose", "params": {"textDocument": {"uri": uri}}});
-                let _io = shared.io.lock().unwrap();
-                let mut st = shared.state.lock().unwrap();
+                let _io = shared.io.lock().unwrap_or_else(|e| e.into_inner());
+                let mut st = shared.state.lock().unwrap_or_else(|e| e.into_inner());
                 if let Some(stdin) = st.stdin.as_mut() {
                     let _ = write_message(stdin, &msg);
                 }
