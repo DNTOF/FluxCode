@@ -536,9 +536,10 @@ fn find_on_path(name: &str) -> Option<PathBuf> {
     None
 }
 
-/// Whether Node.js is on PATH, which the one-click install needs.
-pub(crate) fn node_present() -> bool {
-    find_on_path(if cfg!(windows) { "node.exe" } else { "node" }).is_some()
+/// Whether npm is on PATH, which the one-click install needs. npm ships with
+/// Node.js, so its presence also covers the server runtime prerequisite.
+pub(crate) fn npm_present() -> bool {
+    find_on_path(if cfg!(windows) { "npm.cmd" } else { "npm" }).is_some()
 }
 
 /// The command that runs the server, or an error whose text starts with
@@ -1057,6 +1058,24 @@ pub(crate) fn language_id(lang: &str) -> String {
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn retry_clears_failed_start_throttle() {
+        let copilot = Copilot::new(true);
+        {
+            let mut state = copilot.shared.state.lock().unwrap();
+            state.not_installed = true;
+            state.start_error = Some("not installed".to_string());
+            state.last_attempt = Some(Instant::now());
+        }
+
+        copilot.retry();
+
+        let state = copilot.shared.state.lock().unwrap();
+        assert!(!state.not_installed);
+        assert!(state.start_error.is_none());
+        assert!(state.last_attempt.is_none());
+    }
 
     #[test]
     fn lsp_position_counts_utf16_units() {

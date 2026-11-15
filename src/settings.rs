@@ -1082,7 +1082,7 @@ impl Workbench {
             .text_sm()
             .child(div().child(text));
         if matches!(self.copilot.status(), Status::NotInstalled) {
-            if crate::copilot::node_present() {
+            if crate::copilot::npm_present() {
                 col = col.child(
                     Button::new("cpl-install")
                         .label(tr("Install server"))
@@ -1105,7 +1105,25 @@ impl Workbench {
                                             .output();
                                         match out {
                                             Ok(o) if o.status.success() => Ok(()),
-                                            Ok(o) => Err(if o.stderr.is_empty() { format!("npm exited with {}", o.status) } else { String::from_utf8_lossy(&o.stderr).trim().to_string() }),
+                                            Ok(o) => {
+                                                let mut msg = if o.stderr.is_empty() {
+                                                    format!("npm exited with {}", o.status)
+                                                } else {
+                                                    String::from_utf8_lossy(&o.stderr)
+                                                        .trim()
+                                                        .to_string()
+                                                };
+                                                let low = msg.to_lowercase();
+                                                if low.contains("eacces")
+                                                    || low.contains("permission denied")
+                                                {
+                                                    msg.push_str(". ");
+                                                    msg.push_str(tr(
+                                                        "npm's global folder is not writable; see the npm docs on EACCES, or install the server by hand.",
+                                                    ));
+                                                }
+                                                Err(msg)
+                                            }
                                             Err(e) => Err(e.to_string()),
                                         }
                                     })

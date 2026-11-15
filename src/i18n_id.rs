@@ -743,6 +743,7 @@ pub const ID: &[(&str, &str)] = &[
     ("Install server", "Pasang server"),
     ("Get Node.js", "Unduh Node.js"),
     ("Copilot server installed.", "Server Copilot sudah terpasang."),
+    ("npm's global folder is not writable; see the npm docs on EACCES, or install the server by hand.", "folder global npm tidak bisa ditulis; lihat dokumentasi npm soal EACCES, atau pasang servernya manual."),
     ("Install failed: {e}", "Instalasi gagal: {e}"),
     ("Copilot: install server", "Copilot: pasang server"),
     ("Copilot: sign in", "Copilot: masuk"),

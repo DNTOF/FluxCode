@@ -29,7 +29,6 @@ status bar menampilkan chip **Copilot** kecil yang menyebutkan apa yang
 kurang dan membuka Settings saat diklik; chip itu hilang sendiri setelah
 saran siap.
 
-@release 2026-11-15
 @title en: HTML preview says it runs a WebView
 @title id: Pratinjau HTML bilang ia menjalankan WebView
 @en

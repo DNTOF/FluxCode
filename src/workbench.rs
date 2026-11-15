@@ -2532,7 +2532,7 @@ impl Workbench {
             .child(div().px_2().flex_1().truncate().text_color(c(theme::FG)).child(self.status.clone()))
             .child(self.render_agent_hint(cx))
             .when(!pos.is_empty(), |h| {
-                h.child(self.render_copilot_hint(cx)).child(seg(pos.into())).when(!is_image, |h| h.child(seg(crlf.into()))).child(seg("UTF-8".into())).child(seg(lang.into()))
+                h.child(self.render_copilot_hint(cx)).child(seg(pos.into())).when(!is_image, |h| h.child(seg(crlf.into())).child(seg("UTF-8".into()))).child(seg(lang.into()))
             })
             .child(self.render_theme_button(cx))
     }
