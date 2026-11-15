@@ -13,6 +13,7 @@ use gpui_kit::component::{
 use gpui_kit::{prelude::FluentBuilder, *};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 const REPO_URL: &str = "https://github.com/MuaraAI/FluxCode";
 const ISSUES_URL: &str = "https://github.com/MuaraAI/FluxCode/issues/new/choose";
@@ -292,6 +293,199 @@ impl Session {
     }
 }
 
+/// One page of the Settings UI. The left navigation lists these, and the
+/// main area shows one at a time.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SettingsSection {
+    Appearance,
+    Editor,
+    Wsl,
+    Agents,
+    SoulFiles,
+    Shortcuts,
+    Updates,
+    About,
+}
+
+impl SettingsSection {
+    pub(crate) const ALL: [SettingsSection; 8] = [
+        SettingsSection::Appearance,
+        SettingsSection::Editor,
+        SettingsSection::Wsl,
+        SettingsSection::Agents,
+        SettingsSection::SoulFiles,
+        SettingsSection::Shortcuts,
+        SettingsSection::Updates,
+        SettingsSection::About,
+    ];
+
+    /// The full title shown above the section in the main area.
+    pub(crate) fn title(self) -> &'static str {
+        match self {
+            SettingsSection::Appearance => "Appearance",
+            SettingsSection::Editor => "Editor",
+            SettingsSection::Wsl => "WSL",
+            SettingsSection::Agents => "AI agents and GitHub",
+            SettingsSection::SoulFiles => "Agent instructions (soul files)",
+            SettingsSection::Shortcuts => "Keyboard shortcuts",
+            SettingsSection::Updates => "Updates",
+            SettingsSection::About => "About FluxCode",
+        }
+    }
+
+    /// The short label shown in the left navigation.
+    pub(crate) fn nav_label(self) -> &'static str {
+        match self {
+            SettingsSection::SoulFiles => "Agent instructions",
+            s => s.title(),
+        }
+    }
+
+    /// One line saying what the section controls.
+    pub(crate) fn description(self) -> &'static str {
+        match self {
+            SettingsSection::Appearance => "Theme, language, interface size, and the picture behind the panels.",
+            SettingsSection::Editor => "Font, wrapping, line numbers, and the Copilot suggestions the editor shows as you type.",
+            SettingsSection::Wsl => "Read folders inside a WSL distro through a helper, instead of the slow Windows share.",
+            SettingsSection::Agents => "What the agent may do, how it docks, and the GitHub and Copilot sign-ins.",
+            SettingsSection::SoulFiles => "The files each installed agent reads for its standing instructions and character. Open one to read or edit it; a missing one can be created empty.",
+            SettingsSection::Shortcuts => "VS Code's keys. Ctrl+Shift+P (or F1) opens every command with its keys; type to filter.",
+            SettingsSection::Updates => "Check for new development builds and whether FluxCode looks for them.",
+            SettingsSection::About => "What FluxCode is, where its code lives, and how to report a problem.",
+        }
+    }
+
+    /// True when any setting in this section differs from its default, for
+    /// the dot on the nav row.
+    pub(crate) fn modified(self, w: &Workbench) -> bool {
+        let s = &w.settings;
+        match self {
+            SettingsSection::Appearance => s.theme != PALETTES[0].id || s.language != "auto" || s.ui_size != UiSize::default() || s.bg_image.is_some(),
+            SettingsSection::Editor => {
+                s.font_size != 15.
+                    || s.tab_size != 4
+                    || s.word_wrap
+                    || s.show_whitespace
+                    || !s.auto_save
+                    || &*s.font_family != "Cascadia Code"
+                    || !s.line_numbers
+                    || !s.folding
+                    || !s.auto_close
+                    || !s.smart_indent
+                    || s.cursor_padding != 0
+                    || !s.scroll_past_end
+                    || !s.copilot
+            }
+            SettingsSection::Wsl => s.wsl_helper,
+            SettingsSection::Agents => {
+                !s.agent_access.is_empty()
+                    || s.agent_auto_approve
+                    || s.agent_access_off != "write"
+                    || s.agent_idle_min != 10
+                    || !s.agent_right
+                    || !s.agent_follow_edits
+                    || w.github.is_some()
+            }
+            SettingsSection::SoulFiles | SettingsSection::Shortcuts | SettingsSection::About => false,
+            SettingsSection::Updates => !s.update_check,
+        }
+    }
+}
+
+/// One setting inside a card: title and short description on the left, the
+/// control at the right edge. Rows share the card's hairline dividers, so
+/// this helper draws none of its own.
+fn settings_row(title: &'static str, desc: SharedString, control: AnyElement) -> AnyElement {
+    h_flex()
+        .w_full()
+        .py_3()
+        .px_4()
+        .gap_4()
+        .child(
+            // min_w_0: lets the description wrap instead of pushing the control off screen.
+            v_flex()
+                .flex_1()
+                .min_w_0()
+                .gap_1()
+                .child(div().text_sm().text_color(c(theme::FG_STRONG)).child(title))
+                .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(desc)),
+        )
+        .child(div().flex_none().child(control))
+        .into_any_element()
+}
+
+/// A bordered card holding one setting row per child, with a hairline
+/// between rows.
+fn settings_card(rows: Vec<AnyElement>) -> AnyElement {
+    let n = rows.len();
+    v_flex()
+        .w_full()
+        .max_w(theme::u(760.))
+        .rounded(theme::u(8.))
+        .border_1()
+        .border_color(c(theme::BORDER))
+        .bg(c(theme::BG_ELEVATED))
+        .children(rows.into_iter().enumerate().map(|(i, row)| {
+            div()
+                .when(i + 1 < n, |d| d.border_b_1().border_color(c(theme::BORDER)))
+                .child(row)
+        }))
+        .into_any_element()
+}
+
+/// The six theme palettes as a grid of swatch cards. Extracted unchanged
+/// from the old flat settings page.
+fn theme_cards(cx: &mut Context<Workbench>) -> Div {
+    // Theme cards: a strip of the palette's own colors, its name and one line.
+    let active_theme = theme::palette().id;
+    h_flex().w_full().max_w(theme::u(760.)).flex_wrap().gap_3().py_3().children(PALETTES.iter().map(|p| {
+        let on = p.id == active_theme;
+        let id = p.id;
+        let [surface, side, accent, text] = p.swatches();
+        v_flex()
+            .id(SharedString::from(format!("theme-{id}")))
+            .w(theme::u(176.))
+            .rounded(px(6.))
+            .overflow_hidden()
+            .cursor_pointer()
+            .border_2()
+            .border_color(if on { c(theme::ACCENT) } else { c(theme::BORDER) })
+            // One hover style (gpui allows only one): the active card keeps its accent.
+            .hover(move |s| s.border_color(c(if on { theme::ACCENT } else { theme::BORDER_STRONG })))
+            .on_click(cx.listener(move |this, _, w, cx| this.set_theme(id, w, cx)))
+            .child(
+                h_flex()
+                    .h(theme::u(56.))
+                    .child(div().w(px(36.)).h_full().bg(c(side)))
+                    .child(
+                        v_flex()
+                            .flex_1()
+                            .h_full()
+                            .p_2()
+                            .gap_1()
+                            .bg(c(surface))
+                            .child(div().w(px(70.)).h(px(4.)).rounded(px(2.)).bg(c(text)))
+                            .child(div().w(px(46.)).h(px(4.)).rounded(px(2.)).bg(c(accent)))
+                            .child(div().w(px(92.)).h(px(4.)).rounded(px(2.)).bg(c(text)).opacity(0.6)),
+                    ),
+            )
+            .child(
+                v_flex()
+                    .px_2()
+                    .py_2()
+                    .gap(px(2.))
+                    .bg(c(theme::BG_ELEVATED))
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .child(div().flex_1().text_sm().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(p.name))
+                            .when(on, |h| h.child(div().text_xs().text_color(c(theme::ACCENT_TEXT)).child(tr("Active")))),
+                    )
+                    .child(div().text_xs().truncate().text_color(c(theme::FG_MUTED)).child(p.note)),
+            )
+    }))
+}
+
 impl Workbench {
     pub(crate) fn apply_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settings.save();
@@ -360,36 +554,129 @@ impl Workbench {
             this.settings_open = false;
             cx.notify();
         });
-        let s = &self.settings;
-        let section = |title: &'static str| {
+        let section = self.settings_section;
+        let content = self.settings_section_content(section, cx);
+        let key = SharedString::from(format!("settings-section-{}", section as u8));
+        // Switching sections fades the new one in over 160 ms, opacity only.
+        // The feel follows PandaCode (aicodeking/pandacode, src/motion.css and
+        // src/motion.ts): its content appears with a 160 ms ease-out fade from
+        // opacity 0, and it never animates a layout property such as top or
+        // left, so no layout pass runs per frame. The fade uses GPUI's cubic
+        // ease-out, the same curve as CSS ease-out, and only the active
+        // section is built. Under the system's reduce-motion setting there is
+        // no motion at all.
+        let body = if cx.reduce_motion() {
+            div().child(content).into_any_element()
+        } else {
             div()
-                .w_full()
-                .max_w(theme::u(760.))
-                .pt_6()
-                .pb_1()
-                .text_color(c(theme::FG_STRONG))
-                .font_weight(FontWeight::SEMIBOLD)
-                .child(title)
+                .child(content)
+                .with_animation(key, Animation::new(Duration::from_millis(160)).with_easing(gpui_kit::base::animation::ease_out_cubic), |el, t| {
+                    el.opacity(t)
+                })
+                .into_any_element()
         };
-        let row = |title: &'static str, desc: SharedString, control: AnyElement| {
-            h_flex()
-                .w_full()
-                .max_w(theme::u(760.))
-                .py_3()
-                .gap_4()
-                .border_b_1()
-                .border_color(c(theme::BORDER))
-                .child(
-                    // min_w_0: lets the description wrap instead of pushing the control off screen.
-                    v_flex()
-                        .flex_1()
-                        .min_w_0()
-                        .gap_1()
-                        .child(div().text_sm().text_color(c(theme::FG_STRONG)).child(title))
-                        .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(desc)),
-                )
-                .child(div().flex_none().child(control))
-        };
+        h_flex()
+            .id("settings")
+            .size_full()
+            .bg(c(theme::BG_EDITOR))
+            .child(self.render_settings_nav(cx))
+            .child(
+                v_flex()
+                    .id("settings-content")
+                    .flex_1()
+                    .min_w_0()
+                    .h_full()
+                    .overflow_y_scroll()
+                    .px_8()
+                    .py_6()
+                    .child(
+                        h_flex()
+                            .w_full()
+                            .max_w(theme::u(760.))
+                            .items_start()
+                            .gap_4()
+                            .child(
+                                v_flex()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .gap_1()
+                                    .child(div().text_xl().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr(section.title())))
+                                    .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(tr(section.description()))),
+                            )
+                            .child(close_btn),
+                    )
+                    .child(div().h(theme::u(16.)))
+                    .child(body),
+            )
+            .into_any_element()
+    }
+
+    /// The left navigation: one row per section, an accent bar on the active
+    /// row, and a dot on rows whose section differs from the defaults.
+    fn render_settings_nav(&self, cx: &mut Context<Self>) -> AnyElement {
+        v_flex()
+            .w(theme::u(208.))
+            .h_full()
+            .flex_shrink_0()
+            .bg(c(theme::BG_SIDE))
+            .border_r_1()
+            .border_color(c(theme::BORDER))
+            .py_3()
+            .px_2()
+            .child(
+                div()
+                    .px_3()
+                    .pb_2()
+                    .text_sm()
+                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_color(c(theme::FG_STRONG))
+                    .child(tr("Settings")),
+            )
+            .children(SettingsSection::ALL.iter().enumerate().map(|(ix, sec)| {
+                let sec = *sec;
+                let active = sec == self.settings_section;
+                let modified = sec.modified(self);
+                div()
+                    .relative()
+                    .id(SharedString::from(format!("settings-nav-{ix}")))
+                    .h(theme::u(30.))
+                    .px_3()
+                    .rounded(theme::u(6.))
+                    .cursor_pointer()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .when(active, |d| d.bg(c(theme::SELECT)))
+                    .when(!active, |d| d.hover(|s| s.bg(c(theme::BG_HOVER))))
+                    .when(active, |d| {
+                        d.child(
+                            div()
+                                .absolute()
+                                .left(px(0.))
+                                .top(theme::u(7.))
+                                .bottom(theme::u(7.))
+                                .w(px(2.))
+                                .rounded_full()
+                                .bg(c(theme::ACCENT)),
+                        )
+                    })
+                    .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(if active { theme::FG_STRONG } else { theme::FG })).child(tr(sec.nav_label())))
+                    .when(modified, |d| d.child(div().size(px(6.)).rounded_full().bg(c(theme::WARN))))
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.settings_section = sec;
+                        cx.notify();
+                    }))
+            }))
+            .into_any_element()
+    }
+
+    /// Builds the content of one section. Only the active section is built,
+    /// so opening Settings no longer reads the soul files or lists the
+    /// shortcuts of the rest.
+    fn settings_section_content(&self, section: SettingsSection, cx: &mut Context<Self>) -> AnyElement {
+        let s = &self.settings;
+        // Same behaviour as the old flat page: each control applies the
+        // setting and saves it at once.
         let stepper = |id: &'static str, value: String, f: fn(&mut Workbench, i32)| {
             h_flex()
                 .gap_1()
@@ -415,334 +702,261 @@ impl Workbench {
                 }))
                 .into_any_element()
         };
-
-        // Theme cards: a strip of the palette's own colors, its name and one line.
-        let active_theme = theme::palette().id;
-        let cards = h_flex().w_full().max_w(theme::u(760.)).flex_wrap().gap_3().py_3().children(PALETTES.iter().map(|p| {
-            let on = p.id == active_theme;
-            let id = p.id;
-            let [surface, side, accent, text] = p.swatches();
-            v_flex()
-                .id(SharedString::from(format!("theme-{id}")))
-                .w(theme::u(176.))
-                .rounded(px(6.))
-                .overflow_hidden()
-                .cursor_pointer()
-                .border_2()
-                .border_color(if on { c(theme::ACCENT) } else { c(theme::BORDER) })
-                // One hover style (gpui allows only one): the active card keeps its accent.
-                .hover(move |s| s.border_color(c(if on { theme::ACCENT } else { theme::BORDER_STRONG })))
-                .on_click(cx.listener(move |this, _, w, cx| this.set_theme(id, w, cx)))
-                .child(
-                    h_flex()
-                        .h(theme::u(56.))
-                        .child(div().w(px(36.)).h_full().bg(c(side)))
-                        .child(
-                            v_flex()
-                                .flex_1()
-                                .h_full()
-                                .p_2()
-                                .gap_1()
-                                .bg(c(surface))
-                                .child(div().w(px(70.)).h(px(4.)).rounded(px(2.)).bg(c(text)))
-                                .child(div().w(px(46.)).h(px(4.)).rounded(px(2.)).bg(c(accent)))
-                                .child(div().w(px(92.)).h(px(4.)).rounded(px(2.)).bg(c(text)).opacity(0.6)),
-                        ),
-                )
-                .child(
-                    v_flex()
-                        .px_2()
-                        .py_2()
-                        .gap(px(2.))
-                        .bg(c(theme::BG_ELEVATED))
-                        .child(
-                            h_flex()
-                                .gap_2()
-                                .child(div().flex_1().text_sm().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(p.name))
-                                .when(on, |h| h.child(div().text_xs().text_color(c(theme::ACCENT_TEXT)).child(tr("Active")))),
-                        )
-                        .child(div().text_xs().truncate().text_color(c(theme::FG_MUTED)).child(p.note)),
-                )
-        }));
-
-        // Background image: choose / remove, and how strongly it shows.
-        let bg_state: (SharedString, bool) = match (&s.bg_image, s.background()) {
-            (None, _) => ("No image. Panels use the theme's solid colors.".into(), false),
-            (Some(p), None) => (crate::trf!("{0} was not found. Choose another image or remove it."; 0 => p.display()).into(), true),
-            (Some(p), Some(_)) => (p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default().into(), false),
-        };
-        let bg_controls = h_flex()
-            .gap_2()
-            .child(Button::new("bg-choose").label(if s.bg_image.is_some() { tr("Change image…") } else { tr("Choose image…") }).xsmall().on_click(cx.listener(|this, _, w, cx| this.choose_background(w, cx))))
-            .when(s.bg_image.is_some(), |h| {
-                h.child(Button::new("bg-remove").label(tr("Remove")).xsmall().on_click(cx.listener(|this, _, w, cx| {
-                    this.settings.bg_image = None;
-                    this.apply_appearance(w, cx);
-                    this.status = tr("Background image removed").into();
-                })))
-            })
-            .into_any_element();
-        let vis = s.bg_visibility;
-        let vis_controls = h_flex()
-            .gap_1()
-            .children(Visibility::ALL.iter().map(|v| {
-                let v = *v;
-                Button::new(SharedString::from(format!("bg-vis-{}", v.label())))
-                    .label(tr(v.label()))
-                    .xsmall()
-                    .when(v == vis, |b| b.primary())
-                    .on_click(cx.listener(move |this, _, w, cx| {
-                        this.settings.bg_visibility = v;
-                        this.apply_appearance(w, cx);
+        match section {
+            SettingsSection::Appearance => {
+                // Language names stay in their own language, so they can be found in either.
+                let lang = s.language.clone();
+                let lang_controls = h_flex()
+                    .gap_1()
+                    .children([("auto", tr("Automatic")), ("en", "English"), ("id", "Bahasa Indonesia")].into_iter().map(|(id, name)| {
+                        Button::new(SharedString::from(format!("lang-{id}")))
+                            .label(name)
+                            .xsmall()
+                            .when(lang == id, |b| b.primary())
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                this.settings.language = id.into();
+                                crate::i18n::set(id);
+                                this.apply_language(w, cx);
+                                this.apply_settings(w, cx);
+                            }))
                     }))
-            }))
-            .into_any_element();
-        let size = s.ui_size;
-        let size_controls = h_flex()
-            .gap_1()
-            .children(UiSize::ALL.iter().map(|z| {
-                let z = *z;
-                Button::new(SharedString::from(format!("ui-size-{}", z.label())))
-                    .label(tr(z.label()))
-                    .xsmall()
-                    .when(z == size, |b| b.primary())
-                    .on_click(cx.listener(move |this, _, w, cx| {
-                        this.settings.ui_size = z;
-                        this.apply_appearance(w, cx);
+                    .into_any_element();
+                let size = s.ui_size;
+                let size_controls = h_flex()
+                    .gap_1()
+                    .children(UiSize::ALL.iter().map(|z| {
+                        let z = *z;
+                        Button::new(SharedString::from(format!("ui-size-{}", z.label())))
+                            .label(tr(z.label()))
+                            .xsmall()
+                            .when(z == size, |b| b.primary())
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                this.settings.ui_size = z;
+                                this.apply_appearance(w, cx);
+                            }))
                     }))
-            }))
-            .into_any_element();
-        // Language names stay in their own language, so they can be found in either.
-        let lang = s.language.clone();
-        let lang_controls = h_flex()
-            .gap_1()
-            .children([("auto", tr("Automatic")), ("en", "English"), ("id", "Bahasa Indonesia")].into_iter().map(|(id, name)| {
-                Button::new(SharedString::from(format!("lang-{id}")))
-                    .label(name)
-                    .xsmall()
-                    .when(lang == id, |b| b.primary())
-                    .on_click(cx.listener(move |this, _, w, cx| {
-                        this.settings.language = id.into();
-                        crate::i18n::set(id);
-                        this.apply_language(w, cx);
-                        this.apply_settings(w, cx);
+                    .into_any_element();
+                // Background image: choose / remove, and how strongly it shows.
+                let bg_state: (SharedString, bool) = match (&s.bg_image, s.background()) {
+                    (None, _) => ("No image. Panels use the theme's solid colors.".into(), false),
+                    (Some(p), None) => (crate::trf!("{0} was not found. Choose another image or remove it."; 0 => p.display()).into(), true),
+                    (Some(p), Some(_)) => (p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default().into(), false),
+                };
+                let bg_controls = h_flex()
+                    .gap_2()
+                    .child(Button::new("bg-choose").label(if s.bg_image.is_some() { tr("Change image…") } else { tr("Choose image…") }).xsmall().on_click(cx.listener(|this, _, w, cx| this.choose_background(w, cx))))
+                    .when(s.bg_image.is_some(), |h| {
+                        h.child(Button::new("bg-remove").label(tr("Remove")).xsmall().on_click(cx.listener(|this, _, w, cx| {
+                            this.settings.bg_image = None;
+                            this.apply_appearance(w, cx);
+                            this.status = tr("Background image removed").into();
+                        })))
+                    })
+                    .into_any_element();
+                let vis = s.bg_visibility;
+                let vis_controls = h_flex()
+                    .gap_1()
+                    .children(Visibility::ALL.iter().map(|v| {
+                        let v = *v;
+                        Button::new(SharedString::from(format!("bg-vis-{}", v.label())))
+                            .label(tr(v.label()))
+                            .xsmall()
+                            .when(v == vis, |b| b.primary())
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                this.settings.bg_visibility = v;
+                                this.apply_appearance(w, cx);
+                            }))
                     }))
-            }))
-            .into_any_element();
-        let access = s.access().to_string();
-        let access_controls = h_flex()
-            .gap_1()
-            .children([("read", tr("Read only")), ("write", tr("Read & write")), ("full", tr("Full access"))].into_iter().map(|(id, name)| {
-                Button::new(SharedString::from(format!("access-{id}")))
-                    .label(name)
-                    .xsmall()
-                    .when(access == id, |b| b.primary())
-                    .on_click(cx.listener(move |this, _, w, cx| {
-                        this.settings.agent_access = id.into();
-                        this.apply_settings(w, cx);
+                    .into_any_element();
+                let vis_desc: SharedString = match vis {
+                    Visibility::Strong => tr("Strong: the picture shows clearly. Over very bright pictures, dim text (line numbers, hints) can drop below comfortable contrast.").into(),
+                    _ => tr("How much of the picture shows through the panels. The code side of the editor always gets less of it than the right edge.").into(),
+                };
+                let mut rows = vec![
+                    div().p_4().child(theme_cards(cx)).into_any_element(),
+                    settings_row(tr("Language"), tr("Menus, panels and messages. Automatic follows Windows.").into(), lang_controls),
+                    settings_row(
+                        tr("Interface size"),
+                        tr("Menus, tabs, the explorer, panels and icons. The editor font has its own size below.").into(),
+                        size_controls,
+                    ),
+                    settings_row(
+                        tr("Background image"),
+                        if bg_state.1 { bg_state.0.clone() } else { crate::trf!("A picture of your own behind the panels. Stays on your PC. Current: {0}"; 0 => bg_state.0).into() },
+                        bg_controls,
+                    ),
+                ];
+                if s.background().is_some() {
+                    rows.push(settings_row(tr("Background visibility"), vis_desc, vis_controls));
+                }
+                settings_card(rows)
+            }
+            SettingsSection::Editor => {
+                let fonts: &[&'static str] = if cfg!(windows) {
+                    &["Cascadia Code", "Cascadia Mono", "Consolas", "Courier New"]
+                } else {
+                    &["DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", "Ubuntu Mono"]
+                };
+                let current_font = s.font_family.to_string();
+                let font_controls = h_flex()
+                    .gap_1()
+                    .flex_wrap()
+                    .justify_end()
+                    .max_w(theme::u(360.))
+                    .children(fonts.iter().map(|f| {
+                        let f = *f;
+                        Button::new(SharedString::from(format!("font-{f}")))
+                            .label(f)
+                            .xsmall()
+                            .when(current_font == f, |b| b.primary())
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                this.settings.font_family = f.into();
+                                this.apply_settings(w, cx);
+                            }))
                     }))
-            }))
-            .into_any_element();
-        let update_controls = h_flex()
-            .gap_2()
-            .child(Button::new("upd-now").label(tr("Check now")).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| this.check_updates_now(cx))))
-            .child(toggle("upd", s.update_check, |w| w.settings.update_check = !w.settings.update_check))
-            .into_any_element();
-        let fonts: &[&'static str] = if cfg!(windows) {
-            &["Cascadia Code", "Cascadia Mono", "Consolas", "Courier New"]
-        } else {
-            &["DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", "Ubuntu Mono"]
-        };
-        let current_font = s.font_family.to_string();
-        let font_controls = h_flex()
-            .gap_1()
-            .flex_wrap()
-            .justify_end()
-            .max_w(theme::u(360.))
-            .children(fonts.iter().map(|f| {
-                let f = *f;
-                Button::new(SharedString::from(format!("font-{f}")))
-                    .label(f)
-                    .xsmall()
-                    .when(current_font == f, |b| b.primary())
-                    .on_click(cx.listener(move |this, _, w, cx| {
-                        this.settings.font_family = f.into();
-                        this.apply_settings(w, cx);
-                    }))
-            }))
-            .into_any_element();
-        let shortcuts = v_flex().w_full().max_w(theme::u(760.)).children(crate::commands::commands().into_iter().filter(|k| !k.keys.is_empty()).map(|k| {
-            h_flex()
-                .w_full()
-                .py_1()
-                .gap_3()
-                .border_b_1()
-                .border_color(c(theme::BORDER))
-                .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(theme::FG)).child(tr(k.label)))
-                .child(crate::quick::keys_chips(k.keys))
-        }));
-        let vis_desc: SharedString = match vis {
-            Visibility::Strong => tr("Strong: the picture shows clearly. Over very bright pictures, dim text (line numbers, hints) can drop below comfortable contrast.").into(),
-            _ => tr("How much of the picture shows through the panels. The code side of the editor always gets less of it than the right edge.").into(),
-        };
-
-        v_flex()
-            .id("settings")
-            .size_full()
-            .px_8()
-            .py_6()
-            .overflow_y_scroll()
-            .bg(c(theme::BG_EDITOR))
-            .child(
-                h_flex()
-                    .w_full()
-                    .max_w(theme::u(760.))
-                    .child(div().flex_1().text_xl().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr("Settings")))
-                    .child(close_btn),
-            )
-            .child(section(tr("Appearance")))
-            .child(
-                div()
-                    .w_full()
-                    .max_w(theme::u(760.))
-                    .text_xs()
-                    .text_color(c(theme::FG_MUTED))
-                    .child(tr("Color theme. Ctrl+K Ctrl+T switches to the next one from anywhere.")),
-            )
-            .child(cards)
-            .child(row(tr("Language"), tr("Menus, panels and messages. Automatic follows Windows.").into(), lang_controls))
-            .child(row(
-                tr("Interface size"),
-                tr("Menus, tabs, the explorer, panels and icons. The editor font has its own size below.").into(),
-                size_controls,
-            ))
-            .child(row(
-                tr("Background image"),
-                if bg_state.1 { bg_state.0.clone() } else { crate::trf!("A picture of your own behind the panels. Stays on your PC. Current: {0}"; 0 => bg_state.0).into() },
-                bg_controls,
-            ))
-            .when(s.background().is_some(), |v| v.child(row(tr("Background visibility"), vis_desc, vis_controls)))
-            .child(section(tr("Editor")))
-            .child(row(tr("Font size"), tr("Font size of the editor and terminal, in pixels.").into(), stepper("fs", format!("{}", s.font_size), |w, d| {
-                w.settings.font_size = (w.settings.font_size + d as f32).clamp(8., 32.)
-            })))
-            .child(row(tr("Tab size"), tr("Spaces per indentation level (applies to newly opened files).").into(), stepper("ts", s.tab_size.to_string(), |w, d| {
-                w.settings.tab_size = (w.settings.tab_size as i32 + d).clamp(1, 8) as usize
-            })))
-            .child(row(tr("Word wrap"), tr("Wrap long lines at the edge of the editor.").into(), toggle("ww", s.word_wrap, |w| w.settings.word_wrap = !w.settings.word_wrap)))
-            .child(row(
-                tr("Whitespace dots"),
-                tr("Show each space as a faint dot, next to the guide lines that mark how far each block reaches.").into(),
-                toggle("wsd", s.show_whitespace, |w| w.settings.show_whitespace = !w.settings.show_whitespace),
-            ))
-            .child(row(tr("Auto save"), tr("Save a file shortly after you stop typing.").into(), toggle("as", s.auto_save, |w| w.settings.auto_save = !w.settings.auto_save)))
-            .child(row(tr("Font"), tr("The editor and terminal font. Fonts that are not installed fall back to the system's monospace font.").into(), font_controls))
-            .child(row(tr("Line numbers"), tr("Numbers in the gutter left of the code.").into(), toggle("ln", s.line_numbers, |w| w.settings.line_numbers = !w.settings.line_numbers)))
-            .child(row(tr("Code folding"), tr("Arrows in the gutter that fold a block away.").into(), toggle("fold", s.folding, |w| w.settings.folding = !w.settings.folding)))
-            .child(row(tr("Close brackets and quotes"), tr("Typing ( [ { or a quote adds its closing pair.").into(), toggle("acl", s.auto_close, |w| w.settings.auto_close = !w.settings.auto_close)))
-            .child(row(tr("Smart indent"), tr("A new line keeps the indentation, and indents one more level after { or :.").into(), toggle("si", s.smart_indent, |w| w.settings.smart_indent = !w.settings.smart_indent)))
-            .child(row(tr("Cursor padding"), tr("Lines kept visible above and below the cursor as it moves (0: the editor's default).").into(), stepper("cp", s.cursor_padding.to_string(), |w, d| {
-                w.settings.cursor_padding = (w.settings.cursor_padding as i32 + d).clamp(0, 12) as u32
-            })))
-            .child(row(tr("Scroll past the last line"), tr("Leave room below the end of a file, so its last lines can sit mid-screen.").into(), toggle("spe", s.scroll_past_end, |w| w.settings.scroll_past_end = !w.settings.scroll_past_end)))
-            .child(row(
-                tr("Copilot suggestions"),
-                tr("Ghost-text completions from GitHub Copilot, a moment after you stop typing. Tab accepts, Esc dismisses. The Copilot language server does the work in its own process, so the editor stays light.").into(),
-                toggle("cpl", s.copilot, |w| w.settings.copilot = !w.settings.copilot),
-            ))
-            .child(section(tr("WSL")))
-            .child(row(
+                    .into_any_element();
+                settings_card(vec![
+                    settings_row(tr("Font size"), tr("Font size of the editor and terminal, in pixels.").into(), stepper("fs", format!("{}", s.font_size), |w, d| {
+                        w.settings.font_size = (w.settings.font_size + d as f32).clamp(8., 32.)
+                    })),
+                    settings_row(tr("Tab size"), tr("Spaces per indentation level (applies to newly opened files).").into(), stepper("ts", s.tab_size.to_string(), |w, d| {
+                        w.settings.tab_size = (w.settings.tab_size as i32 + d).clamp(1, 8) as usize
+                    })),
+                    settings_row(tr("Word wrap"), tr("Wrap long lines at the edge of the editor.").into(), toggle("ww", s.word_wrap, |w| w.settings.word_wrap = !w.settings.word_wrap)),
+                    settings_row(
+                        tr("Whitespace dots"),
+                        tr("Show each space as a faint dot, next to the guide lines that mark how far each block reaches.").into(),
+                        toggle("wsd", s.show_whitespace, |w| w.settings.show_whitespace = !w.settings.show_whitespace),
+                    ),
+                    settings_row(tr("Auto save"), tr("Save a file shortly after you stop typing.").into(), toggle("as", s.auto_save, |w| w.settings.auto_save = !w.settings.auto_save)),
+                    settings_row(tr("Font"), tr("The editor and terminal font. Fonts that are not installed fall back to the system's monospace font.").into(), font_controls),
+                    settings_row(tr("Line numbers"), tr("Numbers in the gutter left of the code.").into(), toggle("ln", s.line_numbers, |w| w.settings.line_numbers = !w.settings.line_numbers)),
+                    settings_row(tr("Code folding"), tr("Arrows in the gutter that fold a block away.").into(), toggle("fold", s.folding, |w| w.settings.folding = !w.settings.folding)),
+                    settings_row(tr("Close brackets and quotes"), tr("Typing ( [ { or a quote adds its closing pair.").into(), toggle("acl", s.auto_close, |w| w.settings.auto_close = !w.settings.auto_close)),
+                    settings_row(tr("Smart indent"), tr("A new line keeps the indentation, and indents one more level after { or :.").into(), toggle("si", s.smart_indent, |w| w.settings.smart_indent = !w.settings.smart_indent)),
+                    settings_row(tr("Cursor padding"), tr("Lines kept visible above and below the cursor as it moves (0: the editor's default).").into(), stepper("cp", s.cursor_padding.to_string(), |w, d| {
+                        w.settings.cursor_padding = (w.settings.cursor_padding as i32 + d).clamp(0, 12) as u32
+                    })),
+                    settings_row(tr("Scroll past the last line"), tr("Leave room below the end of a file, so its last lines can sit mid-screen.").into(), toggle("spe", s.scroll_past_end, |w| w.settings.scroll_past_end = !w.settings.scroll_past_end)),
+                    settings_row(
+                        tr("Copilot suggestions"),
+                        tr("Ghost-text completions from GitHub Copilot, a moment after you stop typing. Tab accepts, Esc dismisses. The Copilot language server does the work in its own process, so the editor stays light.").into(),
+                        toggle("cpl", s.copilot, |w| w.settings.copilot = !w.settings.copilot),
+                    ),
+                ])
+            }
+            SettingsSection::Wsl => settings_card(vec![settings_row(
                 tr("Read WSL folders through a helper in the distro"),
                 tr("Faster: the helper reads the distro's own disk instead of Windows' 9p share. It is FluxCode itself, built for Linux, taken from this build's release and installed once in ~/.fluxcode/helper. Off: folders are read through \\\\wsl.localhost, which works but is slower.").into(),
                 toggle("wslh", s.wsl_helper, |w| w.settings.wsl_helper = !w.settings.wsl_helper),
-            ))
-            .child(section(tr("AI agents and GitHub")))
-            .child(row(
-                tr("AI agent: access"),
-                tr("Read only: it reads and explains, edits and commands are refused. Read & write: it edits files (Undo is under the chat), commands ask first. Full access: nothing asks.").into(),
-                access_controls,
-            ))
-            .child(row(
-                tr("AI agent: turn off when idle"),
-                tr("After 10 idle minutes the agent process stops and frees its memory (OpenCode uses several hundred MB). Your next message starts it again and continues the same chat.").into(),
-                toggle("idle", s.agent_idle_min > 0, |w| w.settings.agent_idle_min = if w.settings.agent_idle_min == 0 { 10 } else { 0 }),
-            ))
-            .child(row(
-                tr("Agent panel on the right"),
-                tr("Dock the agent chat beside the editor instead of in the side bar. The arrow button in its header does the same.").into(),
-                toggle("ar", s.agent_right, |w| w.settings.agent_right = !w.settings.agent_right),
-            ))
-            .child(row(
-                tr("Follow the agent's edits"),
-                tr("When the agent changes a file, it opens in the editor and the change is typed in line by line while the view follows it. Takes under a second and never slows the agent.").into(),
-                toggle("follow", s.agent_follow_edits, |w| w.settings.agent_follow_edits = !w.settings.agent_follow_edits),
-            ))
-            .child(row(tr("GitHub"), tr("Sign in so gh, git and OpenCode inside FluxCode can use your account (GH_TOKEN).").into(), self.render_github(cx)))
-            .child(row(
-                tr("GitHub Copilot"),
-                tr("Sign in so the editor can suggest the next lines of code. Needs the Copilot language server installed once, and a Copilot plan (a free plan exists).").into(),
-                self.render_copilot(cx),
-            ))
-            .child(section(tr("Agent instructions (soul files)")))
-            .child(
-                div()
-                    .w_full()
-                    .max_w(theme::u(760.))
-                    .pb_2()
-                    .text_xs()
-                    .text_color(c(theme::FG_MUTED))
-                    .child(tr("The files each installed agent reads for its standing instructions and character. Open one to read or edit it; a missing one can be created empty.")),
-            )
-            .child(self.render_soul_files(cx))
-            .child(section(tr("Keyboard shortcuts")))
-            .child(
-                div()
-                    .w_full()
-                    .max_w(theme::u(760.))
-                    .pb_2()
-                    .text_xs()
-                    .text_color(c(theme::FG_MUTED))
-                    .child(tr("VS Code's keys. Ctrl+Shift+P (or F1) opens every command with its keys; type to filter.")),
-            )
-            .child(shortcuts)
-            .child(section(tr("Updates")))
-            .child(row(
-                tr("Check for new builds"),
-                crate::trf!("FluxCode asks github.com for its list of releases at start and every 6 hours. Nothing about you, this PC or your files is sent. This is {0}."; 0 => crate::update::BUILD).into(),
-                update_controls,
-            ))
-            .child(section(tr("About FluxCode")))
-            .child(
+            )]),
+            SettingsSection::Agents => {
+                let access = s.access().to_string();
+                let access_controls = h_flex()
+                    .gap_1()
+                    .children([("read", tr("Read only")), ("write", tr("Read & write")), ("full", tr("Full access"))].into_iter().map(|(id, name)| {
+                        Button::new(SharedString::from(format!("access-{id}")))
+                            .label(name)
+                            .xsmall()
+                            .when(access == id, |b| b.primary())
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                this.settings.agent_access = id.into();
+                                this.apply_settings(w, cx);
+                            }))
+                    }))
+                    .into_any_element();
+                settings_card(vec![
+                    settings_row(
+                        tr("AI agent: access"),
+                        tr("Read only: it reads and explains, edits and commands are refused. Read & write: it edits files (Undo is under the chat), commands ask first. Full access: nothing asks.").into(),
+                        access_controls,
+                    ),
+                    settings_row(
+                        tr("AI agent: turn off when idle"),
+                        tr("After 10 idle minutes the agent process stops and frees its memory (OpenCode uses several hundred MB). Your next message starts it again and continues the same chat.").into(),
+                        toggle("idle", s.agent_idle_min > 0, |w| w.settings.agent_idle_min = if w.settings.agent_idle_min == 0 { 10 } else { 0 }),
+                    ),
+                    settings_row(
+                        tr("Agent panel on the right"),
+                        tr("Dock the agent chat beside the editor instead of in the side bar. The arrow button in its header does the same.").into(),
+                        toggle("ar", s.agent_right, |w| w.settings.agent_right = !w.settings.agent_right),
+                    ),
+                    settings_row(
+                        tr("Follow the agent's edits"),
+                        tr("When the agent changes a file, it opens in the editor and the change is typed in line by line while the view follows it. Takes under a second and never slows the agent.").into(),
+                        toggle("follow", s.agent_follow_edits, |w| w.settings.agent_follow_edits = !w.settings.agent_follow_edits),
+                    ),
+                    settings_row(tr("GitHub"), tr("Sign in so gh, git and OpenCode inside FluxCode can use your account (GH_TOKEN).").into(), self.render_github(cx)),
+                    settings_row(
+                        tr("GitHub Copilot"),
+                        tr("Sign in so the editor can suggest the next lines of code. Needs the Copilot language server installed once, and a Copilot plan (a free plan exists).").into(),
+                        self.render_copilot(cx),
+                    ),
+                ])
+            }
+            SettingsSection::SoulFiles => settings_card(vec![div().p_4().child(self.render_soul_files(cx)).into_any_element()]),
+            SettingsSection::Shortcuts => {
+                let shortcuts = v_flex().w_full().children(crate::commands::commands().into_iter().filter(|k| !k.keys.is_empty()).map(|k| {
+                    h_flex()
+                        .w_full()
+                        .py_1()
+                        .gap_3()
+                        .border_b_1()
+                        .border_color(c(theme::BORDER))
+                        .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(theme::FG)).child(tr(k.label)))
+                        .child(crate::quick::keys_chips(k.keys))
+                }));
+                settings_card(vec![div().p_4().child(shortcuts).into_any_element()])
+            }
+            SettingsSection::Updates => {
+                let update_controls = h_flex()
+                    .gap_2()
+                    .child(Button::new("upd-now").label(tr("Check now")).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| this.check_updates_now(cx))))
+                    .child(toggle("upd", s.update_check, |w| w.settings.update_check = !w.settings.update_check))
+                    .into_any_element();
+                settings_card(vec![settings_row(
+                    tr("Check for new builds"),
+                    crate::trf!("FluxCode asks github.com for its list of releases at start and every 6 hours. Nothing about you, this PC or your files is sent. This is {0}."; 0 => crate::update::BUILD).into(),
+                    update_controls,
+                )])
+            }
+            SettingsSection::About => {
                 v_flex()
                     .w_full()
                     .max_w(theme::u(760.))
-                    .py_3()
-                    .gap_2()
-                    .text_xs()
-                    .child(div().text_color(c(theme::FG)).child(tr("FluxCode is open source under the GPL-3.0 license and still in development, so expect rough edges and frequent builds. The code, every build and the issue tracker are on GitHub.")))
-                    .child(div().text_color(c(theme::FG_MUTED)).child(tr("A MuaraAI project, built by a first-semester university student in Indonesia. Copyright (C) 2026 MuaraAI and contributors.")))
+                    .gap_4()
+                    .child(settings_card(vec![div()
+                        .p_4()
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .gap_2()
+                                .text_xs()
+                                .child(div().text_color(c(theme::FG)).child(tr("FluxCode is open source under the GPL-3.0 license and still in development, so expect rough edges and frequent builds. The code, every build and the issue tracker are on GitHub.")))
+                                .child(div().text_color(c(theme::FG_MUTED)).child(tr("A MuaraAI project. Copyright (C) 2026 MuaraAI and contributors.")))
+                                .child(
+                                    h_flex()
+                                        .pt_1()
+                                        .gap_2()
+                                        .flex_wrap()
+                                        .child(Button::new("about-repo").label(tr("Open the repository")).xsmall().on_click(|_, _, cx| cx.open_url(REPO_URL)))
+                                        .child(Button::new("about-issue").label(tr("Report a problem")).xsmall().ghost().on_click(|_, _, cx| cx.open_url(ISSUES_URL)))
+                                        .child(Button::new("about-changes").label(tr("What changed")).xsmall().ghost().on_click(|_, w, cx| w.dispatch_action(Box::new(crate::workbench::ShowWhatsNew), cx))),
+                                )
+                                .child(div().text_color(c(theme::FG_DIM)).child(format!("github.com/MuaraAI/FluxCode · {}", crate::update::BUILD))),
+                        )
+                        .into_any_element()]))
                     .child(
-                        h_flex()
-                            .pt_1()
-                            .gap_2()
-                            .flex_wrap()
-                            .child(Button::new("about-repo").label(tr("Open the repository")).xsmall().on_click(|_, _, cx| cx.open_url(REPO_URL)))
-                            .child(Button::new("about-issue").label(tr("Report a problem")).xsmall().ghost().on_click(|_, _, cx| cx.open_url(ISSUES_URL)))
-                            .child(Button::new("about-changes").label(tr("What changed")).xsmall().ghost().on_click(|_, w, cx| w.dispatch_action(Box::new(crate::workbench::ShowWhatsNew), cx))),
+                        div()
+                            .text_xs()
+                            .text_color(c(theme::FG_DIM))
+                            .child(crate::trf!("Stored in {0}"; 0 => config_dir().join("settings.json").display())),
                     )
-                    .child(div().text_color(c(theme::FG_DIM)).child(format!("github.com/MuaraAI/FluxCode · {}", crate::update::BUILD))),
-            )
-            .child(
-                div()
-                    .w_full()
-                    .max_w(theme::u(760.))
-                    .pt_4()
-                    .text_xs()
-                    .text_color(c(theme::FG_DIM))
-                    .child(crate::trf!("Stored in {0}"; 0 => config_dir().join("settings.json").display())),
-            )
-            .into_any_element()
+                    .into_any_element()
+            }
+        }
     }
+
 }
 
 impl Workbench {

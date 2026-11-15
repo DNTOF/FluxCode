@@ -287,6 +287,7 @@ pub struct Workbench {
     pub(crate) status: SharedString,
     pub(crate) settings: crate::settings::Settings,
     pub(crate) settings_open: bool,
+    pub(crate) settings_section: crate::settings::SettingsSection,
     /// The "What's new" page, when it is showing (whatsnew.rs).
     pub(crate) whats_new: Option<crate::whatsnew::Page>,
     /// Paths of closed tabs, newest last, for Ctrl+Shift+T.
@@ -511,6 +512,7 @@ impl Workbench {
             status: SharedString::default(),
             settings,
             settings_open: false,
+            settings_section: crate::settings::SettingsSection::Appearance,
             whats_new: None,
             closed_tabs: Vec::new(),
             last_switch: None,
