@@ -48,7 +48,7 @@ impl WslTarget {
 /// written `//wsl.localhost/Ubuntu/home/me` still matches.
 fn split(path: &Path) -> Option<(String, String)> {
     let s = path.to_string_lossy().replace('/', "\\");
-    let s = if let Some(rest) = strip_prefix_ignore_ascii_case(&s, r"\\?\UNC\") {
+    let s = if let Some(rest) = crate::docs::strip_prefix_ignore_ascii_case(&s, r"\\?\UNC\") {
         format!(r"\\{rest}")
     } else {
         s
@@ -63,15 +63,6 @@ fn split(path: &Path) -> Option<(String, String)> {
         return None;
     }
     Some((distro.to_string(), tail.to_string()))
-}
-
-fn strip_prefix_ignore_ascii_case<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
-    let n = prefix.len();
-    if s.len() >= n && s.as_bytes()[..n].eq_ignore_ascii_case(prefix.as_bytes()) {
-        Some(&s[n..])
-    } else {
-        None
-    }
 }
 
 /// A Windows tail (`home\me`) as a Linux path (`/home/me`); empty means the root.

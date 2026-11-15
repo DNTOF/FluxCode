@@ -95,7 +95,8 @@ fn file_uri_from_abs_text(raw: &str) -> String {
     s
 }
 
-fn strip_prefix_ignore_ascii_case<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+/// `s` without `prefix`, matching the prefix case-insensitively (ASCII only).
+pub(crate) fn strip_prefix_ignore_ascii_case<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
     let n = prefix.len();
     if s.len() >= n && s.as_bytes()[..n].eq_ignore_ascii_case(prefix.as_bytes()) {
         Some(&s[n..])
