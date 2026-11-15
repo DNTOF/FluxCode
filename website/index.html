@@ -150,29 +150,41 @@ nav.main-nav a:hover { color: var(--yellow); }
   flex-shrink: 0;
 }
 
-/* Badge */
+/* Badge: a neutral bordered pill showing the exact build tag. No dot,
+   no green, no human date. */
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
   border-radius: 20px;
-  background: rgba(240, 213, 91, 0.08);
-  border: 1px solid rgba(240, 213, 91, 0.3);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   font: 500 0.85rem var(--mono);
-  color: var(--yellow);
+  color: var(--ink);
   margin-bottom: 20px;
 }
-.status-pill .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 8px var(--green);
-}
 
-/* Hero: copy on top, editor mockup full width below, so the code pane
-   is wide enough that no code line wraps mid-statement on desktop. */
+/* Hero: two columns on desktop (copy left, editor mockup right), as in
+   design.md. Width math at the 1024px breakpoint, JetBrains Mono at
+   0.8rem (12.8px, 0.6em advance = 7.68px per char): the longest code
+   line is 55 chars (422px) plus the line-number gutter (29px) plus
+   code padding (32px), so the code pane needs 484px. At 1024px the
+   content is 976px wide, so a 5fr/7fr grid with a 48px gap gives the
+   mockup 541px and the code pane 495px, 11px of slack. At 1280px the
+   code pane is 645px (161px slack); at 1920px it is 621px (137px
+   slack, container capped at 1240px). Below 1024px the mockup stacks
+   under the copy, where the full-width pane fits the code easily. */
+@media (min-width: 1024px) {
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 48px;
+    align-items: center;
+  }
+  .hero-content { max-width: none; }
+  .editor-window { margin-top: 0; }
+}
 .hero {
   padding: 72px 0 80px;
 }
@@ -260,12 +272,38 @@ nav.main-nav a:hover { color: var(--yellow); }
 .window-title {
   color: #cccfdc;
 }
+/* One view at a time: the activity bar plus a single content cell. The
+   code pane and the agent pane share that cell, and the titlebar toggle
+   switches between them, so the agent panel never squeezes the code. */
 .editor-body {
   display: grid;
-  grid-template-columns: 44px 1.4fr 1.1fr;
+  grid-template-columns: 44px minmax(0, 1fr);
   min-height: 380px;
   background: #111217;
   min-width: 0;
+}
+.activity-bar { grid-column: 1; grid-row: 1; }
+.code-pane,
+.agent-pane { grid-column: 2; grid-row: 1; }
+.code-pane[hidden],
+.agent-pane[hidden] { display: none; }
+
+/* Agent view toggle in the titlebar. */
+.agent-toggle {
+  font: 600 0.75rem var(--sans);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.agent-toggle:hover { color: var(--ink); border-color: var(--yellow); }
+.agent-toggle[aria-pressed="true"] {
+  background: rgba(240, 213, 91, 0.15);
+  border-color: rgba(240, 213, 91, 0.4);
+  color: var(--yellow);
 }
 
 /* Activity Bar */
@@ -304,7 +342,6 @@ nav.main-nav a:hover { color: var(--yellow); }
 .code-pane {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-subtle);
   overflow: hidden;
   min-width: 0;
 }
@@ -357,7 +394,6 @@ nav.main-nav a:hover { color: var(--yellow); }
   background: #15161d;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border-subtle);
   font-family: var(--sans);
   min-width: 0;
 }
@@ -458,10 +494,12 @@ nav.main-nav a:hover { color: var(--yellow); }
   font: 700 0.78rem var(--sans);
 }
 
-/* Sections: one even padding, thin dividers, no dead bands. */
+/* Sections: one even padding, thin dividers, no dead bands. The
+   scroll margin keeps anchored sections below the 72px sticky header. */
 section {
   padding: 72px 0;
   border-top: 1px solid var(--border-subtle);
+  scroll-margin-top: 88px;
 }
 /* The hero carries its own padding, so the section wrapper adds none;
    otherwise the hero got double padding (the old dead band). */
@@ -795,6 +833,11 @@ footer a:hover { color: var(--yellow); }
   .download-grid { grid-template-columns: 1fr 1fr; }
   .editor-body { grid-template-columns: 40px 1fr; }
   .agent-pane { display: none; }
+  /* The agent view is unavailable at this width, so the toggle hides
+     and the code pane always shows, even if the agent view was active
+     before the window was narrowed. */
+  .agent-toggle { display: none; }
+  .code-pane[hidden] { display: flex; }
   /* Header budget: hide the small brand text and the stars pill so the
      five nav links and the download button still fit at tablet width. */
   .brand small { display: none; }
@@ -971,8 +1014,7 @@ footer a:hover { color: var(--yellow); }
     <div class="wrap hero">
       <div class="hero-content">
         <div class="status-pill">
-          <span class="dot"></span>
-          <span id="hero-build-tag">Build dev 13 Nov 2026</span>
+          <span id="hero-build-tag">BuildDev-2026-11-13-23-10-32</span>
         </div>
         <h1>
           Editor kode native.
@@ -1010,6 +1052,7 @@ footer a:hover { color: var(--yellow); }
             <span></span><span></span><span></span>
           </div>
           <div class="window-title">FluxCode - main.rs</div>
+          <button type="button" class="agent-toggle" id="agent-toggle" aria-pressed="false" onclick="toggleAgentPane()">Agen AI</button>
         </div>
 
         <div class="editor-body">
@@ -1022,7 +1065,7 @@ footer a:hover { color: var(--yellow); }
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           </div>
 
-          <div class="code-pane">
+          <div class="code-pane" id="code-pane">
             <div class="tab-bar" role="tablist" aria-label="Contoh berkas">
               <button type="button" class="tab-item active" role="tab" aria-selected="true" data-tab="main" onclick="switchMockupTab('main')">main.rs</button>
               <button type="button" class="tab-item" role="tab" aria-selected="false" data-tab="agent" onclick="switchMockupTab('agent')">agent.flux</button>
@@ -1064,7 +1107,7 @@ footer a:hover { color: var(--yellow); }
             </div>
           </div>
 
-          <div class="agent-pane">
+          <div class="agent-pane" id="agent-pane" hidden>
             <div class="agent-header">
               <span>Agen AI (ACP)</span>
               <span class="tag">OpenCode 2</span>
@@ -1357,7 +1400,7 @@ footer a:hover { color: var(--yellow); }
 
       <div class="release-meta-box">
         <div>
-          <strong>Build terbaru:</strong> <code id="active-release-tag">BuildDev 13 Nov 2026</code>
+          <strong>Build terbaru:</strong> <code id="active-release-tag">BuildDev-2026-11-13-23-10-32</code>
         </div>
         <div>
           Setiap perbaikan kode di-build otomatis. Aplikasi yang sudah terpasang dapat melakukan update mandiri dalam 1 klik.
@@ -1460,14 +1503,6 @@ function formatBytes(bytes) {
   return mb + " MB";
 }
 
-// Build stamp as a human date, so the page never shows a raw timestamp
-// like a debug label.
-function formatBuildDate(iso) {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-}
-
 function updateUI() {
   userOS = detectUserOS();
 
@@ -1507,10 +1542,11 @@ function updateUI() {
   document.getElementById("mac-dmg-size").textContent = "Universal • " + currentRelease.assets["macos-dmg"].size;
   document.getElementById("linux-tar-size").textContent = "glibc 2.35+ • " + currentRelease.assets["linux-tar"].size;
 
-  // Release badges: a human date, not the raw build stamp.
-  const buildDate = formatBuildDate(currentRelease.published_at);
-  document.getElementById("hero-build-tag").textContent = "Build dev " + buildDate;
-  document.getElementById("active-release-tag").textContent = "BuildDev " + buildDate;
+  // Release labels: the exact build tag (for example
+  // BuildDev-2026-11-15-09-12-33), never a human date.
+  const buildTag = (currentRelease && currentRelease.tag_name) || "BuildDev-2026-11-13-23-10-32";
+  document.getElementById("hero-build-tag").textContent = buildTag;
+  document.getElementById("active-release-tag").textContent = buildTag;
 
   // "Pilihan lain" lists only the systems that are not the detected one.
   const otherOs = document.getElementById("other-os-link");
@@ -1613,9 +1649,31 @@ async function syncWithGitHub() {
   }
 }
 
+// Mockup: the agent panel is a toggleable view, not a permanent column,
+// so it never squeezes the code pane. The code view is the default.
+function toggleAgentPane() {
+  const code = document.getElementById("code-pane");
+  const agent = document.getElementById("agent-pane");
+  const btn = document.getElementById("agent-toggle");
+  if (!code || !agent || !btn) return;
+  const showAgent = agent.hidden;
+  agent.hidden = !showAgent;
+  code.hidden = showAgent;
+  btn.setAttribute("aria-pressed", showAgent ? "true" : "false");
+}
+
 // Mockup: the file tabs switch the shown sample, so the tabs do what
 // they look like they do.
 function switchMockupTab(name) {
+  // A file tab always shows the code view first.
+  const code = document.getElementById("code-pane");
+  const agent = document.getElementById("agent-pane");
+  const btn = document.getElementById("agent-toggle");
+  if (code && agent && btn) {
+    code.hidden = false;
+    agent.hidden = true;
+    btn.setAttribute("aria-pressed", "false");
+  }
   document.querySelectorAll(".tab-item").forEach(t => {
     const active = t.dataset.tab === name;
     t.classList.toggle("active", active);
