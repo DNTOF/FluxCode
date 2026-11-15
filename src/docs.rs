@@ -54,8 +54,55 @@ pub fn mime(path: &Path) -> &'static str {
     }
 }
 
+/// `file://` URI for a path, with spaces and non-ASCII percent-encoded.
+///
+/// Drive paths become `file:///C:/...`. UNC paths (`\\server\share\...` or
+/// `\\wsl.localhost\...`) become `file://server/share/...`, the form LSP
+/// and most tools expect. The `\\?\` / `\\?\UNC\` prefixes that
+/// `canonicalize()` adds on Windows are stripped first.
 pub fn file_uri(path: &Path) -> String {
-    format!("file:///{}", path.to_string_lossy().replace('\\', "/"))
+    let abs = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().unwrap_or_default().join(path)
+    };
+    file_uri_from_abs_text(&abs.to_string_lossy())
+}
+
+/// Build a `file://` URI from the text of an already-absolute path.
+/// Accepts both `\` and `/`, so the same cases can be tested on every OS.
+fn file_uri_from_abs_text(raw: &str) -> String {
+    let mut text = raw.replace('\\', "/");
+    if let Some(rest) = strip_prefix_ignore_ascii_case(&text, "//?/unc/") {
+        text = format!("//{rest}");
+    } else if let Some(rest) = strip_prefix_ignore_ascii_case(&text, "//?/") {
+        text = rest.to_string();
+    }
+    let (prefix, body) = if let Some(rest) = text.strip_prefix("//") {
+        ("file://", rest)
+    } else if let Some(rest) = text.strip_prefix('/') {
+        ("file:///", rest)
+    } else {
+        ("file:///", text.as_str())
+    };
+    let mut s = String::from(prefix);
+    for b in body.as_bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => s.push(*b as char),
+            _ => s.push_str(&format!("%{b:02X}")),
+        }
+    }
+    s
+}
+
+/// `s` without `prefix`, matching the prefix case-insensitively (ASCII only).
+pub(crate) fn strip_prefix_ignore_ascii_case<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+    let n = prefix.len();
+    if s.len() >= n && s.as_bytes()[..n].eq_ignore_ascii_case(prefix.as_bytes()) {
+        Some(&s[n..])
+    } else {
+        None
+    }
 }
 
 // ------------------------------------------------------------ ZIP (read only)
@@ -328,5 +375,42 @@ mod tests {
         assert_eq!(kind(Path::new("app.py")), Kind::Text);
         assert_eq!(kind(Path::new("x.zip")), Kind::Other);
         assert_eq!(col_index("BC12"), 55);
+    }
+
+    #[test]
+    fn file_uris_encode_spaces_and_cover_windows_and_unc() {
+        let cases = [
+            ("/home/u/my file.rs", "file:///home/u/my%20file.rs"),
+            ("/home/u/a+b.rs", "file:///home/u/a%2Bb.rs"),
+            (r"C:\home\u\my file.rs", "file:///C:/home/u/my%20file.rs"),
+            ("C:/home/u/a+b.rs", "file:///C:/home/u/a%2Bb.rs"),
+            (r"\\wsl.localhost\Ubuntu\home\me\a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
+            (r"\\wsl$\Ubuntu-22.04\home\me\a.rs", "file://wsl%24/Ubuntu-22.04/home/me/a.rs"),
+            ("//wsl.localhost/Ubuntu/home/me/a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
+            (r"\\?\C:\Users\me\a.rs", "file:///C:/Users/me/a.rs"),
+            (r"\\?\UNC\wsl.localhost\Ubuntu\home\me\a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
+            ("//?/UNC/wsl.localhost/Ubuntu/home/me/a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
+            ("//?/C:/Users/me/a.rs", "file:///C:/Users/me/a.rs"),
+            ("/home/u/caf\u{e9}.rs", "file:///home/u/caf%C3%A9.rs"),
+        ];
+        for (path, uri) in cases {
+            assert_eq!(file_uri_from_abs_text(path), uri, "{path}");
+        }
+        // The public helper agrees on a real absolute path for this platform.
+        #[cfg(windows)]
+        assert_eq!(
+            file_uri(Path::new(r"C:\home\u\my file.rs")),
+            "file:///C:/home/u/my%20file.rs"
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            file_uri(Path::new(r"\\wsl.localhost\Ubuntu\home\me\a.rs")),
+            "file://wsl.localhost/Ubuntu/home/me/a.rs"
+        );
+        #[cfg(not(windows))]
+        assert_eq!(
+            file_uri(Path::new("/home/u/my file.rs")),
+            "file:///home/u/my%20file.rs"
+        );
     }
 }

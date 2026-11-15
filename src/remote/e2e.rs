@@ -2,6 +2,7 @@
 //! answers, without a distro. `FLUXCODE_HELPER_BIN` names the binary to run.
 
 use std::io::BufReader;
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 use crate::remote::proto::{read_frame, write_frame, Request, Response, FRAME_BYTES, FRAME_JSON, PROTOCOL_VERSION};
@@ -89,8 +90,8 @@ fn a_helper_answers_over_a_pipe() {
     let scan = h.ask(&Request::Scan { root: root.clone(), max: 100 });
     assert!(scan.ok, "{scan:?}");
     let files: Vec<String> = serde_json::from_value(scan.json.unwrap()).unwrap();
-    assert!(files.iter().any(|p| p.ends_with("a.txt")), "{files:?}");
-    assert!(files.iter().any(|p| p.ends_with("sub/deep.txt")), "{files:?}");
+    assert!(files.iter().any(|p| Path::new(p).ends_with("a.txt")), "{files:?}");
+    assert!(files.iter().any(|p| Path::new(p).ends_with("sub/deep.txt")), "{files:?}");
 
     assert_eq!(h.read(&format!("{root}/a.txt"), 64), b"needle in a haystack\n");
 
