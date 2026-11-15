@@ -44,11 +44,14 @@ impl WslTarget {
 
 /// `\\wsl.localhost\Ubuntu\home\me` -> ("Ubuntu", "home\me").
 /// Also accepts `\\wsl$\...` and the `\\?\UNC\...` form `canonicalize()` returns.
+/// Forward slashes and mixed separators are treated as backslashes, so a path
+/// written `//wsl.localhost/Ubuntu/home/me` still matches.
 fn split(path: &Path) -> Option<(String, String)> {
-    let s = path.to_string_lossy();
-    let s = match s.strip_prefix(r"\\?\UNC\") {
-        Some(rest) => format!(r"\\{rest}"),
-        None => s.into_owned(),
+    let s = path.to_string_lossy().replace('/', "\\");
+    let s = if let Some(rest) = strip_prefix_ignore_ascii_case(&s, r"\\?\UNC\") {
+        format!(r"\\{rest}")
+    } else {
+        s
     };
     let rest = s.strip_prefix(r"\\")?;
     let (host, after) = rest.split_once('\\').unwrap_or((rest, ""));
@@ -60,6 +63,15 @@ fn split(path: &Path) -> Option<(String, String)> {
         return None;
     }
     Some((distro.to_string(), tail.to_string()))
+}
+
+fn strip_prefix_ignore_ascii_case<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+    let n = prefix.len();
+    if s.len() >= n && s.as_bytes()[..n].eq_ignore_ascii_case(prefix.as_bytes()) {
+        Some(&s[n..])
+    } else {
+        None
+    }
 }
 
 /// A Windows tail (`home\me`) as a Linux path (`/home/me`); empty means the root.
@@ -140,5 +152,50 @@ mod tests {
         assert_eq!(t.unc_path("/home/me/a/b.rs"), PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\a\b.rs"));
         // Another distro is not this target.
         assert!(t.linux_path(Path::new(r"\\wsl.localhost\Debian\home\me")).is_none());
+    }
+
+    #[test]
+    fn forward_slashes_and_mixed_separators_are_accepted() {
+        for p in [
+            r"//wsl.localhost/Ubuntu/home/me/proj",
+            r"\\wsl.localhost\Ubuntu/home/me/proj",
+            r"//wsl$/Ubuntu/home/me/proj",
+            r"//?/UNC/wsl.localhost/Ubuntu/home/me/proj",
+            r"//?/unc/wsl.localhost/Ubuntu/home/me/proj",
+        ] {
+            let t = WslTarget::from_path(Path::new(p)).expect(p);
+            assert_eq!(t.distro, "Ubuntu", "{p}");
+            assert_eq!(t.linux_root, "/home/me/proj", "{p}");
+            assert_eq!(t.unc_root, PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\proj"), "{p}");
+        }
+    }
+
+    #[test]
+    fn trailing_slashes_and_distro_case_still_round_trip() {
+        for p in [r"\\wsl.localhost\Ubuntu\home\me\\", r"//wsl.localhost/Ubuntu/home/me/"] {
+            let t = WslTarget::from_path(Path::new(p)).expect(p);
+            assert_eq!(t.linux_root, "/home/me", "{p}");
+        }
+        let t = WslTarget::new("Ubuntu", "/home/me");
+        assert_eq!(
+            t.linux_path(Path::new(r"\\wsl.localhost\ubuntu\home\me\a.rs")).as_deref(),
+            Some("/home/me/a.rs")
+        );
+        assert_eq!(
+            t.linux_path(Path::new(r"\\wsl$\Ubuntu\home\me\a.rs")).as_deref(),
+            Some("/home/me/a.rs")
+        );
+        assert_eq!(
+            t.linux_path(Path::new(r"\\?\UNC\wsl.localhost\Ubuntu\home\me\a.rs")).as_deref(),
+            Some("/home/me/a.rs")
+        );
+        assert_eq!(
+            t.linux_path(Path::new(r"\\?\UNC\wsl$\Ubuntu\home\me\a.rs")).as_deref(),
+            Some("/home/me/a.rs")
+        );
+        assert_eq!(
+            t.unc_path("/home/me/my file.rs"),
+            PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\my file.rs")
+        );
     }
 }
