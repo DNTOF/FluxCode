@@ -9,8 +9,7 @@ One small program with an AI agent panel, a Python-friendly terminal, built-in S
 Control, and read-only views for files other editors refuse to open. No telemetry. It
 opens its window in 0.22 s and sits at 1.4 MB idle, in one process ([benchmark](#benchmark)).
 
-A [MuaraAI](https://github.com/MuaraAI) project, built by a first-semester university
-student in Indonesia ([MyKineID](https://github.com/MyKineID)). Open source, and still in
+A [MuaraAI](https://github.com/MuaraAI) project. Open source, and still in
 development.
 
 <a href="assets/screenshots/agent.png"><img src="assets/screenshots/agent.png" width="100%" alt="FluxCode with main.py open. In the agent panel on the right, OpenCode has added a docstring to greet(); the Changes card lists main.py with one added line, and a prompt asks before the agent runs a Python command."></a>

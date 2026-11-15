@@ -10,8 +10,7 @@ bawaan, dan tampilan baca-saja untuk file yang tidak mau dibuka editor lain. Tan
 telemetri. Jendelanya muncul dalam 0,22 detik dan menetap di 1,4 MB saat idle, dalam satu
 proses ([benchmark](#benchmark)).
 
-Proyek [MuaraAI](https://github.com/MuaraAI), dibangun oleh mahasiswa semester satu di
-Indonesia ([MyKineID](https://github.com/MyKineID)). Open source, masih dalam
+Proyek [MuaraAI](https://github.com/MuaraAI). Open source, masih dalam
 pengembangan.
 
 [![Latest build](https://img.shields.io/github/v/release/MuaraAI/FluxCode?display_name=tag&label=latest%20build)](https://github.com/MuaraAI/FluxCode/releases/latest)
