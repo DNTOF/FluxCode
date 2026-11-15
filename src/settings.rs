@@ -1081,6 +1081,59 @@ impl Workbench {
             .gap_1()
             .text_sm()
             .child(div().child(text));
+        if matches!(self.copilot.status(), Status::NotInstalled) {
+            if crate::copilot::node_present() {
+                col = col.child(
+                    Button::new("cpl-install")
+                        .label(tr("Install server"))
+                        .xsmall()
+                        .loading(self.copilot_installing)
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            if this.copilot_installing {
+                                return;
+                            }
+                            this.copilot_installing = true;
+                            cx.notify();
+                            cx.spawn(async move |this, cx| {
+                                let r = cx
+                                    .background_spawn(async move {
+                                        #[cfg(windows)]
+                                        let out = crate::proc::shell_command("npm install -g @github/copilot-language-server").output();
+                                        #[cfg(not(windows))]
+                                        let out = std::process::Command::new("npm")
+                                            .args(["install", "-g", "@github/copilot-language-server"])
+                                            .output();
+                                        match out {
+                                            Ok(o) if o.status.success() => Ok(()),
+                                            Ok(o) => Err(if o.stderr.is_empty() { format!("npm exited with {}", o.status) } else { String::from_utf8_lossy(&o.stderr).trim().to_string() }),
+                                            Err(e) => Err(e.to_string()),
+                                        }
+                                    })
+                                    .await;
+                                _ = this.update(cx, |this, cx| {
+                                    this.copilot_installing = false;
+                                    match r {
+                                        Ok(()) => {
+                                            this.copilot.retry();
+                                            this.status = tr("Copilot server installed.").into();
+                                        }
+                                        Err(e) => this.status = crate::trf!("Install failed: {e}"; e => e).into(),
+                                    }
+                                    cx.notify();
+                                });
+                            })
+                            .detach();
+                        })),
+                );
+            } else {
+                col = col.child(
+                    Button::new("cpl-node")
+                        .label(tr("Get Node.js"))
+                        .xsmall()
+                        .on_click(|_, _, cx| cx.open_url("https://nodejs.org")),
+                );
+            }
+        }
         if let Some(notice) = self.copilot.notice() {
             col = col.child(div().text_xs().text_color(c(theme::FG_MUTED)).child(notice));
         }

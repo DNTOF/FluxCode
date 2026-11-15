@@ -740,6 +740,13 @@ pub const ID: &[(&str, &str)] = &[
     ("Sign in", "Masuk"),
     ("GitHub Copilot", "GitHub Copilot"),
     ("Your sign-in code: {code}", "Kode masuk kamu: {code}"),
+    ("Install server", "Pasang server"),
+    ("Get Node.js", "Unduh Node.js"),
+    ("Copilot server installed.", "Server Copilot sudah terpasang."),
+    ("Install failed: {e}", "Instalasi gagal: {e}"),
+    ("Copilot: install server", "Copilot: pasang server"),
+    ("Copilot: sign in", "Copilot: masuk"),
+    ("Copilot suggestions are not set up yet. Click to open Settings.", "Saran Copilot belum disiapkan. Klik untuk membuka Settings."),
     ("Keyboard shortcuts", "Shortcut keyboard"),
     (
         "Leave room below the end of a file, so its last lines can sit mid-screen.",

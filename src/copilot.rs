@@ -193,6 +193,16 @@ impl Copilot {
         self.shared.state.lock().unwrap().notice.clone()
     }
 
+    /// Forget a failed start, so the next suggestion request tries again
+    /// at once instead of waiting out the one-minute throttle. Called
+    /// after the server has just been installed.
+    pub fn retry(&self) {
+        let mut st = self.shared.state.lock().unwrap();
+        st.not_installed = false;
+        st.start_error = None;
+        st.last_attempt = None;
+    }
+
     /// Stop the server, if it is running. Safe to call when it is not.
     pub fn stop(&self) {
         let child;
@@ -524,6 +534,11 @@ fn find_on_path(name: &str) -> Option<PathBuf> {
         }
     }
     None
+}
+
+/// Whether Node.js is on PATH, which the one-click install needs.
+pub(crate) fn node_present() -> bool {
+    find_on_path(if cfg!(windows) { "node.exe" } else { "node" }).is_some()
 }
 
 /// The command that runs the server, or an error whose text starts with

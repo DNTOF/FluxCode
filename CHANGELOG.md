@@ -5,6 +5,18 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## One-click Copilot setup (15 November 2026)
+
+- The Copilot ghost text is built in, but until now setting it up meant running
+  `npm install -g @github/copilot-language-server` by hand in a terminal. When
+  the server is missing and Node.js is present, Settings shows an
+  **Install server** button that runs that install in the background and
+  starts the server when it is done; without Node.js, a **Get Node.js** button
+  opens the download page instead.
+- While suggestions cannot work yet, the status bar shows a small **Copilot**
+  chip that says what is missing (the server or the sign-in) and opens
+  Settings on click. It disappears on its own once suggestions are ready.
+
 ## HTML preview says it runs a WebView (15 November 2026)
 
 - Opening the HTML preview now shows a notice first: the preview runs a
