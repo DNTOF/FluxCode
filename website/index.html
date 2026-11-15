@@ -857,8 +857,8 @@ footer a:hover { color: var(--yellow); }
 }
 
 
-/* Benchmark Bar Charts: bars are inverse scale (longer means a smaller
-   value), so the winner reads as the winner; the real figures stay in
+/* Benchmark Bar Charts: bars are direct scale (longer means a bigger,
+   worse value), so the shortest bar wins; the real figures stay in
    the labels next to each bar. Competitor bars are flat brand colours,
    not gradients. */
 .bench-chart {
@@ -1157,15 +1157,15 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-startup">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>221 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 27%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>290 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 76%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 35%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">Zed</span><span>818 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 27%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 100%"></div></div>
             </div>
           </div>
         </div>
@@ -1179,15 +1179,15 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-ram">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>1.4 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 0.15%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>929.2 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 0.15%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">Zed</span><span>66.2 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 2.1%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 7.1%"></div></div>
             </div>
           </div>
         </div>
@@ -1201,15 +1201,15 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-proc">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>1</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 11%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>9</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 11%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">Zed</span><span>2</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 50%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 22%"></div></div>
             </div>
           </div>
         </div>
@@ -1223,22 +1223,22 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-disk">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>16 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 1.5%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>1,044 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 1.5%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">Zed</span><span>261 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 6.1%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 25%"></div></div>
             </div>
           </div>
         </div>
       </div>
 
       <p class="bench-caption">
-        Panjang batang berbanding terbalik dengan nilai: makin panjang, makin kecil nilainya. FluxCode mengembalikan memori yang tidak dipakai kembali ke sistem operasi setelah 6 detik idle. Bebas bloatware Electron.
+        Makin pendek batangnya, makin bagus: makin cepat dibuka, makin hemat memori, makin sedikit proses, makin kecil ukurannya. FluxCode mengembalikan memori yang tidak dipakai kembali ke sistem operasi setelah 6 detik idle. Bebas bloatware Electron.
       </p>
     </div>
   </section>
