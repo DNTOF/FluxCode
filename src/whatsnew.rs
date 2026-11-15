@@ -77,14 +77,27 @@ pub fn build_date(build: &str) -> Option<&str> {
     (d.len() == 10 && d.as_bytes()[4] == b'-' && d.as_bytes()[7] == b'-').then_some(d)
 }
 
-/// Indices of the releases to show after updating from `last` (a build name): those
-/// dated after it, or the newest one when none is (an update on the same day).
+/// Indices of the releases to show after updating from `last` (a build name).
+/// A release shows when the build that carries it is newer than `last`, worked
+/// out from git by build.rs; a release with no known build falls back to the
+/// date rule, showing when it is dated after `last`. Nothing is shown when
+/// nothing is newer: an update with no new entry says so on the page instead
+/// of repeating the newest one. No previous build, or a previous build that is
+/// not a build name, shows everything, as before.
 pub fn since(releases: &[Release], last: Option<&str>) -> Vec<usize> {
-    let after: Vec<usize> = match last.and_then(build_date) {
-        Some(d) => releases.iter().enumerate().filter(|(_, r)| r.date.as_str() > d).map(|(i, _)| i).collect(),
-        None => (0..releases.len()).collect(),
-    };
-    if after.is_empty() && !releases.is_empty() { vec![0] } else { after }
+    let Some(last) = last else { return (0..releases.len()).collect() };
+    let Some(after) = build_date(last) else { return (0..releases.len()).collect() };
+    releases
+        .iter()
+        .enumerate()
+        .filter(|(_, r)| match build_of(&r.title_en) {
+            // Build names are fixed-width dates and times, so a plain string
+            // comparison is a time comparison.
+            Some(b) => b > last,
+            None => r.date.as_str() > after,
+        })
+        .map(|(i, _)| i)
+        .collect()
 }
 
 /// The page's state: the releases it shows and the build it came from.
@@ -243,7 +256,8 @@ impl Workbench {
                                 .items_center()
                                 .text_xs()
                                 .child({
-                                    let tip = chip.clone();
+                                    // No tooltip: the chip already shows the full build name,
+                                    // and the tooltip rendered below it, over the title line.
                                     div()
                                         .id(("wn-build", i))
                                         .flex_shrink(1.)
@@ -254,7 +268,6 @@ impl Workbench {
                                         .border_1()
                                         .border_color(c(theme::BORDER_STRONG))
                                         .text_color(c(theme::ACCENT_TEXT))
-                                        .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(tip.clone()).build(w, cx))
                                         .child(chip)
                                 })
                                 .children(note.map(|n| div().text_color(c(theme::FG_DIM)).child(n))),
@@ -405,9 +418,45 @@ mod tests {
         let src = "@release 2026-11-12\n@title en: C\n@en\nc\n@release 2026-11-10\n@title en: B\n@en\nb\n@release 2026-11-01\n@title en: A\n@en\na\n";
         let all = parse(src);
         assert_eq!(since(&all, Some("BuildDev-2026-11-09-10-00-00")), vec![0, 1]);
-        assert_eq!(since(&all, Some("BuildDev-2026-11-12-23-00-00")), vec![0]);
+        // Same day as the newest release: nothing is newer, so nothing shows.
+        // The old blind fallback showed the newest entry again here.
+        assert_eq!(since(&all, Some("BuildDev-2026-11-12-23-00-00")), Vec::<usize>::new());
         assert_eq!(since(&all, None), vec![0, 1, 2]);
         assert_eq!(build_date("BuildDev-2026-11-10-08-00-00"), Some("2026-11-10"));
         assert_eq!(build_date("0.4.2-dev"), None);
+    }
+
+    #[test]
+    fn an_entry_the_previous_build_already_has_is_not_shown() {
+        // The WSL2 helper entry came in BuildDev-2026-11-14-03-51-07: updating
+        // from that build, or a later one, shows nothing for it. This is the
+        // stale-entry bug: the old fallback showed this entry again.
+        let src = "@release 2026-11-13\n@title en: WSL2 workspaces read through a helper in the distro\n@en\nx\n@release 2026-11-13\n@title en: WSL2 workspaces\n@en\ny\n";
+        let all = parse(src);
+        assert_eq!(since(&all, Some("BuildDev-2026-11-14-03-51-07")), Vec::<usize>::new());
+        assert_eq!(since(&all, Some("BuildDev-2026-11-14-14-20-47")), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn an_entry_from_a_newer_build_is_shown() {
+        // The same WSL2 helper entry, seen from a build made before it: its
+        // build is newer than the last one, so it shows. The last build is
+        // dated the day before the entry, so the date rule alone would show
+        // it too; the build rule is what decides here when git knows the
+        // build, and both agree.
+        let src = "@release 2026-11-13\n@title en: WSL2 workspaces read through a helper in the distro\n@en\nx\n";
+        let all = parse(src);
+        assert_eq!(since(&all, Some("BuildDev-2026-11-12-10-00-00")), vec![0]);
+    }
+
+    #[test]
+    fn an_entry_with_no_known_build_uses_the_date_rule() {
+        // A title git cannot place in a build (it is made up here) falls back
+        // to the date rule: shown when dated after the last build, hidden when
+        // dated on its day or before.
+        let src = "@release 2026-11-12\n@title en: A made-up entry\n@en\nx\n";
+        let all = parse(src);
+        assert_eq!(since(&all, Some("BuildDev-2026-11-09-10-00-00")), vec![0]);
+        assert_eq!(since(&all, Some("BuildDev-2026-11-12-23-00-00")), Vec::<usize>::new());
     }
 }
