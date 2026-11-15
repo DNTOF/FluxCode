@@ -2388,7 +2388,7 @@ impl Workbench {
         let chips = self.agent_chips(cx);
         let mut blocks = Vec::new();
         let resource = |path: &Path, body: String| {
-            json!({ "type": "resource", "resource": { "uri": format!("file:///{}", path.to_string_lossy().replace('\\', "/")), "text": body, "mimeType": "text/plain" } })
+            json!({ "type": "resource", "resource": { "uri": crate::docs::file_uri(path), "text": body, "mimeType": "text/plain" } })
         };
         for (key, _, _, on) in &chips {
             if !on {
