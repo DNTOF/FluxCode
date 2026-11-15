@@ -139,10 +139,19 @@ mod tests {
     #[test]
     fn paths_round_trip() {
         let t = WslTarget::from_path(Path::new(r"\\wsl.localhost\Ubuntu\home\me")).unwrap();
-        assert_eq!(t.linux_path(Path::new(r"\\wsl.localhost\Ubuntu\home\me\a\b.rs")).as_deref(), Some("/home/me/a/b.rs"));
-        assert_eq!(t.unc_path("/home/me/a/b.rs"), PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\a\b.rs"));
+        assert_eq!(
+            t.linux_path(Path::new(r"\\wsl.localhost\Ubuntu\home\me\a\b.rs"))
+                .as_deref(),
+            Some("/home/me/a/b.rs")
+        );
+        assert_eq!(
+            t.unc_path("/home/me/a/b.rs"),
+            PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\a\b.rs")
+        );
         // Another distro is not this target.
-        assert!(t.linux_path(Path::new(r"\\wsl.localhost\Debian\home\me")).is_none());
+        assert!(t
+            .linux_path(Path::new(r"\\wsl.localhost\Debian\home\me"))
+            .is_none());
     }
 
     #[test]
@@ -157,31 +166,42 @@ mod tests {
             let t = WslTarget::from_path(Path::new(p)).expect(p);
             assert_eq!(t.distro, "Ubuntu", "{p}");
             assert_eq!(t.linux_root, "/home/me/proj", "{p}");
-            assert_eq!(t.unc_root, PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\proj"), "{p}");
+            assert_eq!(
+                t.unc_root,
+                PathBuf::from(r"\\wsl.localhost\Ubuntu\home\me\proj"),
+                "{p}"
+            );
         }
     }
 
     #[test]
     fn trailing_slashes_and_distro_case_still_round_trip() {
-        for p in [r"\\wsl.localhost\Ubuntu\home\me\\", r"//wsl.localhost/Ubuntu/home/me/"] {
+        for p in [
+            r"\\wsl.localhost\Ubuntu\home\me\\",
+            r"//wsl.localhost/Ubuntu/home/me/",
+        ] {
             let t = WslTarget::from_path(Path::new(p)).expect(p);
             assert_eq!(t.linux_root, "/home/me", "{p}");
         }
         let t = WslTarget::new("Ubuntu", "/home/me");
         assert_eq!(
-            t.linux_path(Path::new(r"\\wsl.localhost\ubuntu\home\me\a.rs")).as_deref(),
+            t.linux_path(Path::new(r"\\wsl.localhost\ubuntu\home\me\a.rs"))
+                .as_deref(),
             Some("/home/me/a.rs")
         );
         assert_eq!(
-            t.linux_path(Path::new(r"\\wsl$\Ubuntu\home\me\a.rs")).as_deref(),
+            t.linux_path(Path::new(r"\\wsl$\Ubuntu\home\me\a.rs"))
+                .as_deref(),
             Some("/home/me/a.rs")
         );
         assert_eq!(
-            t.linux_path(Path::new(r"\\?\UNC\wsl.localhost\Ubuntu\home\me\a.rs")).as_deref(),
+            t.linux_path(Path::new(r"\\?\UNC\wsl.localhost\Ubuntu\home\me\a.rs"))
+                .as_deref(),
             Some("/home/me/a.rs")
         );
         assert_eq!(
-            t.linux_path(Path::new(r"\\?\UNC\wsl$\Ubuntu\home\me\a.rs")).as_deref(),
+            t.linux_path(Path::new(r"\\?\UNC\wsl$\Ubuntu\home\me\a.rs"))
+                .as_deref(),
             Some("/home/me/a.rs")
         );
         assert_eq!(

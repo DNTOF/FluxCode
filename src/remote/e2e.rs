@@ -5,7 +5,9 @@ use std::io::BufReader;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use crate::remote::proto::{read_frame, write_frame, Request, Response, FRAME_BYTES, FRAME_JSON, PROTOCOL_VERSION};
+use crate::remote::proto::{
+    read_frame, write_frame, Request, Response, FRAME_BYTES, FRAME_JSON, PROTOCOL_VERSION,
+};
 
 struct Helper {
     child: std::process::Child,
@@ -87,15 +89,29 @@ fn a_helper_answers_over_a_pipe() {
     assert_eq!(hits.files[0].hits[0].line, 1);
 
     // The Ctrl+P list comes from the same helper.
-    let scan = h.ask(&Request::Scan { root: root.clone(), max: 100 });
+    let scan = h.ask(&Request::Scan {
+        root: root.clone(),
+        max: 100,
+    });
     assert!(scan.ok, "{scan:?}");
     let files: Vec<String> = serde_json::from_value(scan.json.unwrap()).unwrap();
-    assert!(files.iter().any(|p| Path::new(p).ends_with("a.txt")), "{files:?}");
-    assert!(files.iter().any(|p| Path::new(p).ends_with("sub/deep.txt")), "{files:?}");
+    assert!(
+        files.iter().any(|p| Path::new(p).ends_with("a.txt")),
+        "{files:?}"
+    );
+    assert!(
+        files.iter().any(|p| Path::new(p).ends_with("sub/deep.txt")),
+        "{files:?}"
+    );
 
-    assert_eq!(h.read(&format!("{root}/a.txt"), 64), b"needle in a haystack\n");
+    assert_eq!(
+        h.read(&format!("{root}/a.txt"), 64),
+        b"needle in a haystack\n"
+    );
 
-    let stat = h.ask(&Request::Stat { path: format!("{root}/sub") });
+    let stat = h.ask(&Request::Stat {
+        path: format!("{root}/sub"),
+    });
     let stat: crate::remote::proto::Stat = serde_json::from_value(stat.json.unwrap()).unwrap();
     assert!(stat.exists && stat.is_dir && !stat.is_file);
 

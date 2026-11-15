@@ -1061,8 +1061,14 @@ mod tests {
     #[test]
     fn compiler_errors_link_to_the_file() {
         let p = |s: &str| parse_path_line(s);
-        assert_eq!(p("C:\\x\\src\\Main.java:12: error: ';' expected"), Some(("C:\\x\\src\\Main.java".into(), 12)));
-        assert_eq!(p("e: file:///C:/x/Main.kt:7:3 Unresolved reference"), Some(("C:/x/Main.kt".into(), 7)));
+        assert_eq!(
+            p("C:\\x\\src\\Main.java:12: error: ';' expected"),
+            Some(("C:\\x\\src\\Main.java".into(), 12))
+        );
+        assert_eq!(
+            p("e: file:///C:/x/Main.kt:7:3 Unresolved reference"),
+            Some(("C:/x/Main.kt".into(), 7))
+        );
         assert_eq!(
             p("e: file://wsl.localhost/Ubuntu/home/me/Main.kt:7:3 Unresolved reference"),
             Some(("//wsl.localhost/Ubuntu/home/me/Main.kt".into(), 7))

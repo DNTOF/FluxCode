@@ -88,7 +88,9 @@ fn file_uri_from_abs_text(raw: &str) -> String {
     let mut s = String::from(prefix);
     for b in body.as_bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => s.push(*b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => {
+                s.push(*b as char)
+            }
             _ => s.push_str(&format!("%{b:02X}")),
         }
     }
@@ -384,12 +386,27 @@ mod tests {
             ("/home/u/a+b.rs", "file:///home/u/a%2Bb.rs"),
             (r"C:\home\u\my file.rs", "file:///C:/home/u/my%20file.rs"),
             ("C:/home/u/a+b.rs", "file:///C:/home/u/a%2Bb.rs"),
-            (r"\\wsl.localhost\Ubuntu\home\me\a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
-            (r"\\wsl$\Ubuntu-22.04\home\me\a.rs", "file://wsl%24/Ubuntu-22.04/home/me/a.rs"),
-            ("//wsl.localhost/Ubuntu/home/me/a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
+            (
+                r"\\wsl.localhost\Ubuntu\home\me\a.rs",
+                "file://wsl.localhost/Ubuntu/home/me/a.rs",
+            ),
+            (
+                r"\\wsl$\Ubuntu-22.04\home\me\a.rs",
+                "file://wsl%24/Ubuntu-22.04/home/me/a.rs",
+            ),
+            (
+                "//wsl.localhost/Ubuntu/home/me/a.rs",
+                "file://wsl.localhost/Ubuntu/home/me/a.rs",
+            ),
             (r"\\?\C:\Users\me\a.rs", "file:///C:/Users/me/a.rs"),
-            (r"\\?\UNC\wsl.localhost\Ubuntu\home\me\a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
-            ("//?/UNC/wsl.localhost/Ubuntu/home/me/a.rs", "file://wsl.localhost/Ubuntu/home/me/a.rs"),
+            (
+                r"\\?\UNC\wsl.localhost\Ubuntu\home\me\a.rs",
+                "file://wsl.localhost/Ubuntu/home/me/a.rs",
+            ),
+            (
+                "//?/UNC/wsl.localhost/Ubuntu/home/me/a.rs",
+                "file://wsl.localhost/Ubuntu/home/me/a.rs",
+            ),
             ("//?/C:/Users/me/a.rs", "file:///C:/Users/me/a.rs"),
             ("/home/u/caf\u{e9}.rs", "file:///home/u/caf%C3%A9.rs"),
         ];
