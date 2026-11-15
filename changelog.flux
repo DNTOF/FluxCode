@@ -10,6 +10,166 @@
 //   @en / @id                the Markdown that follows is English / Indonesian
 // Lines starting with // before the first @release are comments.
 
+@release 2026-11-15
+@title en: What's new shows only what is new
+@title id: What's new hanya menampilkan yang baru
+@en
+What's new used to show the same entry after every update. Two things caused it:
+the release notes it reads had not been updated with the latest changes, and when
+nothing looked new it showed the newest entry again instead of nothing. Both are
+fixed: the notes now carry every change in the changelog, and an entry is only
+shown when the build that carries it is newer than the one before. If an update
+brings no new entry, the page says there are no notes for this build.
+@id
+What's new dulu menampilkan entri yang sama setelah setiap update. Dua hal jadi
+penyebabnya: catatan rilis yang dibacanya belum diperbarui dengan perubahan
+terbaru, dan saat tidak ada yang tampak baru ia menampilkan lagi entri terbaru
+bukannya tidak menampilkan apa-apa. Keduanya sudah diperbaiki: catatan sekarang
+memuat setiap perubahan di changelog, dan sebuah entri hanya ditampilkan kalau
+build yang membawanya lebih baru dari build sebelumnya. Kalau sebuah update tidak
+membawa entri baru, halaman menyatakan tidak ada catatan untuk build ini.
+
+@release 2026-11-15
+@title en: Settings page: two panes, one section at a time
+@title id: Halaman Settings: dua panel, satu seksi sekali tampil
+@en
+Settings is now two panes: a narrow navigation on the left lists Appearance,
+Editor, WSL, AI agents and GitHub, Agent instructions, Keyboard shortcuts,
+Updates, and About FluxCode, and the main area shows one section at a time.
+Every setting is still there, with the same controls. Each section reads as one
+bordered card: one row per setting, its title and a short description on the
+left, the control at the right edge.
+
+Switching sections fades the new one in over 160 ms, opacity only, so it costs
+no layout pass per frame. Only the active section is built. A section whose
+settings differ from the defaults carries a small dot on its nav row, so a
+changed setting stays findable. Under the system's reduce-motion setting there
+is no motion at all.
+@id
+Settings sekarang dua panel: navigasi sempit di kiri menampilkan Appearance,
+Editor, WSL, AI agents and GitHub, Agent instructions, Keyboard shortcuts,
+Updates, dan About FluxCode, dan area utama menampilkan satu seksi setiap kali.
+Setiap pengaturan tetap ada, dengan kontrol yang sama. Setiap seksi dibaca sebagai
+satu kartu berbingkai: satu baris per pengaturan, judul dan deskripsi singkat di
+kiri, kontrol di tepi kanan.
+
+Berpindah seksi memunculkan seksi baru dengan fade 160 ms, hanya opacity, jadi
+tidak butuh layout pass per frame. Hanya seksi aktif yang dibangun. Seksi yang
+pengaturannya berbeda dari bawaan membawa titik kecil di baris nav-nya, jadi
+pengaturan yang berubah tetap mudah ditemukan. Di bawah pengaturan reduce-motion
+sistem, tidak ada gerakan sama sekali.
+
+@release 2026-11-14
+@title en: Explorer context menu, inline names, compact Extensions
+@title id: Menu konteks Explorer, nama inline, Extensions ringkas
+@en
+Right-click a file or folder in the Explorer opens a context menu, like VS Code:
+New File, New Folder, Rename, Delete, Copy Path, Copy Relative Path, Reveal in
+File Explorer. Right-clicking a row selects it first, so the highlight and the
+menu act on the same row. New File, New Folder, and Rename no longer open a box
+at the top of the Explorer: the name is typed in a row inside the tree itself.
+Enter confirms, Esc cancels.
+
+The Extensions list is compact: a smaller icon, name and version on one line,
+the description on one line that ends with an ellipsis, and a small Install
+button at the right edge. A new empty file opens clean, without the bar that said
+the file is empty. Clicking a file in the sidebar while Settings is open now
+shows that file right away.
+@id
+Klik kanan file atau folder di Explorer membuka menu konteks, seperti VS Code:
+New File, New Folder, Rename, Delete, Copy Path, Copy Relative Path, Reveal in
+File Explorer. Klik kanan sebuah baris memilihnya dulu, jadi sorotan dan menunya
+menindak baris yang sama. New File, New Folder, dan Rename tidak lagi membuka
+kotak di atas Explorer: namanya diketik di baris di dalam tree itu sendiri.
+Enter mengonfirmasi, Esc membatalkan.
+
+Daftar Extensions lebih ringkas: ikon lebih kecil, nama dan versi dalam satu
+baris, deskripsi dalam satu baris yang berakhir dengan elipsis, dan tombol Install
+kecil di tepi kanan. File baru yang kosong terbuka bersih, tanpa bar yang menyatakan
+file itu kosong. Mengklik file di sidebar saat Settings terbuka kini langsung
+menampilkan file itu.
+
+@release 2026-11-14
+@title en: GitHub Copilot inline completions
+@title id: Inline completion GitHub Copilot
+@en
+The editor now suggests the next lines of code as ghost text, from GitHub
+Copilot through the official Copilot language server. A suggestion appears dimmed
+after the cursor a moment after you stop typing; Tab accepts it, Esc dismisses
+it. Turn it on or off in **Settings > Editor > Copilot suggestions**, and sign
+in in **Settings > AI agents and GitHub > GitHub Copilot**.
+
+FluxCode stays a thin client: the server runs as its own process and does the
+model work, so the editor stays native and light. Install it once with
+`npm install -g @github/copilot-language-server` (needs Node.js 20.8 or later),
+then sign in with a Copilot plan. Only the open file is sent to the server, as
+the document sync the protocol requires.
+@id
+Editor sekarang menyarankan baris kode berikutnya sebagai ghost text, dari GitHub
+Copilot lewat server bahasa Copilot resmi. Saran muncul redup setelah kursor
+sesaat setelah kamu berhenti mengetik; Tab menerima, Esc menolak. Nyalakan atau
+matikan di **Settings > Editor > Copilot suggestions**, dan masuk di
+**Settings > AI agents and GitHub > GitHub Copilot**.
+
+FluxCode tetap klien tipis: server berjalan sebagai prosesnya sendiri dan
+mengerjakan model, jadi editor tetap native dan ringan. Pasang sekali dengan
+`npm install -g @github/copilot-language-server` (butuh Node.js 20.8 atau lebih
+baru), lalu masuk dengan paket Copilot. Hanya file yang terbuka dikirim ke server,
+sebagai sinkronisasi dokumen yang dibutuhkan protokol.
+
+@release 2026-11-14
+@title en: WSL2 workspaces: commits keep their message
+@title id: Workspace WSL2: commit menyimpan pesannya
+@en
+Committing from Source Control in a WSL2 folder no longer fails with "Aborting
+commit due to empty commit message" when the helper is on: the message now
+reaches git through the helper, the same way it already did through `wsl.exe`.
+@id
+Commit dari Source Control di folder WSL2 tidak lagi gagal dengan "Aborting
+commit due to empty commit message" saat helper menyala: pesan sekarang sampai
+ke git lewat helper, sama seperti sebelumnya lewat `wsl.exe`.
+
+@release 2026-11-14
+@title en: Code of Conduct and Security Policy
+@title id: Code of Conduct dan Security Policy
+@en
+The repository now has a Code of Conduct and a Security Policy
+(`CODE_OF_CONDUCT.md`, `SECURITY.md`). Security problems are reported privately
+through GitHub Security Advisories, not in a public issue.
+@id
+Repositori sekarang punya Code of Conduct dan Security Policy
+(`CODE_OF_CONDUCT.md`, `SECURITY.md`). Masalah keamanan dilaporkan secara pribadi
+lewat GitHub Security Advisories, bukan di issue publik.
+
+@release 2026-11-13
+@title en: Pull requests open to everyone, with automatic checks
+@title id: Pull request terbuka untuk semua, dengan pemeriksaan otomatis
+@en
+Pull requests from outside the MuaraAI organization are no longer closed. Anyone
+can fork, change and open one; CONTRIBUTING.md says how. Every pull request gets
+a safety scan that only reads the diff (malware patterns, leaked secrets, Trojan
+Source characters, committed executables, dependencies from outside crates.io,
+outside changes to CI and build files), and a verdict that compares it with main
+on the same runner: executable size, run time and peak memory, clippy and rustfmt
+on the added lines, and new RustSec advisories.
+
+Changes to CI, build, packaging, updater and network code ask the maintainers for
+a review automatically (`.github/CODEOWNERS`). Each check leaves one comment that
+updates on every push.
+@id
+Pull request dari luar organisasi MuaraAI tidak lagi ditutup. Siapa saja bisa
+fork, mengubah dan membukanya; CONTRIBUTING.md menjelaskan caranya. Setiap pull
+request mendapat safety scan yang hanya membaca diff (pola malware, secret yang
+bocor, karakter Trojan Source, executable yang di-commit, dependensi dari luar
+crates.io, perubahan luar pada file CI dan build), dan verdict yang
+membandingkannya dengan main di runner yang sama: ukuran executable, waktu jalan
+dan memori puncak, clippy dan rustfmt pada baris yang ditambah, dan advisory
+RustSec baru.
+
+Perubahan pada kode CI, build, packaging, updater dan network meminta review dari
+maintainer secara otomatis (`.github/CODEOWNERS`). Setiap pemeriksaan meninggalkan
+satu komentar yang diperbarui setiap push.
+
 @release 2026-11-13
 @title en: WSL2 workspaces read through a helper in the distro
 @title id: Workspace WSL2 membaca lewat helper di dalam distro
@@ -165,6 +325,82 @@ baris judul panel).
 Kotak pesan muat di **panel sempit**, daftar model **rapi** dalam kolom, dan model gratis
 ditandai di Usage. Teks di **terminal bisa diblok dan disalin**, dan klik menu di atas chat
 tidak lagi memblok teksnya.
+
+@release 2026-11-10
+@title en: A Windows installer and a macOS build
+@title id: Installer Windows dan build macOS
+@en
+Windows releases have an installer: `FluxCode-<build>-windows-x64-setup.exe`. It
+installs for your account without admin rights in `%USERPROFILE%\.fluxcode\app`
+(where FluxCode updates itself), adds Start Menu and Desktop shortcuts and an
+entry in Settings > Apps with a working Uninstall, and offers to open FluxCode
+when it is done. The ZIP stays for a portable copy (and for the built-in
+updater).
+
+FluxCode runs on macOS 11 and newer: `FluxCode-<build>-macos-universal.dmg`, one
+app for Apple silicon and Intel. It updates itself like the other builds. It is
+signed ad hoc, not notarized, so the first open asks once (Privacy & Security >
+Open Anyway).
+@id
+Rilis Windows punya installer: `FluxCode-<build>-windows-x64-setup.exe`. Ia
+terpasang untuk akunmu tanpa hak admin di `%USERPROFILE%\.fluxcode\app` (tempat
+FluxCode memperbarui dirinya), menambah shortcut Start Menu dan Desktop dan entri
+di Settings > Apps dengan Uninstall yang berfungsi, dan menawarkan membuka
+FluxCode setelah selesai. ZIP tetap ada untuk salinan portable (dan untuk updater
+bawaan).
+
+FluxCode berjalan di macOS 11 ke atas: `FluxCode-<build>-macos-universal.dmg`,
+satu app untuk Apple silicon dan Intel. Ia memperbarui diri seperti build lain.
+Ia ditandatangani secara ad hoc, bukan notarized, jadi pembukaan pertama bertanya
+sekali (Privacy & Security > Open Anyway).
+
+@release 2026-11-10
+@title en: The terminal reads like a normal terminal
+@title id: Terminal terbaca seperti terminal biasa
+@en
+The Terminal tab has no separate input bar any more: the prompt (`folder ❯ `)
+is the line right after the output, like Windows Terminal or VS Code. A click
+anywhere in the terminal puts the caret at the prompt (links to errors still open
+the file). Each command stays in the scrollback as the prompt it was typed at,
+so it is clear where one command starts.
+
+The folder in the prompt is cut from the left (`...\Project\app`, the whole path
+on hover), only the folder's name on a narrow panel. The prompt is never cut off
+at the bottom: the log shrinks above it, and a resized panel stays scrolled to
+the newest lines.
+@id
+Tab Terminal tidak lagi punya bar input terpisah: prompt (`folder ❯ `) adalah
+baris tepat setelah output, seperti Windows Terminal atau VS Code. Klik di mana
+saja di terminal menaruh caret di prompt (tautan ke error tetap membuka file).
+Setiap perintah tetap di scrollback sebagai prompt tempat ia diketik, jadi jelas
+di mana satu perintah mulai.
+
+Folder di prompt dipotong dari kiri (`...\Project\app`, path lengkap saat hover),
+hanya nama folder di panel sempit. Prompt tidak pernah terpotong di bawah: log
+menyusut di atasnya, dan panel yang diubah ukurannya tetap menggulir ke baris
+terbaru.
+
+@release 2026-11-10
+@title en: The taskbar shows the new icon; lighter debug builds
+@title id: Taskbar menampilkan ikon baru; build debug lebih ringan
+@en
+After an update or a reinstall, Windows kept showing the old blue icon on the
+taskbar and in Start, because the shell caches a shortcut's icon by the exe's
+path. The updater now tells the shell the exe changed (and again on the first
+start after an update), and the installer refreshes the icon cache.
+
+Debug builds keep line numbers for FluxCode's own code and no debug info for
+the dependencies: the local build cache went from 48 GB to 2.5 GB. Release
+builds are unchanged.
+@id
+Setelah update atau install ulang, Windows terus menampilkan ikon biru lama di
+taskbar dan Start, karena shell menyimpan cache ikon shortcut berdasarkan path
+exe. Updater sekarang memberi tahu shell bahwa exe berubah (dan lagi saat start
+pertama setelah update), dan installer menyegarkan cache ikon.
+
+Build debug menyimpan nomor baris untuk kode FluxCode sendiri dan tanpa info debug
+untuk dependensi: cache build lokal menyusut dari 48 GB menjadi 2,5 GB. Build
+rilis tidak berubah.
 
 @release 2026-11-10
 @title en: A calmer chat, an effort slider you can drag
@@ -567,6 +803,18 @@ Di PC tempat build ini dibuat, jendela FluxCode muncul sekitar **0,2 detik** set
 dibuka dan memakai sekitar 95 MB memori 5 detik kemudian, dalam satu proses. Sekitar
 25 ms dari waktu itu adalah kerja FluxCode sendiri; sisanya persiapan Windows dan GPU.
 Pencarian agent yang terpasang berjalan di thread terpisah selama jendela dibuka.
+
+@release 2026-11-09
+@title en: Update card polish
+@title id: Kartu update lebih rapi
+@en
+The update card names the new build on its own line and the installed one below
+it. Its notes show the first sentence of each point instead of cutting lines
+mid-sentence.
+@id
+Kartu update menuliskan nama build baru di barisnya sendiri dan yang terpasang
+di bawahnya. Catatannya menampilkan kalimat pertama tiap poin, bukan memotong
+baris di tengah kalimat.
 
 @release 2026-11-09
 @title en: About section, title bar fix and the first public build
