@@ -115,6 +115,11 @@ pub struct Settings {
     /// Read WSL folders through the helper inside the distro instead of the 9p
     /// share. Off by default: it installs and runs a program in the distro.
     pub wsl_helper: bool,
+    /// The HTML preview notice: shown before the preview runs its WebView.
+    /// The "Do not show again" box in the notice turns it off.
+    #[cfg(feature = "embedded-preview")]
+    #[serde(default = "default_true")]
+    pub preview_webview_notice: bool,
     /// The editor's line numbers in the gutter.
     pub line_numbers: bool,
     /// Fold arrows in the gutter for blocks.
@@ -171,6 +176,8 @@ impl Default for Settings {
             agent_hint: 0,
             update_check: true,
             wsl_helper: false,
+            #[cfg(feature = "embedded-preview")]
+            preview_webview_notice: true,
             line_numbers: true,
             folding: true,
             auto_close: true,
@@ -1173,5 +1180,22 @@ impl Workbench {
                     }))),
             )
             .into_any_element()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Settings;
+
+    /// The WebView notice is on unless the user turned it off: a fresh
+    /// install shows it, and so does a settings file written before it existed.
+    #[test]
+    #[cfg(feature = "embedded-preview")]
+    fn webview_notice_is_on_by_default() {
+        assert!(Settings::default().preview_webview_notice);
+        let old: Settings = serde_json::from_str("{}").unwrap();
+        assert!(old.preview_webview_notice);
+        let off: Settings = serde_json::from_str("{\"preview_webview_notice\":false}").unwrap();
+        assert!(!off.preview_webview_notice);
     }
 }

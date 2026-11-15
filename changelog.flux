@@ -11,6 +11,13 @@
 // Lines starting with // before the first @release are comments.
 
 @release 2026-11-15
+@title en: HTML preview says it runs a WebView
+@title id: Pratinjau HTML bilang ia menjalankan WebView
+@en
+Opening the HTML preview now shows a notice first: the preview runs a WebView (WebView2), not FluxCode's native Rust UI. The preview only starts after you press Continue; Cancel opens nothing. A "Do not show again" box keeps the notice off from then on.
+@id
+Membuka pratinjau HTML sekarang menampilkan pemberitahuan dulu: pratinjau menjalankan WebView (WebView2), bukan UI Rust native FluxCode. Pratinjau baru berjalan setelah kamu menekan Lanjutkan; Batal tidak membuka apa pun. Kotak "Jangan tampilkan lagi" membuat pemberitahuan tidak muncul lagi.
+
 @title en: What's new shows only what is new
 @title id: What's new hanya menampilkan yang baru
 @en
