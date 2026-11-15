@@ -5,6 +5,20 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## File links for WSL and network folders (15 November 2026)
+
+- Files in a WSL workspace (`\\wsl.localhost\...` or `\\wsl$\...`) or on a
+  network share are now sent to Copilot and the agents as proper `file://`
+  links, `file://wsl.localhost/Ubuntu/...`, the same form VS Code uses. Before,
+  they became `file://///wsl.localhost/...`, which does not name the share as
+  the link's host. The `\\?\` prefix Windows adds to some paths is dropped
+  first, and spaces and non-ASCII letters are percent-encoded everywhere, not
+  only for Copilot.
+- A WSL path written with forward slashes, `//wsl.localhost/Ubuntu/home/me`,
+  or with mixed slashes is recognised as the same WSL folder.
+- A `file://wsl.localhost/...` link printed in the terminal opens the file,
+  the same as a `file:///C:/...` link already did.
+
 ## HTML preview says it runs a WebView (15 November 2026)
 
 - Opening the HTML preview now shows a notice first: the preview runs a

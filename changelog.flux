@@ -11,6 +11,20 @@
 // Lines starting with // before the first @release are comments.
 
 @release 2026-11-15
+@title en: File links for WSL and network folders
+@title id: Tautan file untuk folder WSL dan jaringan
+@en
+Files in a WSL workspace or on a network share are now sent to Copilot and the
+agents as proper `file://` links, the same form VS Code uses. A WSL path written
+with forward slashes or mixed slashes is recognised as the same WSL folder, and
+a `file://wsl.localhost/...` link printed in the terminal opens the file.
+@id
+File di workspace WSL atau di folder jaringan sekarang dikirim ke Copilot dan
+agen sebagai tautan `file://` yang benar, bentuk yang sama dengan yang dipakai
+VS Code. Path WSL yang ditulis dengan garis miring biasa atau campuran dikenali
+sebagai folder WSL yang sama, dan tautan `file://wsl.localhost/...` yang
+tercetak di terminal membuka filenya.
+
 @title en: HTML preview says it runs a WebView
 @title id: Pratinjau HTML bilang ia menjalankan WebView
 @en
