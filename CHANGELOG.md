@@ -5,6 +5,31 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## Settings page: two panes, one section at a time (15 November 2026)
+
+- Settings is now two panes, like Antigravity: a narrow navigation on the
+  left lists Appearance, Editor, WSL, AI agents and GitHub, Agent
+  instructions, Keyboard shortcuts, Updates, and About FluxCode, and the main
+  area shows one section at a time. Every setting is still there, in the same
+  place it was, with the same controls: theme cards, language, interface
+  size, background image, all editor toggles and steppers, the WSL helper,
+  agent access and panel options, GitHub and Copilot sign-in, the soul files,
+  the shortcut list, update checks, and the About links.
+- Each section reads as one bordered card: one row per setting, its title and
+  a short description on the left, the control at the right edge, a hairline
+  between rows. The section heading above the card says what the section
+  controls in one line.
+- Switching sections fades the new one in over 160 ms, opacity only, the
+  same way PandaCode fades new content in (160 ms ease-out, from opacity 0).
+  No layout property is animated, so switching sections costs no layout pass
+  per frame. Only the active section is built, so opening Settings no longer
+  reads the soul files or lists the shortcuts of the rest, and a toggle
+  inside a section does not replay the animation. Under the system's
+  reduce-motion setting there is no motion at all.
+- FluxCode's own detail: a section whose settings differ from the defaults
+  carries a small dot on its nav row, so a changed setting stays findable
+  without opening every section.
+
 ## Explorer context menu, inline names, compact Extensions (14 November 2026)
 
 - Right-click a file or folder in the Explorer opens a context menu, like VS Code:

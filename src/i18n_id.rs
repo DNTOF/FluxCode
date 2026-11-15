@@ -298,7 +298,7 @@ pub const ID: &[(&str, &str)] = &[
     ("Mention a file in the project", "Sebut file di project"),
     ("Stop the answer", "Hentikan jawaban"),
     ("FluxCode is open source under the GPL-3.0 license and still in development, so expect rough edges and frequent builds. The code, every build and the issue tracker are on GitHub.", "FluxCode open source dengan lisensi GPL-3.0 dan masih dalam pengembangan, jadi wajar kalau ada yang belum mulus dan build baru sering keluar. Kode, semua build, dan tempat lapor masalah ada di GitHub."),
-    ("A MuaraAI project, built by a first-semester university student in Indonesia. Copyright (C) 2026 MuaraAI and contributors.", "Proyek MuaraAI, dibuat oleh mahasiswa semester 1 di Indonesia. Copyright (C) 2026 MuaraAI dan kontributor."),
+    ("A MuaraAI project. Copyright (C) 2026 MuaraAI and contributors.", "Proyek MuaraAI. Copyright (C) 2026 MuaraAI dan kontributor."),
     ("Open the repository", "Buka repository"),
     ("Report a problem", "Laporkan masalah"),
     ("What changed", "Yang berubah"),
@@ -1175,6 +1175,13 @@ pub const ID: &[(&str, &str)] = &[
     ("Default account", "Akun default"),
     ("Add account and sign in…", "Tambah akun dan masuk…"),
     ("Merge", "Merge"),
+    ("Theme, language, interface size, and the picture behind the panels.", "Tema, bahasa, ukuran antarmuka, dan gambar di balik panel."),
+    ("Font, wrapping, line numbers, and the Copilot suggestions the editor shows as you type.", "Font, pembungkus baris, nomor baris, dan saran Copilot yang ditampilkan editor saat kamu mengetik."),
+    ("Read folders inside a WSL distro through a helper, instead of the slow Windows share.", "Membaca folder di dalam distro WSL lewat helper, bukan lewat share Windows yang lambat."),
+    ("What the agent may do, how it docks, and the GitHub and Copilot sign-ins.", "Apa yang boleh dilakukan agent, di mana panelnya berlabuh, serta sign-in GitHub dan Copilot."),
+    ("Check for new development builds and whether FluxCode looks for them.", "Memeriksa build pengembangan baru dan apakah FluxCode mencarinya."),
+    ("What FluxCode is, where its code lives, and how to report a problem.", "Apa itu FluxCode, di mana kodenya, dan cara melaporkan masalah."),
+    ("Agent instructions", "Instruksi agent"),
 ];
 
 #[cfg(test)]
