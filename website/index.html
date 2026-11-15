@@ -43,7 +43,7 @@ a { color: inherit; text-decoration: none; }
 :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
 
 .wrap {
-  max-width: 1160px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -61,6 +61,7 @@ header .wrap {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   height: 72px;
 }
 .brand {
@@ -170,20 +171,24 @@ nav.main-nav a:hover { color: var(--yellow); }
   box-shadow: 0 0 8px var(--green);
 }
 
-/* Hero */
+/* Hero: copy on top, editor mockup full width below, so the code pane
+   is wide enough that no code line wraps mid-statement on desktop. */
 .hero {
-  padding: 64px 0 72px;
-  display: grid;
-  grid-template-columns: 1fr 1.05fr;
-  gap: 56px;
-  align-items: center;
+  padding: 72px 0 80px;
+}
+.hero > * {
+  min-width: 0;
+}
+.hero-content {
+  max-width: 760px;
 }
 .hero-content h1 {
-  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
   line-height: 1.08;
   letter-spacing: -0.03em;
   font-weight: 800;
   margin: 0 0 20px;
+  text-wrap: balance;
 }
 .hero-content h1 .accent {
   color: var(--yellow);
@@ -229,6 +234,8 @@ nav.main-nav a:hover { color: var(--yellow); }
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
+  margin-top: 48px;
+  min-width: 0;
 }
 .window-titlebar {
   background: #1c1e25;
@@ -258,6 +265,7 @@ nav.main-nav a:hover { color: var(--yellow); }
   grid-template-columns: 44px 1.4fr 1.1fr;
   min-height: 380px;
   background: #111217;
+  min-width: 0;
 }
 
 /* Activity Bar */
@@ -274,7 +282,6 @@ nav.main-nav a:hover { color: var(--yellow); }
 .activity-bar svg {
   width: 20px;
   height: 20px;
-  cursor: pointer;
 }
 .activity-bar .active {
   color: var(--yellow);
@@ -299,18 +306,29 @@ nav.main-nav a:hover { color: var(--yellow); }
   flex-direction: column;
   border-right: 1px solid var(--border-subtle);
   overflow: hidden;
+  min-width: 0;
 }
 .tab-bar {
   display: flex;
   background: #16171d;
   border-bottom: 1px solid var(--border-subtle);
   font: 500 0.82rem var(--mono);
+  overflow-x: auto;
 }
 .tab-item {
   padding: 8px 16px;
   color: var(--muted);
   border-right: 1px solid var(--border-subtle);
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  background: none;
+  font: inherit;
   cursor: pointer;
+  flex-shrink: 0;
+}
+.tab-item:hover {
+  color: var(--ink);
 }
 .tab-item.active {
   color: var(--ink);
@@ -319,10 +337,14 @@ nav.main-nav a:hover { color: var(--yellow); }
 }
 .code-content {
   padding: 16px;
-  font: 400 0.85rem/1.65 var(--mono);
+  font: 400 0.8rem/1.65 var(--mono);
   color: #e2e4ed;
   overflow-x: auto;
   flex: 1;
+  min-width: 0;
+}
+.code-sample[hidden] {
+  display: none;
 }
 .code-content .ln { color: #4e5366; margin-right: 14px; user-select: none; }
 .code-content .kw { color: var(--yellow); }
@@ -337,6 +359,7 @@ nav.main-nav a:hover { color: var(--yellow); }
   flex-direction: column;
   border-left: 1px solid var(--border-subtle);
   font-family: var(--sans);
+  min-width: 0;
 }
 .agent-header {
   padding: 10px 14px;
@@ -396,6 +419,12 @@ nav.main-nav a:hover { color: var(--yellow); }
 .btn-allow { background: var(--yellow); color: #111; }
 .btn-deny { background: #2d303d; color: var(--muted); }
 
+.agent-status {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .agent-meter {
   padding: 8px 14px;
   border-top: 1px solid var(--border-subtle);
@@ -423,19 +452,30 @@ nav.main-nav a:hover { color: var(--yellow); }
   color: #121316;
   padding: 4px 14px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
   justify-content: space-between;
   font: 700 0.78rem var(--sans);
 }
 
-/* Sections */
+/* Sections: one even padding, thin dividers, no dead bands. */
 section {
-  padding: 80px 0;
+  padding: 72px 0;
   border-top: 1px solid var(--border-subtle);
+}
+/* The hero carries its own padding, so the section wrapper adds none;
+   otherwise the hero got double padding (the old dead band). */
+.hero-section {
+  padding: 0;
 }
 .section-title {
   text-align: center;
   max-width: 640px;
-  margin: 0 auto 56px;
+  margin: 0 auto 40px;
+}
+.section-title.left {
+  text-align: left;
+  margin-left: 0;
 }
 .section-title h2 {
   font-size: clamp(1.8rem, 3.8vw, 2.6rem);
@@ -443,6 +483,7 @@ section {
   letter-spacing: -0.025em;
   line-height: 1.15;
   margin: 0 0 16px;
+  text-wrap: balance;
 }
 .section-title p {
   color: var(--muted);
@@ -489,23 +530,6 @@ section {
   color: var(--muted);
   font-weight: 500;
 }
-.bench-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
-  font: 500 0.78rem var(--mono);
-}
-.bench-row {
-  display: flex;
-  justify-content: space-between;
-  color: var(--muted);
-}
-.bench-row.highlight {
-  color: var(--ink);
-  font-weight: 700;
-}
-
 .bench-caption {
   font-size: 0.85rem;
   color: #797f94;
@@ -513,51 +537,64 @@ section {
   margin: 0;
 }
 
-/* Feature Grid */
-.features-grid {
+/* Features: editorial layout. Intro column on the left, feature list
+   as rows with thin dividers on the right, so the section does not
+   repeat the centred card grid used elsewhere. */
+.features-layout {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: 320px 1fr;
+  gap: 64px;
+  align-items: start;
 }
-.feature-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 28px;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+.features-intro {
+  position: sticky;
+  top: 104px;
 }
-.feature-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(240, 213, 91, 0.35);
+.features-intro h2 {
+  font-size: clamp(1.8rem, 3.8vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 16px;
+  text-wrap: balance;
 }
-.feature-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: rgba(240, 213, 91, 0.1);
-  color: var(--yellow);
+.features-intro p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin: 0 0 24px;
+}
+.features-list {
+  min-width: 0;
+}
+.feature-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+  gap: 20px;
+  padding: 26px 0;
+  border-top: 1px solid var(--border-subtle);
+  align-items: flex-start;
 }
-.feature-icon svg { width: 22px; height: 22px; }
-.feature-card h3 {
-  font-size: 1.25rem;
+.feature-row:first-child {
+  border-top: none;
+  padding-top: 4px;
+}
+.feature-row .feature-icon {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+.feature-row h3 {
+  font-size: 1.2rem;
   font-weight: 700;
-  margin: 0 0 10px;
+  margin: 0 0 6px;
 }
-.feature-card p {
+.feature-row p {
   color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.55;
   margin: 0;
+  max-width: 56ch;
 }
 
 /* Download Hub */
-.download-section {
-  background: linear-gradient(180deg, var(--bg) 0%, #15171d 100%);
-}
 .download-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -609,6 +646,9 @@ section {
   font: 500 0.82rem var(--mono);
   color: var(--muted);
   margin-bottom: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dl-card p {
   font-size: 0.88rem;
@@ -616,6 +656,9 @@ section {
   line-height: 1.5;
   margin: 0 0 20px;
   flex: 1;
+}
+.dl-card .btn {
+  margin-top: auto;
 }
 
 .release-meta-box {
@@ -696,24 +739,85 @@ footer .wrap {
   gap: 16px;
 }
 footer a:hover { color: var(--yellow); }
+.footer-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Closing: a real ending before the footer, with only real links. */
+.closing-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+.closing-inner h2 {
+  font-size: clamp(1.8rem, 3.8vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.closing-inner p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin: 0 0 28px;
+}
+.closing-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.closing-links {
+  display: flex;
+  gap: 8px 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+.closing-links a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.closing-links a:hover { color: var(--yellow); }
 
 /* Responsive */
 @media (max-width: 992px) {
-  .hero { grid-template-columns: 1fr; gap: 40px; padding: 40px 0 56px; }
+  .hero { padding: 48px 0 56px; }
+  .editor-window { margin-top: 32px; }
   .bench-grid { grid-template-columns: 1fr 1fr; }
-  .features-grid { grid-template-columns: 1fr; }
+  .features-layout { grid-template-columns: 1fr; gap: 32px; }
+  .features-intro { position: static; }
   .download-grid { grid-template-columns: 1fr 1fr; }
   .editor-body { grid-template-columns: 40px 1fr; }
   .agent-pane { display: none; }
+  /* Header budget: hide the small brand text and the stars pill so the
+     five nav links and the download button still fit at tablet width. */
+  .brand small { display: none; }
+  .gh-stars { display: none; }
+  nav.main-nav { gap: 18px; }
+  .nav-actions .btn.sm { padding: 8px 12px; }
 }
 @media (max-width: 640px) {
   .bench-grid { grid-template-columns: 1fr; }
   .download-grid { grid-template-columns: 1fr; }
   nav.main-nav { display: none; }
+  .hero-actions .btn { width: 100%; min-height: 48px; }
+  #download-toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+@media (max-width: 480px) {
+  header .wrap { gap: 12px; }
 }
 
 
-/* Benchmark Bar Charts */
+/* Benchmark Bar Charts: bars are inverse scale (longer means a smaller
+   value), so the winner reads as the winner; the real figures stay in
+   the labels next to each bar. Competitor bars are flat brand colours,
+   not gradients. */
 .bench-chart {
   display: flex;
   flex-direction: column;
@@ -747,6 +851,7 @@ footer a:hover { color: var(--yellow); }
 }
 .bench-chart-bar {
   height: 100%;
+  min-width: 2px;
   border-radius: 5px;
   background: linear-gradient(90deg, var(--yellow-dark), var(--yellow));
   transform-origin: left center;
@@ -762,8 +867,8 @@ footer a:hover { color: var(--yellow); }
   box-shadow: 0 0 12px var(--yellow-glow);
 }
 
-.bench-chart-bar.zed { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-.bench-chart-bar.vscode { background: linear-gradient(90deg, #6366f1, #818cf8); }
+.bench-chart-bar.zed { background: #3b82f6; }
+.bench-chart-bar.vscode { background: #0078d4; }
 
 /* GitHub Stars Badge */
 .gh-stars {
@@ -790,11 +895,28 @@ footer a:hover { color: var(--yellow); }
 }
 .gh-stars .count { font-variant-numeric: tabular-nums; }
 
-@media (prefers-reduced-motion: reduce) {
-  .bench-chart-bar { animation: none; transform: scaleX(1); }
+/* Scroll reveal: the class is added by JS only, so without JS
+   everything stays visible. One gentle fade, no loops. */
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+.bench-grid .bench-card:nth-child(2),
+.download-grid .dl-card:nth-child(2) { transition-delay: 60ms; }
+.bench-grid .bench-card:nth-child(3),
+.download-grid .dl-card:nth-child(3) { transition-delay: 120ms; }
+.bench-grid .bench-card:nth-child(4),
+.download-grid .dl-card:nth-child(4) { transition-delay: 180ms; }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .bench-chart-bar { animation: none; transform: scaleX(1); }
+  .reveal { opacity: 1; transform: none; transition: none; }
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
@@ -822,6 +944,8 @@ footer a:hover { color: var(--yellow); }
       <a href="#fitur">Fitur</a>
       <a href="#benchmark">Benchmark</a>
       <a href="#unduh">Unduh</a>
+      <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Dokumen</a>
+      <a href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener">Rilis</a>
     </nav>
 
     <div class="nav-actions">
@@ -848,7 +972,7 @@ footer a:hover { color: var(--yellow); }
       <div class="hero-content">
         <div class="status-pill">
           <span class="dot"></span>
-          <span id="hero-build-tag">Build Dev Aktif</span>
+          <span id="hero-build-tag">Build dev 13 Nov 2026</span>
         </div>
         <h1>
           Editor kode native.
@@ -875,12 +999,12 @@ footer a:hover { color: var(--yellow); }
         <div class="quick-os-note">
           <span id="primary-dl-filesize">Ukuran ~5.5 MB</span>
           <span>&bull;</span>
-          <span>Pilihan lain: <a href="#unduh">macOS, Linux, Portable ZIP</a></span>
+          <span>Pilihan lain: <a href="#unduh" id="other-os-link">macOS, Linux, Portable ZIP</a></span>
         </div>
       </div>
 
       <!-- Editor Window Mockup -->
-      <div class="editor-window" role="img" aria-label="Tampilan Antarmuka FluxCode">
+      <div class="editor-window">
         <div class="window-titlebar">
           <div class="window-dots">
             <span></span><span></span><span></span>
@@ -899,12 +1023,13 @@ footer a:hover { color: var(--yellow); }
           </div>
 
           <div class="code-pane">
-            <div class="tab-bar">
-              <div class="tab-item active">main.rs</div>
-              <div class="tab-item">agent.flux</div>
-              <div class="tab-item">Cargo.toml</div>
+            <div class="tab-bar" role="tablist" aria-label="Contoh berkas">
+              <button type="button" class="tab-item active" role="tab" aria-selected="true" data-tab="main" onclick="switchMockupTab('main')">main.rs</button>
+              <button type="button" class="tab-item" role="tab" aria-selected="false" data-tab="agent" onclick="switchMockupTab('agent')">agent.flux</button>
+              <button type="button" class="tab-item" role="tab" aria-selected="false" data-tab="cargo" onclick="switchMockupTab('cargo')">Cargo.toml</button>
             </div>
             <div class="code-content">
+              <div class="code-sample" data-sample="main">
               <div><span class="ln">1</span><span class="cm">// FluxCode native GPUI runtime</span></div>
               <div><span class="ln">2</span><span class="kw">use</span> gpui::prelude::*;</div>
               <div><span class="ln">3</span><span class="kw">use</span> fluxcode_acp::AgentSession;</div>
@@ -917,6 +1042,25 @@ footer a:hover { color: var(--yellow); }
               <div><span class="ln">10</span>        });</div>
               <div><span class="ln">11</span>    });</div>
               <div><span class="ln">12</span>}</div>
+              </div>
+              <div class="code-sample" data-sample="agent" hidden>
+              <div><span class="ln">1</span><span class="cm"># agent.flux</span></div>
+              <div><span class="ln">2</span><span class="cm"># Perintah untuk agen: ringkas dan langsung ke hasil.</span></div>
+              <div><span class="ln">3</span><span class="cm"># Jelaskan perubahan sebelum menjalankan perintah.</span></div>
+              <div><span class="ln">4</span><span class="cm"># Jangan mengubah berkas tanpa izin.</span></div>
+              </div>
+              <div class="code-sample" data-sample="cargo" hidden>
+              <div><span class="ln">1</span><span class="cm"># Cargo.toml</span></div>
+              <div><span class="ln">2</span>[package]</div>
+              <div><span class="ln">3</span>name = <span class="str">"fluxcode"</span></div>
+              <div><span class="ln">4</span>edition = <span class="str">"2021"</span></div>
+              <div><span class="ln">5</span>license = <span class="str">"GPL-3.0-or-later"</span></div>
+              <div><span class="ln">6</span></div>
+              <div><span class="ln">7</span>[dependencies]</div>
+              <div><span class="ln">8</span>gpui-kit = <span class="str">"=0.9.0"</span></div>
+              <div><span class="ln">9</span>anyhow = <span class="str">"1"</span></div>
+              <div><span class="ln">10</span>serde_json = <span class="str">"1"</span></div>
+              </div>
             </div>
           </div>
 
@@ -931,9 +1075,9 @@ footer a:hover { color: var(--yellow); }
               </div>
               <div class="chat-msg agent">
                 Docstring dan verifikasi parameter ditambahkan di <b>line 8</b>. Ingin menjalankan pemeriksaan kargo?
-                <div class="agent-confirm">
-                  <button class="btn-allow">Izinkan</button>
-                  <button class="btn-deny">Tolak</button>
+                <div class="agent-confirm" id="agent-confirm">
+                  <button class="btn-allow" type="button" onclick="respondAgent(true)">Izinkan</button>
+                  <button class="btn-deny" type="button" onclick="respondAgent(false)">Tolak</button>
                 </div>
               </div>
             </div>
@@ -970,15 +1114,15 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-startup">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>221 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 27%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>290 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 36%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 76%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">Zed</span><span>818 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 27%"></div></div>
             </div>
           </div>
         </div>
@@ -992,15 +1136,15 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-ram">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>1.4 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 0.15%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>66.2 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:1; width: 7%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>929.2 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:2; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 0.15%"></div></div>
+            </div>
+            <div class="bench-chart-row">
+              <div class="bench-chart-label"><span class="name">Zed</span><span>66.2 MB</span></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 2.1%"></div></div>
             </div>
           </div>
         </div>
@@ -1014,15 +1158,15 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-proc">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>1</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 11%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>2</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:1; width: 22%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>9</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:2; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 11%"></div></div>
+            </div>
+            <div class="bench-chart-row">
+              <div class="bench-chart-label"><span class="name">Zed</span><span>2</span></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 50%"></div></div>
             </div>
           </div>
         </div>
@@ -1036,22 +1180,22 @@ footer a:hover { color: var(--yellow); }
           <div class="bench-chart" id="chart-disk">
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>16 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 1.5%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>261 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:1; width: 25%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 100%"></div></div>
             </div>
             <div class="bench-chart-row">
               <div class="bench-chart-label"><span class="name">VS Code</span><span>1,044 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:2; width: 100%"></div></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 1.5%"></div></div>
+            </div>
+            <div class="bench-chart-row">
+              <div class="bench-chart-label"><span class="name">Zed</span><span>261 MB</span></div>
+              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 6.1%"></div></div>
             </div>
           </div>
         </div>
       </div>
 
       <p class="bench-caption">
-        FluxCode mengembalikan memori yang tidak dipakai kembali ke sistem operasi setelah 6 detik idle. Bebas bloatware Electron.
+        Panjang batang berbanding terbalik dengan nilai: makin panjang, makin kecil nilainya. FluxCode mengembalikan memori yang tidak dipakai kembali ke sistem operasi setelah 6 detik idle. Bebas bloatware Electron.
       </p>
     </div>
   </section>
@@ -1059,67 +1203,82 @@ footer a:hover { color: var(--yellow); }
   <!-- Fitur Utama -->
   <section id="fitur">
     <div class="wrap">
-      <div class="section-title">
-        <h2>Dirancang Khusus untuk Alur Kerja Pengembang</h2>
-        <p>Semua yang kamu butuhkan sudah tertanam langsung tanpa perlu berburu puluhan ekstensi.</p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          </div>
-          <h3>Rendering Native GPU</h3>
-          <p>Ditulis dalam Rust menggunakan GPUI. Antarmuka digambar langsung oleh kartu grafis. Jendela tampil dalam 221 ms dan memori idle 1,4 MB, median dari 5 pengujian.</p>
+      <div class="features-layout">
+        <div class="features-intro">
+          <h2>Dirancang Khusus untuk Alur Kerja Pengembang</h2>
+          <p>Semua yang kamu butuhkan sudah tertanam langsung tanpa perlu berburu puluhan ekstensi. Satu program, bukan tumpukan plugin.</p>
+          <a class="btn outline" href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Baca Dokumentasi</a>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path><path d="M12 6v6l4 2"></path></svg>
+        <div class="features-list">
+          <div class="feature-row">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+            </div>
+            <div>
+              <h3>Rendering Native GPU</h3>
+              <p>Ditulis dalam Rust menggunakan GPUI. Antarmuka digambar langsung oleh kartu grafis. Jendela tampil dalam 221 ms dan memori idle 1,4 MB, median dari 5 pengujian.</p>
+            </div>
           </div>
-          <h3>Panel Agen AI (ACP)</h3>
-          <p>Mendukung protokol Agent Client Protocol: OpenCode 2, Claude Agent, Codex, GitHub Copilot, dan Mura. Tiga tingkat izin akses, undo per giliran, dan browser isolasi bawaan.</p>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <div class="feature-row">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            </div>
+            <div>
+              <h3>Panel Agen AI (ACP)</h3>
+              <p>Mendukung protokol Agent Client Protocol: OpenCode 2, Claude Agent, Codex, GitHub Copilot, dan Mura. Tiga tingkat izin akses, undo per giliran, dan browser isolasi bawaan.</p>
+            </div>
           </div>
-          <h3>Live Share P2P Terenkripsi</h3>
-          <p>Kolaborasi koding bersama secara real-time. Komputer host bertindak sebagai server dengan enkripsi ChaCha20-Poly1305 tanpa server perantara pihak ketiga.</p>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <div class="feature-row">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div>
+              <h3>Live Share P2P Terenkripsi</h3>
+              <p>Kolaborasi koding bersama secara real-time. Komputer host bertindak sebagai server dengan enkripsi ChaCha20-Poly1305 tanpa server perantara pihak ketiga.</p>
+            </div>
           </div>
-          <h3>Viewer Berkas Khusus</h3>
-          <p>Membuka basis data SQLite (skema dan jumlah baris), dokumen PDF, arsip ZIP, dokumen Office, dan hex biner secara langsung dalam mode baca-saja.</p>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+          <div class="feature-row">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div>
+              <h3>Viewer Berkas Khusus</h3>
+              <p>Membuka basis data SQLite (skema dan jumlah baris), dokumen PDF, arsip ZIP, dokumen Office, dan hex biner secara langsung dalam mode baca-saja.</p>
+            </div>
           </div>
-          <h3>Pintasan &amp; Alur VS Code</h3>
-          <p>Command Palette (Ctrl+Shift+P), Go to File (Ctrl+P), dan navigasi keyboard yang sudah kamu kenal. Tanpa perlu adaptasi ulang.</p>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <div class="feature-row">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+            </div>
+            <div>
+              <h3>Pintasan &amp; Alur VS Code</h3>
+              <p>Command Palette (Ctrl+Shift+P), Go to File (Ctrl+P), dan navigasi keyboard yang sudah kamu kenal. Tanpa perlu adaptasi ulang.</p>
+            </div>
           </div>
-          <h3>Nol Telemetri &amp; Open Source</h3>
-          <p>FluxCode tidak mengumpulkan data pribadi atau log aktivitas ketikanmu. Sepenuhnya transparan dengan lisensi GPL-3.0-or-later.</p>
+
+          <div class="feature-row">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div>
+              <h3>Nol Telemetri &amp; Open Source</h3>
+              <p>FluxCode tidak mengumpulkan data pribadi atau log aktivitas ketikanmu. Sepenuhnya transparan dengan lisensi GPL-3.0-or-later.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Download Hub -->
-  <section id="unduh" class="download-section">
+  <section id="unduh">
     <div class="wrap">
-      <div class="section-title">
+      <div class="section-title left">
         <h2>Unduh FluxCode</h2>
         <p>Pilih berkas untuk sistem operasimu di bawah ini.</p>
       </div>
@@ -1148,9 +1307,9 @@ footer a:hover { color: var(--yellow); }
         <div class="dl-card" id="card-windows-zip">
           <div class="dl-os-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              <rect x="3" y="4" width="18" height="5" rx="1"></rect>
+              <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"></path>
+              <path d="M10 13h4"></path>
             </svg>
           </div>
           <h3>Windows Portable</h3>
@@ -1171,7 +1330,7 @@ footer a:hover { color: var(--yellow); }
             </svg>
           </div>
           <h3>macOS Universal</h3>
-          <div class="dl-meta" id="mac-dmg-size">Apple Silicon &amp; Intel &bull; ~12.4 MB</div>
+          <div class="dl-meta" id="mac-dmg-size">Universal &bull; ~12.4 MB</div>
           <p>Mendukung macOS 11 ke atas. Buka berkas .dmg lalu seret ikon FluxCode ke folder Applications.</p>
           <button class="btn outline sm" onclick="triggerDirectDownload('macos-dmg')">
             Unduh DMG (.dmg)
@@ -1183,14 +1342,13 @@ footer a:hover { color: var(--yellow); }
           <div class="rec-badge" id="rec-linux-badge" style="display:none;">Disarankan</div>
           <div class="dl-os-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
             </svg>
           </div>
           <h3>Linux x64</h3>
-          <div class="dl-meta" id="linux-tar-size">glibc 2.35+, Vulkan &bull; ~11.6 MB</div>
-          <p>Ekstrak tarball dan jalankan ./install.sh tanpa butuh akses root.</p>
+          <div class="dl-meta" id="linux-tar-size">glibc 2.35+ &bull; ~11.6 MB</div>
+          <p>Ekstrak tarball dan jalankan ./install.sh tanpa butuh akses root. Berjalan di semua distro x64 dengan glibc 2.35 atau lebih baru dan Vulkan.</p>
           <button class="btn outline sm" onclick="triggerDirectDownload('linux-tar')">
             Unduh Tarball (.tar.gz)
           </button>
@@ -1199,11 +1357,28 @@ footer a:hover { color: var(--yellow); }
 
       <div class="release-meta-box">
         <div>
-          <strong>Status Rilis:</strong> <code id="active-release-tag">BuildDev-2026-11-13-23-10-32</code> &bull;
-          <span id="active-release-date">Diperbarui 13 Nov 2026</span>
+          <strong>Build terbaru:</strong> <code id="active-release-tag">BuildDev 13 Nov 2026</code>
         </div>
         <div>
           Setiap perbaikan kode di-build otomatis. Aplikasi yang sudah terpasang dapat melakukan update mandiri dalam 1 klik.
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- Penutup -->
+  <section class="closing">
+    <div class="wrap">
+      <div class="closing-inner">
+        <h2>Kode sumber terbuka, ikut membangun FluxCode</h2>
+        <p>FluxCode berlisensi GPL-3.0-or-later dan kode sumbernya terbuka di GitHub. Unduhan terbaru, riwayat perubahan, dan dokumentasi semuanya ada di sana, dan laporan bug serta usulan fitur bisa dikirim lewat GitHub Issues.</p>
+        <div class="closing-actions">
+          <a class="btn primary" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">Buka GitHub</a>
+          <a class="btn outline" href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener">Lihat Rilis</a>
+        </div>
+        <div class="closing-links">
+          <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Dokumentasi</a>
+          <a href="https://github.com/MuaraAI/FluxCode/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Perubahan</a>
+          <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Lapor Bug</a>
         </div>
       </div>
     </div>
@@ -1225,9 +1400,12 @@ footer a:hover { color: var(--yellow); }
 <footer>
   <div class="wrap">
     <div>
-      &copy; 2026 FluxCode oleh <b>MuaraAI</b>. Dibuat oleh mahasiswa di Indonesia (MyKineID).
+      &copy; 2026 FluxCode oleh <b>MuaraAI</b>.
     </div>
-    <div style="display:flex;gap:20px;">
+    <div class="footer-links">
+      <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Dokumentasi</a>
+      <a href="https://github.com/MuaraAI/FluxCode/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Perubahan</a>
+      <a href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener">Rilis</a>
       <a href="https://github.com/MuaraAI/FluxCode/blob/main/LICENSE" target="_blank" rel="noopener">Lisensi GPL-3.0</a>
       <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Lapor Bug</a>
       <a href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">GitHub</a>
@@ -1282,6 +1460,14 @@ function formatBytes(bytes) {
   return mb + " MB";
 }
 
+// Build stamp as a human date, so the page never shows a raw timestamp
+// like a debug label.
+function formatBuildDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
 function updateUI() {
   userOS = detectUserOS();
 
@@ -1318,12 +1504,33 @@ function updateUI() {
   // Update sizes in cards
   document.getElementById("win-setup-size").textContent = "Setup .exe • " + currentRelease.assets["windows-setup"].size;
   document.getElementById("win-zip-size").textContent = "Arsip .zip • " + currentRelease.assets["windows-zip"].size;
-  document.getElementById("mac-dmg-size").textContent = "Apple Silicon & Intel • " + currentRelease.assets["macos-dmg"].size;
-  document.getElementById("linux-tar-size").textContent = "glibc 2.35+, Vulkan • " + currentRelease.assets["linux-tar"].size;
+  document.getElementById("mac-dmg-size").textContent = "Universal • " + currentRelease.assets["macos-dmg"].size;
+  document.getElementById("linux-tar-size").textContent = "glibc 2.35+ • " + currentRelease.assets["linux-tar"].size;
 
-  // Release badges
-  document.getElementById("hero-build-tag").textContent = "Build " + currentRelease.tag_name;
-  document.getElementById("active-release-tag").textContent = currentRelease.tag_name;
+  // Release badges: a human date, not the raw build stamp.
+  const buildDate = formatBuildDate(currentRelease.published_at);
+  document.getElementById("hero-build-tag").textContent = "Build dev " + buildDate;
+  document.getElementById("active-release-tag").textContent = "BuildDev " + buildDate;
+
+  // "Pilihan lain" lists only the systems that are not the detected one.
+  const otherOs = document.getElementById("other-os-link");
+  if (userOS === "macos") {
+    otherOs.textContent = "Windows, Linux, Portable ZIP";
+  } else if (userOS === "linux") {
+    otherOs.textContent = "Windows, macOS, Portable ZIP";
+  } else {
+    otherOs.textContent = "macOS, Linux, Portable ZIP";
+  }
+
+  // The recommended card carries the only yellow download button, so the
+  // badge and the primary button never point at different systems.
+  document.querySelectorAll(".dl-card").forEach(card => {
+    const btn = card.querySelector(".btn");
+    if (!btn) return;
+    const isRec = card.classList.contains("recommended");
+    btn.classList.toggle("primary", isRec);
+    btn.classList.toggle("outline", !isRec);
+  });
 }
 
 function triggerDirectDownload(type) {
@@ -1391,12 +1598,6 @@ async function syncWithGitHub() {
       }
     });
 
-    if (latest.published_at) {
-      const d = new Date(latest.published_at);
-      document.getElementById("active-release-date").textContent = "Rilis " + d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-    }
-
-    
     // Fetch star count
     try {
       const repoRes = await fetch("https://api.github.com/repos/MuaraAI/FluxCode");
@@ -1412,9 +1613,54 @@ async function syncWithGitHub() {
   }
 }
 
+// Mockup: the file tabs switch the shown sample, so the tabs do what
+// they look like they do.
+function switchMockupTab(name) {
+  document.querySelectorAll(".tab-item").forEach(t => {
+    const active = t.dataset.tab === name;
+    t.classList.toggle("active", active);
+    t.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll(".code-sample").forEach(s => {
+    s.hidden = s.dataset.sample !== name;
+  });
+}
+
+// Mockup: the agent confirm buttons answer in the chat instead of
+// doing nothing.
+function respondAgent(allowed) {
+  const box = document.getElementById("agent-confirm");
+  if (!box) return;
+  const done = document.createElement("div");
+  done.className = "agent-status";
+  done.textContent = allowed
+    ? "Pemeriksaan kargo diizinkan. Menjalankan cargo test."
+    : "Pemeriksaan ditolak. Agen menunggu perintah berikutnya.";
+  box.replaceWith(done);
+}
+
+// One gentle scroll reveal. The class is added by JS only, so without
+// JS everything stays visible, and reduced-motion users get no motion.
+function initReveal() {
+  if (!("IntersectionObserver" in window)) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const targets = document.querySelectorAll(".bench-card, .feature-row, .dl-card, .closing-inner, .section-title");
+  targets.forEach(el => el.classList.add("reveal"));
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in");
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  targets.forEach(el => io.observe(el));
+}
+
 // Inisialisasi awal
 updateUI();
 syncWithGitHub();
+initReveal();
 </script>
 </body>
 </html>
