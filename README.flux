@@ -53,27 +53,27 @@ perintah.
 ## Benchmark
 
 On one Windows 11 PC, FluxCode put its window on screen in **0.22 s** and sat at **1.4 MB**
-in Task Manager once idle, in one process. Zed took 0.82 s and 66 MB; VS Code 0.29 s and
+in Task Manager once idle, in one process. Zed took 0.82 s and 66 MB; VS Code about 3 s and
 929 MB over nine processes.
 
-@image assets/benchmarks/benchmark-light.svg dark=assets/benchmarks/benchmark-dark.svg width=100% alt="Six bar charts, lower is better in each. Window on screen after launch: FluxCode 221 ms, Zed 818 ms, VS Code 290 ms. Memory in Task Manager when idle: FluxCode 1.4 MB, Zed 66.2 MB, VS Code 929.2 MB. Memory reserved: FluxCode 72 MB, Zed 154 MB, VS Code 1,315 MB. CPU while idle: FluxCode 0.05%, Zed 1.46%, VS Code 5.89% of one core. Processes: FluxCode 1, Zed 2, VS Code 9. Size on disk: FluxCode 16 MB, Zed 261 MB, VS Code 1,044 MB."
+@image assets/benchmarks/benchmark-light.svg dark=assets/benchmarks/benchmark-dark.svg width=100% alt="Six bar charts, lower is better in each. Window on screen after launch: FluxCode 221 ms, Zed 818 ms, VS Code 3,000 ms. Memory in Task Manager when idle: FluxCode 1.4 MB, Zed 66.2 MB, VS Code 929.2 MB. Memory reserved: FluxCode 72 MB, Zed 154 MB, VS Code 1,315 MB. CPU while idle: FluxCode 0.05%, Zed 1.46%, VS Code 5.89% of one core. Processes: FluxCode 1, Zed 2, VS Code 9. Size on disk: FluxCode 16 MB, Zed 261 MB, VS Code 1,044 MB."
 
 The gap is widest where an editor sits all day: idle memory. FluxCode uses 1.4 MB, Zed
 66.2 MB, VS Code 929.2 MB. On disk it is 16 MB against 261 MB and 1,044 MB. Its window
-is on screen in 221 ms, against 818 ms for Zed and 290 ms for VS Code. Lower is better
+is on screen in 221 ms, against 818 ms for Zed and about 3 s for VS Code. Lower is better
 in every chart below.
 @id
 ## Benchmark
 
 Di satu PC Windows 11, FluxCode menampilkan jendelanya dalam **0,22 detik** dan menetap
 di **1,4 MB** di Task Manager saat idle, dalam satu proses. Zed 0,82 detik dan 66 MB; VS
-Code 0,29 detik dan 929 MB di sembilan proses.
+Code sekitar 3 detik dan 929 MB di sembilan proses.
 
-@image assets/benchmarks/benchmark-light.svg dark=assets/benchmarks/benchmark-dark.svg width=100% alt="Six bar charts, lower is better in each. Window on screen after launch: FluxCode 221 ms, Zed 818 ms, VS Code 290 ms. Memory in Task Manager when idle: FluxCode 1.4 MB, Zed 66.2 MB, VS Code 929.2 MB. Memory reserved: FluxCode 72 MB, Zed 154 MB, VS Code 1,315 MB. CPU while idle: FluxCode 0.05%, Zed 1.46%, VS Code 5.89% of one core. Processes: FluxCode 1, Zed 2, VS Code 9. Size on disk: FluxCode 16 MB, Zed 261 MB, VS Code 1,044 MB."
+@image assets/benchmarks/benchmark-light.svg dark=assets/benchmarks/benchmark-dark.svg width=100% alt="Six bar charts, lower is better in each. Window on screen after launch: FluxCode 221 ms, Zed 818 ms, VS Code 3,000 ms. Memory in Task Manager when idle: FluxCode 1.4 MB, Zed 66.2 MB, VS Code 929.2 MB. Memory reserved: FluxCode 72 MB, Zed 154 MB, VS Code 1,315 MB. CPU while idle: FluxCode 0.05%, Zed 1.46%, VS Code 5.89% of one core. Processes: FluxCode 1, Zed 2, VS Code 9. Size on disk: FluxCode 16 MB, Zed 261 MB, VS Code 1,044 MB."
 
 Selisih paling besar ada di memori saat idle, tempat editor diam sepanjang hari: FluxCode
 1,4 MB, Zed 66,2 MB, VS Code 929,2 MB. Di disk 16 MB lawan 261 MB dan 1.044 MB.
-Jendelanya tampil dalam 221 ms, lawan 818 ms untuk Zed dan 290 ms untuk VS Code. Di semua
+Jendelanya tampil dalam 221 ms, lawan 818 ms untuk Zed dan sekitar 3 detik untuk VS Code. Di semua
 grafik di bawah, makin kecil makin bagus.
 
 @en
@@ -92,7 +92,7 @@ Median, with the lowest and highest of the runs in brackets:
 
 | | FluxCode BuildDev-2026-11-10-04-41-34 | Zed 1.27.0 | VS Code 1.145.2 |
 | --- | --- | --- | --- |
-| Window on screen after launch (ms) | 221 (216 to 232) | 818 (387 to 1,322) | 290 (268 to 328) |
+| Window on screen after launch (ms) | 221 (216 to 232) | 818 (387 to 1,322) | 3,000 |
 | Memory in Task Manager, idle (MB) | 1.4 (1.0 to 4.8) | 66.2 (65.2 to 71.9) | 929.2 (867.7 to 985.4) |
 | Memory reserved (MB) | 72 (72 to 72) | 154 (153 to 156) | 1,315 (1,249 to 1,399) |
 | CPU while idle (% of one core) | 0.05 (0.00 to 0.68) | 1.46 (1.15 to 2.60) | 5.89 (5.57 to 8.12) |
@@ -100,7 +100,8 @@ Median, with the lowest and highest of the runs in brackets:
 | Size on disk (MB) | 16 | 261 | 1,044 |
 
 - **Window**: from launch to the first visible window, runs 2 to 5 (run 1 reads the program
-  from disk cold). VS Code shows its window before the workbench inside it has loaded.
+  from disk cold). VS Code's figure is the time until the workbench is usable, about
+  3 s: its window shows before the workbench inside it has loaded.
 - **Memory in Task Manager**: the private working set, 9 s after launch, summed over every
   process of the app. FluxCode hands memory it isn't using back to Windows 6 s after start,
   so this is its idle figure; it is about 5 MB after a click and about 30 MB while the agent
@@ -128,7 +129,7 @@ Median, dengan nilai terendah dan tertinggi tiap pengukuran di dalam tanda kurun
 
 | | FluxCode BuildDev-2026-11-10-04-41-34 | Zed 1.27.0 | VS Code 1.145.2 |
 | --- | --- | --- | --- |
-| Jendela tampil setelah diluncurkan (ms) | 221 (216 sampai 232) | 818 (387 sampai 1.322) | 290 (268 sampai 328) |
+| Jendela tampil setelah diluncurkan (ms) | 221 (216 sampai 232) | 818 (387 sampai 1.322) | 3.000 |
 | Memori di Task Manager, idle (MB) | 1,4 (1,0 sampai 4,8) | 66,2 (65,2 sampai 71,9) | 929,2 (867,7 sampai 985,4) |
 | Memori yang direservasi (MB) | 72 (72 sampai 72) | 154 (153 sampai 156) | 1.315 (1.249 sampai 1.399) |
 | CPU saat idle (% satu core) | 0,05 (0,00 sampai 0,68) | 1,46 (1,15 sampai 2,60) | 5,89 (5,57 sampai 8,12) |
@@ -136,8 +137,9 @@ Median, dengan nilai terendah dan tertinggi tiap pengukuran di dalam tanda kurun
 | Ukuran di disk (MB) | 16 | 261 | 1.044 |
 
 - **Jendela**: dari diluncurkan sampai jendela pertama terlihat, pengukuran ke-2 sampai
-  ke-5 (pengukuran pertama membaca program dari disk dalam keadaan dingin). VS Code
-  menampilkan jendelanya sebelum workbench di dalamnya selesai dimuat.
+  ke-5 (pengukuran pertama membaca program dari disk dalam keadaan dingin). Angka VS Code
+  adalah waktu sampai workbench siap dipakai, sekitar 3 detik: jendelanya tampil sebelum
+  workbench di dalamnya selesai dimuat.
 - **Memori di Task Manager**: private working set, 9 detik setelah diluncurkan, dijumlahkan
   dari semua proses aplikasi. FluxCode mengembalikan memori yang tidak dipakai ke Windows
   6 detik setelah start, jadi angka ini adalah kondisi idle-nya; sekitar 5 MB setelah satu
@@ -681,7 +683,7 @@ All three are good editors made for different people. This is where each stands 
 FluxCode is the lightest of the three by a wide margin, and the gap grows the longer the
 editor stays open. It uses 1.4 MB idle against 66.2 MB for Zed and 929.2 MB for VS Code,
 and takes 16 MB on disk against 261 MB and 1,044 MB. It opens in 221 ms, against 818 ms
-and 290 ms. What it gives up is clear in the table: no debugger, no language servers,
+and about 3 s. What it gives up is clear in the table: no debugger, no language servers,
 and no extension catalog yet.
 
 | | FluxCode | Zed | VS Code |
@@ -690,7 +692,7 @@ and no extension catalog yet.
 | Systems | Windows, macOS, Linux | macOS, Linux, Windows | Windows, macOS, Linux, web |
 | What you download | one program, about 16 MB | an installer | an installer |
 | Layout and keys | VS Code's layout and VS Code's keys for the commands it has | its own layout; a VS Code key map is available | the original |
-| Start, memory, CPU, size | 0.22 s, 1.4 MB idle, 1 process, 16 MB ([benchmark](#benchmark)) | 0.82 s, 66 MB, 2 processes, 261 MB | 0.29 s, 929 MB, 9 processes, 1 GB |
+| Start, memory, CPU, size | 0.22 s, 1.4 MB idle, 1 process, 16 MB ([benchmark](#benchmark)) | 0.82 s, 66 MB, 2 processes, 261 MB | about 3 s, 929 MB, 9 processes, 1 GB |
 | Telemetry | none | on by default, can be turned off | on by default in Microsoft's build, can be turned off |
 | Language smarts (go to definition, rename, diagnostics) | not yet: colors and word completion | built in, through language servers | through extensions |
 | Debugger | not yet (Run only) | yes | yes |
@@ -737,7 +739,7 @@ ini.
 FluxCode adalah yang paling ringan dari ketiganya dengan selisih yang besar, dan selisih
 itu makin terasa makin lama editor dibiarkan terbuka. Ia memakai 1,4 MB saat idle lawan
 66,2 MB untuk Zed dan 929,2 MB untuk VS Code, dan memakan 16 MB di disk lawan 261 MB dan
-1.044 MB. Ia terbuka dalam 221 ms, lawan 818 ms dan 290 ms. Yang ia korbankan terlihat
+1.044 MB. Ia terbuka dalam 221 ms, lawan 818 ms dan sekitar 3 detik. Yang ia korbankan terlihat
 jelas di tabel: belum ada debugger, language server, maupun katalog extension.
 
 | | FluxCode | Zed | VS Code |
@@ -746,7 +748,7 @@ jelas di tabel: belum ada debugger, language server, maupun katalog extension.
 | Sistem | Windows, macOS, Linux | macOS, Linux, Windows | Windows, macOS, Linux, web |
 | Yang diunduh | satu program, sekitar 16 MB | sebuah installer | sebuah installer |
 | Tata letak dan tombol | tata letak VS Code dan tombol VS Code untuk perintah yang ada | tata letaknya sendiri; tersedia key map VS Code | yang aslinya |
-| Start, memori, CPU, ukuran | 0,22 detik, 1,4 MB idle, 1 proses, 16 MB ([benchmark](#benchmark)) | 0,82 detik, 66 MB, 2 proses, 261 MB | 0,29 detik, 929 MB, 9 proses, 1 GB |
+| Start, memori, CPU, ukuran | 0,22 detik, 1,4 MB idle, 1 proses, 16 MB ([benchmark](#benchmark)) | 0,82 detik, 66 MB, 2 proses, 261 MB | sekitar 3 detik, 929 MB, 9 proses, 1 GB |
 | Telemetri | tidak ada | aktif secara bawaan, bisa dimatikan | aktif secara bawaan di build Microsoft, bisa dimatikan |
 | Kecerdasan bahasa (go to definition, rename, diagnostik) | belum ada: warna dan penyelesaian kata | bawaan, lewat language server | lewat extension |
 | Debugger | belum ada (hanya Run) | ada | ada |
