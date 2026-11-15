@@ -1121,7 +1121,7 @@ mod install_errors {
     }
 
     fn url(p: &Path) -> String {
-        format!("file:///{}", p.to_string_lossy().replace('\\', "/").trim_start_matches('/'))
+        crate::docs::file_uri(p)
     }
 
     /// A tarball holding `bin/agent`.

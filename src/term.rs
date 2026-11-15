@@ -487,7 +487,16 @@ pub fn parse_path_line(text: &str) -> Option<(String, u32)> {
     for prefix in ["--> ", "e: ", "w: ", "[ERROR] ", "[WARNING] "] {
         t = t.strip_prefix(prefix).unwrap_or(t).trim_start();
     }
-    t = t.strip_prefix("file:///").unwrap_or(t);
+    // `file:///` is a drive or POSIX path; `file://server/share/...` is UNC.
+    let owned;
+    if let Some(rest) = t.strip_prefix("file:///") {
+        t = rest;
+    } else if let Some(rest) = t.strip_prefix("file://") {
+        if !rest.starts_with('/') {
+            owned = format!("//{rest}");
+            t = owned.as_str();
+        }
+    }
     let lower = t.to_ascii_lowercase();
     // The earliest `<file>.<ext>:<line>` (or MSBuild's `<file>.cs(<line>,<col>)`).
     let exts = [
@@ -1052,8 +1061,18 @@ mod tests {
     #[test]
     fn compiler_errors_link_to_the_file() {
         let p = |s: &str| parse_path_line(s);
-        assert_eq!(p("C:\\x\\src\\Main.java:12: error: ';' expected"), Some(("C:\\x\\src\\Main.java".into(), 12)));
-        assert_eq!(p("e: file:///C:/x/Main.kt:7:3 Unresolved reference"), Some(("C:/x/Main.kt".into(), 7)));
+        assert_eq!(
+            p("C:\\x\\src\\Main.java:12: error: ';' expected"),
+            Some(("C:\\x\\src\\Main.java".into(), 12))
+        );
+        assert_eq!(
+            p("e: file:///C:/x/Main.kt:7:3 Unresolved reference"),
+            Some(("C:/x/Main.kt".into(), 7))
+        );
+        assert_eq!(
+            p("e: file://wsl.localhost/Ubuntu/home/me/Main.kt:7:3 Unresolved reference"),
+            Some(("//wsl.localhost/Ubuntu/home/me/Main.kt".into(), 7))
+        );
         assert_eq!(p("  --> src/main.rs:3:5"), Some(("src/main.rs".into(), 3)));
         assert_eq!(p("src/a.cpp:40:9: error: expected ';'"), Some(("src/a.cpp".into(), 40)));
         assert_eq!(p("Program.cs(12,5): error CS1002: ; expected"), Some(("Program.cs".into(), 12)));
