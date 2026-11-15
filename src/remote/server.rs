@@ -367,7 +367,7 @@ mod tests {
         std::fs::write(dir.join("node_modules").join("c.js"), b"x").unwrap();
         let all = scan(dir.to_str().unwrap(), 100);
         assert_eq!(all.len(), 2, "{all:?}");
-        assert!(all.iter().any(|p| p.ends_with("sub/b.txt")), "{all:?}");
+        assert!(all.iter().any(|p| Path::new(p).ends_with("sub/b.txt")), "{all:?}");
         assert!(all.iter().all(|p| !p.contains("node_modules")), "{all:?}");
         assert_eq!(scan(dir.to_str().unwrap(), 1).len(), 1);
         let _ = std::fs::remove_dir_all(&dir);
