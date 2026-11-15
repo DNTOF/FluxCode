@@ -369,6 +369,16 @@ pub struct Workbench {
     pub(crate) preview: Option<(Entity<gpui_webview::WebView>, String)>,
     #[cfg(not(feature = "embedded-preview"))]
     pub(crate) preview: Option<((), String)>,
+    /// The WebView notice is on screen (embedded-preview only): the preview
+    /// waits until the user continues or cancels.
+    #[cfg(feature = "embedded-preview")]
+    pub(crate) preview_ask: bool,
+    /// "Do not show again" ticked in the open notice.
+    #[cfg(feature = "embedded-preview")]
+    pub(crate) preview_ask_hide: bool,
+    /// Focus of the notice dialog, so Escape and Enter reach it.
+    #[cfg(feature = "embedded-preview")]
+    pub(crate) preview_ask_focus: FocusHandle,
     _subs: Vec<Subscription>,
 }
 
@@ -574,6 +584,12 @@ impl Workbench {
             github_input,
             copilot: crate::copilot::Copilot::new(copilot_enabled),
             preview: None,
+            #[cfg(feature = "embedded-preview")]
+            preview_ask: false,
+            #[cfg(feature = "embedded-preview")]
+            preview_ask_hide: false,
+            #[cfg(feature = "embedded-preview")]
+            preview_ask_focus: cx.focus_handle(),
             update: Default::default(),
             title_menu_end: Rc::default(),
             _subs: subs,
@@ -2905,6 +2921,7 @@ impl Render for Workbench {
             .child(self.render_status_bar(cx))
             .when(self.quick.open, |v| v.child(self.render_quick_open(cx)))
             .children(self.render_drop_ask(cx))
+            .children(self.render_preview_ask(cx))
             .children(self.render_update(cx))
             .children(self.render_theme_menu(cx))
             .children(self.render_agent_settings(window, cx))

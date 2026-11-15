@@ -172,6 +172,10 @@ pub const ID: &[(&str, &str)] = &[
     ("Open a folder or an HTML file to preview it", "Buka folder atau file HTML untuk melihat preview-nya"),
     ("Preview server failed: {e}", "Server preview gagal: {e}"),
     ("WebView2 is not available: {e}", "WebView2 tidak tersedia: {e}"),
+    ("HTML preview runs a WebView", "Pratinjau HTML menjalankan WebView"),
+    ("This preview opens a WebView (WebView2), not FluxCode's native Rust UI. The page runs in the system's web view, so it is not part of the native editor.", "Pratinjau ini membuka WebView (WebView2), bukan UI Rust native FluxCode. Halaman berjalan di tampilan web sistem, jadi bukan bagian dari editor native."),
+    ("Do not show again", "Jangan tampilkan lagi"),
+    ("Continue", "Lanjutkan"),
     ("Live Preview: {url} (reloads on save)", "Live Preview: {url} (muat ulang tiap disimpan)"),
     // ------------------------------------------------------------ Go to File
     ("Type part of a file name", "Ketik sebagian nama file"),

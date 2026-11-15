@@ -5,6 +5,13 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## HTML preview says it runs a WebView (15 November 2026)
+
+- Opening the HTML preview now shows a notice first: the preview runs a
+  WebView (WebView2), not FluxCode's native Rust UI. The preview only starts
+  after Continue; Cancel opens nothing. A "Do not show again" box keeps the
+  notice off from then on.
+
 ## What's new shows only what is new (15 November 2026)
 
 - What's new showed the same entry after every update. Two things caused it:
