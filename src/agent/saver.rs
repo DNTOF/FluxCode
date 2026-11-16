@@ -249,11 +249,12 @@ impl Workbench {
             h_flex()
                 .gap_2p5()
                 .items_start()
+                .min_w_0()
                 .child(
                     div()
                         .flex_none()
-                        .size(theme::u(28.))
-                        .rounded(px(8.))
+                        .size(theme::u(24.))
+                        .rounded(px(7.))
                         .flex()
                         .items_center()
                         .justify_center()
@@ -273,7 +274,7 @@ impl Workbench {
         };
         // A segmented control: the chosen option sits on a raised pill.
         let seg = |id: &'static str, opts: Vec<(SharedString, bool, Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)>)>, cx: &mut Context<Self>| {
-            let mut h = h_flex().ml(theme::u(38.)).p_0p5().gap_0p5().rounded(px(8.)).bg(c(theme::BG_HOVER));
+            let mut h = h_flex().ml(theme::u(34.)).p_0p5().gap_0p5().rounded(px(8.)).bg(c(theme::BG_HOVER));
             for (k, (label, picked, f)) in opts.into_iter().enumerate() {
                 h = h.child(
                     div()
@@ -303,7 +304,7 @@ impl Workbench {
             "ultra" => tr("Telegraphic: keywords and symbols, no prose around code."),
             _ => tr("Terse: no filler or pleasantries; fragments are fine."),
         };
-        let mut answers = v_flex().gap_1p5().child(row("caveman", gpui_kit::assets::IconName::MessageSquareCode, "Short answers", level_hint.into(), on("caveman"), cx, |w, v, cx| w.saver_set("caveman", v, cx)));
+        let mut answers = v_flex().gap_1().child(row("caveman", gpui_kit::assets::IconName::MessageSquareCode, "Short answers", level_hint.into(), on("caveman"), cx, |w, v, cx| w.saver_set("caveman", v, cx)));
         if on("caveman") {
             let opts = LEVELS
                 .iter()
@@ -318,7 +319,7 @@ impl Workbench {
         let fill = self.agent_context_fill().clamp(0., 1.);
         let at = s.saver_compact_at;
         let meter_col = if fill * 100. >= at as f32 { theme::WARN } else { theme::GREEN };
-        let mut compact = v_flex().gap_1p5().child(row(
+        let mut compact = v_flex().gap_1().child(row(
             "compact",
             gpui_kit::assets::IconName::ListCollapse,
             "Auto compact",
@@ -341,7 +342,7 @@ impl Workbench {
                 .collect();
             compact = compact.child(seg("sv-at", opts, cx)).child(
                 v_flex()
-                    .ml(theme::u(38.))
+                    .ml(theme::u(34.))
                     .gap_1()
                     .child(
                         h_flex()
@@ -362,6 +363,10 @@ impl Workbench {
                     ),
             );
         }
+        // The panel never grows past the room above the message box; what doesn't
+        // fit scrolls under its header.
+        let (panel_top, composer_top) = self.agent.geom.get();
+        let room = if composer_top > panel_top + 120. { composer_top - panel_top - 24. } else { 420. };
         let section = |t: &'static str| div().text_size(theme::u(11.)).font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_DIM)).child(tr(t));
         let rule = || div().h(px(1.)).bg(theme::glass_edge());
         Some(
@@ -369,8 +374,11 @@ impl Workbench {
                 .id("ag-saver-panel")
                 .occlude()
                 .w(theme::u(320.))
+                .max_h(px(room.max(180.)))
+                .flex()
+                .flex_col()
                 .p_3()
-                .gap_3()
+                .gap_2()
                 .glass_pop()
                 .on_mouse_down_out(cx.listener(|this, _, _, cx| {
                     this.pop_closed_outside("saver");
@@ -396,6 +404,13 @@ impl Workbench {
                             )
                         }),
                 )
+                .child(
+                    v_flex()
+                        .id("sv-body")
+                        .flex_1()
+                        .min_h_0()
+                        .overflow_y_scroll()
+                        .gap_2p5()
                 .child(div().text_xs().text_color(c(theme::FG_DIM)).child(if changed {
                     tr("Changes apply from your next message.")
                 } else {
@@ -420,6 +435,7 @@ impl Workbench {
                         this.settings.save();
                         cx.notify();
                     }))),
+                ),
                 )
                 .into_any_element(),
         )
