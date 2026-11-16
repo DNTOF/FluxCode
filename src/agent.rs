@@ -31,7 +31,7 @@ pub enum Status {
 }
 
 #[derive(Clone, Copy)]
-enum Req {
+pub(crate) enum Req {
     Initialize,
     NewSession,
     LoadSession,
@@ -162,6 +162,13 @@ pub struct Chat {
     /// The agent that answered (its ACP id).
     #[serde(default)]
     pub agent: Option<String>,
+    /// The account it signed in with ("" the default one), when one was picked for it.
+    #[serde(default)]
+    pub account: Option<String>,
+    /// The agent's session id, to resume it when the chat is opened again (when the
+    /// harness can load sessions).
+    #[serde(default)]
+    pub session: Option<String>,
 }
 
 /// When a chat last changed, as a clock time: "14.32" today, "Yesterday 09.10",
@@ -233,78 +240,36 @@ pub struct Change {
 }
 
 pub struct AgentState {
-    pub status: Status,
-    proc_id: Option<u32>,
-    buf: String,
-    log_tail: Vec<String>,
-    next_id: u64,
-    pending: HashMap<u64, Req>,
-    session: Option<String>,
-    /// Messages waiting for the agent: sent together when the current answer ends.
-    pub queue: Vec<Queued>,
-    /// The user asked to interrupt the answer and send the queue now.
-    steer: bool,
+    /// The chat on screen and its agent. The fields of `Run` read as the panel's own
+    /// (`self.agent.items`) through `Deref`.
+    pub(crate) run: Run,
+    /// Chats whose agent keeps working while another chat is on screen.
+    pub(crate) runs: Vec<Run>,
+    /// A background chat is swapped in for a moment (`agent_with_run`): the editor
+    /// doesn't follow its edits.
+    pub(crate) bg: bool,
+    /// The message box shows another agent's name now (set on the next frame).
+    pub(crate) placeholder_dirty: bool,
     /// Files attached to the message being typed.
     pub attachments: Vec<PathBuf>,
     /// The row of attachment and context chips above the message, when it is wider than the box.
     chips_scroll: ScrollHandle,
-    /// Thinking blocks the user expanded.
-    open_thoughts: HashSet<usize>,
-    /// The agent accepts image blocks (ACP promptCapabilities.image).
-    can_image: bool,
-    pub items: Vec<Item>,
-    permission: Option<Permission>,
-    /// Requests that came while one was on screen (an agent running two tools at once):
-    /// each is shown in turn, none is dropped.
-    perm_queue: std::collections::VecDeque<Permission>,
-    pub changes: Vec<Change>,
     /// Open editors to reload from disk after the agent wrote them (needs a Window).
     pub reloads: Vec<PathBuf>,
     /// Files the agent finished editing, for the editor to follow (follow.rs).
     pub follow_q: Vec<PathBuf>,
-    /// The files each edit tool touched, so its "done" update (which often names no
-    /// file) still gets its lines counted.
-    tool_paths: HashMap<String, Vec<PathBuf>>,
     /// When the user last picked a tab or file themselves: the editor doesn't jump to the
     /// agent's edits for a moment after (follow.rs).
     pub(crate) user_nav: Option<std::time::Instant>,
     /// The replay on screen: its file and final text; the counter stops older ones.
     pub replay: Option<(PathBuf, String)>,
     pub replay_gen: u64,
-    /// The Changes card shows only its header.
-    changes_folded: bool,
-    /// Groups of steps the user opened (by the index of their first item).
-    open_groups: HashSet<usize>,
-    /// The chat's own git worktree, when it has one (worktree.rs).
-    pub worktree: Option<worktree::Worktree>,
-    pub worktree_busy: bool,
     /// An account whose sign-in console is open: it joins the list only once signed in.
     pub account_wait: Option<worktree::Account>,
     pub(crate) input: Entity<TextareaState>,
-    /// The chat log as a virtual list: only the messages on screen are laid out, so a
-    /// chat of a million items costs a frame what one of twenty does. It follows the
-    /// newest text (tail mode) until the reader scrolls up, and again once they scroll
-    /// back to the bottom.
-    pub(crate) list: ListState,
-    /// What the list was last told (see `agent_sync_list`).
-    list_seen: std::cell::RefCell<ListSeen>,
-    /// The first item in the list. Older ones are not rendered at all: while the reader
-    /// follows the newest text they leave on their own, and "Show earlier" pages them
-    /// back in, PAGE at a time.
-    view_start: std::cell::Cell<usize>,
-    /// Items whose height changed by a click (a thought or a group opened).
-    remeasure: std::cell::RefCell<Vec<std::ops::Range<usize>>>,
-    /// The chat keeps the newest text in view: off once the reader scrolls up, on again
-    /// when they scroll back to the bottom or send a message.
-    pub(crate) follow: bool,
     /// Saved chats, newest first.
     pub history: Vec<Chat>,
-    /// The chat on screen, once it has been saved.
-    chat_id: Option<u64>,
     pub show_history: bool,
-    /// An earlier chat reopened from history: sent with the next message so a
-    /// fresh OpenCode session knows what was said.
-    carry: Option<String>,
     /// `@file` being typed: (offset of `@`, matching files, selected row).
     pub mention: Option<(usize, Vec<usize>, usize)>,
     /// Context chips the user switched off: "file", "sel", "err", "out", or "@path".
@@ -313,38 +278,14 @@ pub struct AgentState {
     pub remote: Vec<RemoteSession>,
     pub remote_state: u8,
     pub remote_err: Option<String>,
-    /// The harness can resume an old session (ACP `loadSession`).
-    can_load: bool,
-    /// Resume this session once the agent has started.
-    pending_load: Option<String>,
-    /// Replaying this session's history right now.
-    loading_id: Option<String>,
-    /// The language note went out in this session.
-    hinted: bool,
-    /// Signature of the workspace overview the agent has (0: none yet this session).
-    ws_sig: u64,
     /// `/command` list while a `/` is being typed: (matches, selected row).
     pub slash: Option<(Vec<SlashCmd>, usize)>,
-    /// Commands the agent announced for this session.
-    pub commands: Vec<SlashCmd>,
-    /// Settings the harness offers for this session (model, effort, mode, ...).
-    pub config: Vec<ConfigOpt>,
     /// The settings view (model, effort, mode) is showing instead of the chat.
     pub show_options: bool,
     /// Editing an earlier message (index in `items`): Enter restarts from there.
     pub editing: Option<usize>,
-    /// The next answer that ends was cancelled on purpose (an edit): no "cancelled" note.
-    quiet_stop: bool,
-    /// Stamp of the last finished turn; the idle timer only fires if it's unchanged.
-    last_active: Option<std::time::Instant>,
-    /// Resuming after an idle stop: the replayed history is already on screen.
-    silent_load: bool,
-    /// The session to resume on the next message after an idle stop.
-    resume_id: Option<String>,
     /// An agent being installed: its id and what the installer is doing.
     pub installing: Option<(String, crate::acp::Tracker, Entity<crate::flux_anim::InstallAnim>)>,
-    /// A question the agent asked (elicitation), waiting for the user.
-    pub ask: Option<crate::agent_ask::Ask>,
     /// Text boxes for typed answers, one per question of a form.
     pub ask_inputs: Vec<Entity<InputState>>,
     /// Boxes to empty before the next frame (a new form arrived).
@@ -358,20 +299,8 @@ pub struct AgentState {
     pub install_err: Option<(String, String, Option<Entity<crate::flux_anim::InstallAnim>>)>,
     /// The agent, model, mode or permission menu that is open.
     pub menu: menu::MenuState,
-    /// A command-line setting changed while the agent answered: restart it after the turn.
-    relaunch: bool,
-    /// Usage and limits: live numbers and the usage panel.
-    pub usage: usage::UsageState,
-    /// Web searches whose every source is shown.
-    pub web_open: HashSet<String>,
-    /// When each step (tool call, thought) started and how long it took.
-    pub times: activity::Times,
-    /// Usage limit banner (limit.rs), token saver (saver.rs), full-screen columns (full.rs).
-    pub limit: limit::LimitState,
     pub saver: saver::SaverState,
     pub full: full::FullState,
-    /// The thought being written now (its key in `times`).
-    open_thought: Option<String>,
     /// Where the effort slider's handle was before the last change (it slides from there).
     pub effort_from: std::cell::Cell<Option<f32>>,
     /// The effort handle is held: where it is on the rail (0..1).
@@ -389,6 +318,194 @@ pub struct AgentState {
     _sub: Subscription,
     /// Redraws the removal page as its two name boxes change.
     _sub_un: Vec<Subscription>,
+}
+
+/// One chat's agent: its process, ACP session, status, queue and what it said.
+/// Each chat has its own, so chats with different agents and folders work at the
+/// same time.
+pub struct Run {
+    /// Stable for the run's life (a chat gets its id only once saved).
+    pub(crate) key: u64,
+    /// The agent it runs: "auto" or an ACP id (as `Settings::agent_cli`).
+    pub(crate) agent: String,
+    /// Where the agent works (None: the open folder).
+    pub(crate) folder: Option<PathBuf>,
+    /// The account it signs in with: a name, "" for the default sign-in, None for
+    /// the one picked in settings.
+    pub(crate) account: Option<String>,
+    pub(crate) status: Status,
+    pub(crate) proc_id: Option<u32>,
+    pub(crate) buf: String,
+    pub(crate) log_tail: Vec<String>,
+    pub(crate) next_id: u64,
+    pub(crate) pending: HashMap<u64, Req>,
+    pub(crate) session: Option<String>,
+    /// Messages waiting for the agent: sent together when the current answer ends.
+    pub(crate) queue: Vec<Queued>,
+    /// The user asked to interrupt the answer and send the queue now.
+    pub(crate) steer: bool,
+    /// Thinking blocks the user expanded.
+    pub(crate) open_thoughts: HashSet<usize>,
+    /// The agent accepts image blocks (ACP promptCapabilities.image).
+    pub(crate) can_image: bool,
+    pub(crate) items: Vec<Item>,
+    pub(crate) permission: Option<Permission>,
+    /// Requests that came while one was on screen (an agent running two tools at once):
+    /// each is shown in turn, none is dropped.
+    pub(crate) perm_queue: std::collections::VecDeque<Permission>,
+    pub(crate) changes: Vec<Change>,
+    /// The files each edit tool touched, so its "done" update (which often names no
+    /// file) still gets its lines counted.
+    pub(crate) tool_paths: HashMap<String, Vec<PathBuf>>,
+    /// The Changes card shows only its header.
+    pub(crate) changes_folded: bool,
+    /// Groups of steps the user opened (by the index of their first item).
+    pub(crate) open_groups: HashSet<usize>,
+    /// The chat's own git worktree, when it has one (worktree.rs).
+    pub(crate) worktree: Option<worktree::Worktree>,
+    pub(crate) worktree_busy: bool,
+    /// The chat log as a virtual list: only the messages on screen are laid out, so a
+    /// chat of a million items costs a frame what one of twenty does. It follows the
+    /// newest text (tail mode) until the reader scrolls up, and again once they scroll
+    /// back to the bottom.
+    pub(crate) list: ListState,
+    /// What the list was last told (see `agent_sync_list`).
+    pub(crate) list_seen: std::cell::RefCell<ListSeen>,
+    /// The first item in the list. Older ones are not rendered at all: while the reader
+    /// follows the newest text they leave on their own, and "Show earlier" pages them
+    /// back in, PAGE at a time.
+    pub(crate) view_start: std::cell::Cell<usize>,
+    /// Items whose height changed by a click (a thought or a group opened).
+    pub(crate) remeasure: std::cell::RefCell<Vec<std::ops::Range<usize>>>,
+    /// The chat keeps the newest text in view: off once the reader scrolls up, on again
+    /// when they scroll back to the bottom or send a message.
+    pub(crate) follow: bool,
+    /// The chat on screen, once it has been saved.
+    pub(crate) chat_id: Option<u64>,
+    /// An earlier chat reopened from history: sent with the next message so a
+    /// fresh OpenCode session knows what was said.
+    pub(crate) carry: Option<String>,
+    /// The harness can resume an old session (ACP `loadSession`).
+    pub(crate) can_load: bool,
+    /// Resume this session once the agent has started.
+    pub(crate) pending_load: Option<String>,
+    /// Replaying this session's history right now.
+    pub(crate) loading_id: Option<String>,
+    /// The language note went out in this session.
+    pub(crate) hinted: bool,
+    /// Signature of the workspace overview the agent has (0: none yet this session).
+    pub(crate) ws_sig: u64,
+    /// Commands the agent announced for this session.
+    pub(crate) commands: Vec<SlashCmd>,
+    /// Settings the harness offers for this session (model, effort, mode, ...).
+    pub(crate) config: Vec<ConfigOpt>,
+    /// The next answer that ends was cancelled on purpose (an edit): no "cancelled" note.
+    pub(crate) quiet_stop: bool,
+    /// Stamp of the last finished turn; the idle timer only fires if it's unchanged.
+    pub(crate) last_active: Option<std::time::Instant>,
+    /// Resuming after an idle stop: the replayed history is already on screen.
+    pub(crate) silent_load: bool,
+    /// The session to resume on the next message after an idle stop.
+    pub(crate) resume_id: Option<String>,
+    /// A question the agent asked (elicitation), waiting for the user.
+    pub(crate) ask: Option<crate::agent_ask::Ask>,
+    /// A command-line setting changed while the agent answered: restart it after the turn.
+    pub(crate) relaunch: bool,
+    /// Usage and limits: live numbers and the usage panel.
+    pub(crate) usage: usage::UsageState,
+    /// Web searches whose every source is shown.
+    pub(crate) web_open: HashSet<String>,
+    /// When each step (tool call, thought) started and how long it took.
+    pub(crate) times: activity::Times,
+    /// Usage limit banner (limit.rs), token saver (saver.rs), full-screen columns (full.rs).
+    pub(crate) limit: limit::LimitState,
+    /// The thought being written now (its key in `times`).
+    pub(crate) open_thought: Option<String>,
+}
+
+static RUN_KEY: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+impl Run {
+    pub(crate) fn new(agent: String, folder: Option<PathBuf>) -> Self {
+        Self {
+            key: RUN_KEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            agent,
+            folder,
+            account: None,
+        status: Status::Off,
+        proc_id: None,
+        buf: String::new(),
+        log_tail: Vec::new(),
+        next_id: 0,
+        pending: HashMap::new(),
+        session: None,
+        queue: Vec::new(),
+        steer: false,
+        open_thoughts: HashSet::new(),
+        can_image: false,
+        items: Vec::new(),
+        permission: None,
+        perm_queue: Default::default(),
+        changes: Vec::new(),
+        tool_paths: HashMap::new(),
+        changes_folded: false,
+        limit: Default::default(),
+        open_groups: HashSet::new(),
+        worktree: None,
+        worktree_busy: false,
+        list: {
+            let l = ListState::new(0, ListAlignment::Top, px(600.));
+            l.set_follow_mode(FollowMode::Tail);
+            l
+        },
+        list_seen: Default::default(),
+        view_start: Default::default(),
+        remeasure: Default::default(),
+        follow: true,
+        chat_id: None,
+        carry: None,
+        can_load: false,
+        pending_load: None,
+        loading_id: None,
+        hinted: false,
+        ws_sig: 0,
+        commands: Vec::new(),
+        config: Vec::new(),
+        quiet_stop: false,
+        last_active: None,
+        silent_load: false,
+        resume_id: None,
+        relaunch: false,
+        usage: Default::default(),
+        web_open: HashSet::new(),
+        times: Default::default(),
+        open_thought: None,
+        ask: None,
+        }
+    }
+
+    /// The agent process is up (starting, idle or answering).
+    pub(crate) fn live(&self) -> bool {
+        self.proc_id.is_some()
+    }
+
+    /// Answering now, or waiting for the user to allow a step.
+    pub(crate) fn working(&self) -> bool {
+        self.status == Status::Busy || self.permission.is_some() || self.ask.is_some()
+    }
+}
+
+impl std::ops::Deref for AgentState {
+    type Target = Run;
+    fn deref(&self) -> &Run {
+        &self.run
+    }
+}
+
+impl std::ops::DerefMut for AgentState {
+    fn deref_mut(&mut self) -> &mut Run {
+        &mut self.run
+    }
 }
 
 /// MuaraAI's Mura harness (`mura`, one Rust binary, github.com/MuaraAI/Mura-Harness),
@@ -528,47 +645,21 @@ impl AgentState {
             cx.new(|cx| InputState::new(window, cx).placeholder(tr("Type it again"))),
         ];
         Self {
-            status: Status::Off,
-            proc_id: None,
-            buf: String::new(),
-            log_tail: Vec::new(),
-            next_id: 0,
-            pending: HashMap::new(),
-            session: None,
-            queue: Vec::new(),
-            steer: false,
+            run: Run::new(String::new(), None),
+            runs: Vec::new(),
+            bg: false,
+            placeholder_dirty: false,
             attachments: Vec::new(),
             chips_scroll: ScrollHandle::new(),
-            open_thoughts: HashSet::new(),
-            can_image: false,
-            items: Vec::new(),
-            permission: None,
-            perm_queue: Default::default(),
-            changes: Vec::new(),
             reloads: Vec::new(),
             follow_q: Vec::new(),
-            tool_paths: HashMap::new(),
             user_nav: None,
             replay: None,
             replay_gen: 0,
-            changes_folded: false,
-            limit: Default::default(),
             saver: Default::default(),
             full: Default::default(),
-            open_groups: HashSet::new(),
-            worktree: None,
-            worktree_busy: false,
             account_wait: None,
             input,
-            list: {
-                let l = ListState::new(0, ListAlignment::Top, px(600.));
-                l.set_follow_mode(FollowMode::Tail);
-                l
-            },
-            list_seen: Default::default(),
-            view_start: Default::default(),
-            remeasure: Default::default(),
-            follow: true,
             history: {
                 let mut h: Vec<Chat> = crate::settings::load_json(HISTORY_FILE);
                 if chats::auto_archive(&mut h, now_ms(), None) {
@@ -576,36 +667,18 @@ impl AgentState {
                 }
                 h
             },
-            chat_id: None,
             show_history: false,
-            carry: None,
             mention: None,
             off_ctx: HashSet::new(),
             remote: Vec::new(),
             remote_state: 0,
             remote_err: None,
-            can_load: false,
-            pending_load: None,
-            loading_id: None,
-            hinted: false,
-            ws_sig: 0,
             slash: None,
-            commands: Vec::new(),
-            config: Vec::new(),
             show_options: false,
             editing: None,
-            quiet_stop: false,
-            last_active: None,
-            silent_load: false,
-            resume_id: None,
             installing: None,
             install_err: None,
             menu: menu::MenuState::new(window, cx),
-            relaunch: false,
-            usage: Default::default(),
-            web_open: HashSet::new(),
-            times: Default::default(),
-            open_thought: None,
             effort_from: std::cell::Cell::new(None),
             effort_drag: std::cell::Cell::new(None),
             effort_gen: std::cell::Cell::new(0),
@@ -613,7 +686,6 @@ impl AgentState {
             compose_w: std::rc::Rc::new(std::cell::Cell::new(0.)),
             settings_tab: Default::default(),
             settings_focus: cx.focus_handle(),
-            ask: None,
             ask_inputs: crate::agent_ask::make_inputs(window, cx),
             ask_clear: Vec::new(),
             ask_missing: None,
@@ -650,6 +722,8 @@ impl AgentState {
         let renamed = old.map(|c| (c.renamed, c.title.clone())).filter(|(r, _)| *r);
         let keep = old.is_some_and(|c| c.keep);
         let folder = folder.or_else(|| old.and_then(|c| c.folder.clone()));
+        let account = self.run.account.clone().or_else(|| old.and_then(|c| c.account.clone()));
+        let session = self.run.session.clone().or_else(|| self.run.resume_id.clone()).or_else(|| old.and_then(|c| c.session.clone()));
         let title = match &renamed {
             Some((_, t)) => t.clone(),
             None => messages
@@ -660,13 +734,23 @@ impl AgentState {
         };
         self.history.retain(|c| c.id != id);
         // A new message brings an archived chat back.
-        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages, archived: false, keep, folder, agent: Some(agent_id()) });
+        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages, archived: false, keep, folder, agent: Some(agent_id()), account, session });
         self.history.truncate(HISTORY_MAX);
         crate::settings::save_json(HISTORY_FILE, &self.history);
     }
 
     pub fn owns(&self, id: u32) -> bool {
         self.proc_id == Some(id)
+    }
+
+    /// The background chat whose agent is process `id`.
+    pub fn run_of(&self, id: u32) -> Option<u64> {
+        self.runs.iter().find(|r| r.proc_id == Some(id)).map(|r| r.key)
+    }
+
+    /// Saved chats answering right now (on screen or in the background).
+    pub(crate) fn working_ids(&self) -> Vec<u64> {
+        std::iter::once(&self.run).chain(&self.runs).filter(|r| r.working()).filter_map(|r| r.chat_id).collect()
     }
 
     fn append_user(&mut self, text: &str) {
@@ -685,6 +769,130 @@ impl AgentState {
 }
 
 impl Workbench {
+    /// The title of the chat `self.agent` holds now (for a background chat's notices).
+    fn agent_chat_title(&self) -> String {
+        self.agent.chat_id.and_then(|id| self.agent.history.iter().find(|c| c.id == id)).map(|c| c.title.clone()).unwrap_or_default()
+    }
+
+    /// Save the chat on screen, with the folder its agent works in.
+    pub(crate) fn agent_save(&mut self) {
+        let folder = self.agent.folder.clone().or_else(|| self.root.clone()).map(|r| r.display().to_string());
+        self.agent.save_chat(folder);
+    }
+
+    /// Run `f` with the chat runtime `key` as the panel's own (`self.agent.*`): the one
+    /// on screen as it is, a background one swapped in for the call (its agent is the
+    /// current one meanwhile). False when that chat's runtime is gone.
+    pub(crate) fn agent_with_run(&mut self, key: u64, cx: &mut Context<Self>, f: impl FnOnce(&mut Self, &mut Context<Self>)) -> bool {
+        if self.agent.run.key == key {
+            f(self, cx);
+            return true;
+        }
+        let Some(ix) = self.agent.runs.iter().position(|r| r.key == key) else { return false };
+        let front = self.agent.run.key;
+        std::mem::swap(&mut self.agent.run, &mut self.agent.runs[ix]);
+        set_choice(&self.agent.run.agent);
+        let was_bg = std::mem::replace(&mut self.agent.bg, true);
+        f(self, cx);
+        self.agent.bg = was_bg;
+        if let Some(ix) = self.agent.runs.iter().position(|r| r.key == front) {
+            std::mem::swap(&mut self.agent.run, &mut self.agent.runs[ix]);
+        }
+        set_choice(&self.agent.run.agent);
+        // A background chat whose agent stopped (the idle timer) is saved with its
+        // session: it needs no memory until it is opened again.
+        self.agent.runs.retain(|r| r.live() || r.status != Status::Off);
+        true
+    }
+
+    /// Put `next` on screen. The chat that was there keeps its agent in the background
+    /// while it is up (answering, or ready for the next message until the idle timer
+    /// stops it), so several chats work at once; a chat with nothing running is just
+    /// saved. An idle agent of the same kind, account and folder moves on to `next`
+    /// instead of a second one starting (`new_session`: it opens a fresh session
+    /// there). True when it did.
+    fn agent_switch_to(&mut self, mut next: Run, new_session: bool, cx: &mut Context<Self>) -> bool {
+        self.agent_save();
+        let next_cwd = match &next.worktree {
+            Some(w) => w.path.clone(),
+            None => next.folder.clone().or_else(|| self.root.clone()).unwrap_or_else(|| self.term_cwd.clone()),
+        };
+        let cur = &self.agent.run;
+        let handoff = !next.live()
+            && cur.live()
+            && cur.status == Status::Ready
+            && !cur.working()
+            && cur.queue.is_empty()
+            && cur.agent == next.agent
+            && cur.account == next.account
+            && cur.worktree.is_none()
+            && next.worktree.is_none()
+            && self.agent_cwd() == next_cwd;
+        if handoff {
+            let r = &mut self.agent.run;
+            next.proc_id = r.proc_id.take();
+            next.buf = std::mem::take(&mut r.buf);
+            next.log_tail = std::mem::take(&mut r.log_tail);
+            next.next_id = r.next_id;
+            next.pending = std::mem::take(&mut r.pending);
+            next.can_load = r.can_load;
+            next.can_image = r.can_image;
+            next.commands = r.commands.clone();
+            next.config = r.config.clone();
+            next.folder = Some(next_cwd);
+            // The chat left behind continues its session when it is opened again.
+            if r.can_load {
+                r.resume_id = r.session.take();
+            } else {
+                r.session = None;
+                r.carry = Some(transcript(&r.items));
+            }
+            r.status = Status::Off;
+            r.hinted = false;
+            r.ws_sig = 0;
+        }
+        self.agent.editing = None;
+        self.agent.show_history = false;
+        self.agent.mention = None;
+        self.agent.slash = None;
+        let mut old = std::mem::replace(&mut self.agent.run, next);
+        // A first message still waiting for its agent to start keeps the chat going.
+        if old.chat_id.is_none() && old.live() && !old.queue.is_empty() {
+            old.chat_id = Some(now_ms());
+        }
+        // Kept in the background: a chat whose agent is up, or one that stopped with
+        // an error (shown when it is opened). The rest are in the history already.
+        if old.chat_id.is_some() && (old.live() || matches!(old.status, Status::Error(_))) {
+            self.agent.runs.push(old);
+        } else if let Some(id) = old.proc_id {
+            self.procs.kill(id);
+        }
+        set_choice(&self.agent.run.agent);
+        self.agent.placeholder_dirty = true;
+        if handoff {
+            let resume = self.agent.resume_id.take();
+            if !new_session {
+                self.agent.status = Status::Ready;
+            } else if let Some(id) = resume.clone().filter(|_| self.agent.can_load) {
+                // The chat's own session, without replaying it (it is on screen).
+                self.agent.silent_load = true;
+                self.agent_load_session(id);
+            } else {
+                if resume.is_some() {
+                    self.agent.carry = Some(transcript(&self.agent.items));
+                }
+                self.agent.status = Status::Starting;
+                let cwd = self.agent_cwd();
+                self.agent_request(Req::NewSession, "session/new", json!({ "cwd": cwd, "mcpServers": self.agent_mcp_servers() }));
+            }
+            self.agent_schedule_idle(cx);
+        }
+        self.agent.follow = true;
+        self.agent_to_end();
+        cx.notify();
+        handoff
+    }
+
     pub(crate) fn agent_write(&mut self, msg: Value) {
         if let Some(id) = self.agent.proc_id {
             self.procs.write_stdin(id, &format!("{msg}\n"));
@@ -744,7 +952,7 @@ impl Workbench {
     /// for new sessions of this harness.
     pub(crate) fn agent_set_option(&mut self, id: &str, value: String, remember: bool, cx: &mut Context<Self>) {
         if remember {
-            let key = format!("{}:{id}", self.settings.agent_cli);
+            let key = format!("{}:{id}", self.agent.agent);
             if self.settings.agent_options.get(&key) != Some(&value) {
                 self.settings.agent_options.insert(key, value.clone());
                 self.settings.save();
@@ -752,7 +960,7 @@ impl Workbench {
         }
         if let Some(flag) = id.strip_prefix(FLAG_PREFIX) {
             // Always kept: the agent reads it from its command line at the next start.
-            let key = format!("{}:{FLAG_PREFIX}{flag}", self.settings.agent_cli);
+            let key = format!("{}:{FLAG_PREFIX}{flag}", self.agent.agent);
             self.settings.agent_options.insert(key, value);
             self.settings.save();
             self.agent_relaunch(cx);
@@ -774,7 +982,7 @@ impl Workbench {
     /// The session's settings as the panel shows them: the agent's own, plus those
     /// FluxCode passes on its command line when the agent doesn't offer them over ACP.
     pub(crate) fn agent_config_view(&self) -> Vec<ConfigOpt> {
-        let cli = self.settings.agent_cli.clone();
+        let cli = self.agent.agent.clone();
         let agent = agent_id();
         let mut v = self.agent.config.clone();
         for f in crate::acp::flag_opts(&agent) {
@@ -793,7 +1001,7 @@ impl Workbench {
 
     /// The command-line flags for the saved command-line settings.
     fn agent_flag_args(&self) -> Vec<String> {
-        let cli = &self.settings.agent_cli;
+        let cli = &self.agent.agent;
         crate::acp::flag_opts(&agent_id())
             .iter()
             .filter_map(|f| {
@@ -819,7 +1027,7 @@ impl Workbench {
         let session = self.agent.session.clone();
         let chatted = self.agent.items.iter().any(|i| matches!(i, Item::User(_)));
         let can_load = self.agent.can_load;
-        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+        self.agent_save();
         self.agent_stop(cx);
         if chatted {
             match session {
@@ -975,6 +1183,10 @@ impl Workbench {
             return;
         }
         self.agent_browser_setup(cx);
+        // The chat keeps working where it started, whatever folder opens later.
+        if self.agent.folder.is_none() {
+            self.agent.folder = self.root.clone();
+        }
         let Some(mut cmd) = agent_cmd() else {
             self.agent.status = Status::Error(if agent_id() == "mura" {
                 crate::i18n::tr("Mura isn't installed on this PC (FluxCode looks on PATH and in ~/.local/bin). Build it from github.com/MuaraAI/Mura-Harness, or pick another agent in the menu above.").into()
@@ -1257,14 +1469,14 @@ impl Workbench {
                 self.agent_schedule_idle(cx);
                 self.agent.hinted = false;
                 self.agent.ws_sig = 0;
-                self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+                self.agent_save();
                 self.agent_flush_queue(cx);
             }
             Req::NewSession => {
                 self.agent.session = result.get("sessionId").and_then(Value::as_str).map(String::from);
                 self.agent_take_config(&result);
                 // What was picked last time (model, effort, mode), when the harness still offers it.
-                let harness = self.settings.agent_cli.clone();
+                let harness = self.agent.agent.clone();
                 let wanted: Vec<(String, String)> = self
                     .agent
                     .config
@@ -1316,7 +1528,11 @@ impl Workbench {
                 if let Some(t) = last {
                     self.agent_check_limit(&t, cx);
                 }
-                self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+                self.agent_save();
+                // A chat in the background finished: the status bar says which.
+                if self.agent.bg && self.agent.queue.is_empty() {
+                    self.status = crate::trf!("{name} finished in “{chat}”."; name => agent_name(), chat => self.agent_chat_title()).into();
+                }
                 self.agent_schedule_idle(cx);
                 self.refresh_tree(cx);
                 if std::mem::take(&mut self.agent.relaunch) {
@@ -1521,6 +1737,9 @@ impl Workbench {
                 } else {
                     self.agent.permission = Some(req);
                 }
+                if self.agent.bg {
+                    self.status = crate::trf!("{name} waits for your answer in “{chat}”."; name => agent_name(), chat => self.agent_chat_title()).into();
+                }
                 // The agent waits for this: make sure it is seen.
                 if self.settings.agent_right {
                     self.agent_open = true;
@@ -1593,47 +1812,37 @@ impl Workbench {
         if on {
             self.agent_start(cx);
         } else {
-            self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+            self.agent_save();
             self.agent_stop(cx);
         }
     }
 
-    /// Start a new chat; a running OpenCode gets a fresh session.
+    /// Start a new chat with the agent picked last. The one on screen keeps working in
+    /// the background if it is answering; an idle agent moves on to the new chat.
     fn agent_new_chat(&mut self, cx: &mut Context<Self>) {
-        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
-        self.agent.items.clear();
-        self.agent_fresh_view();
-        self.agent.chat_id = None;
-        self.agent.carry = None;
-        self.agent.show_history = false;
-        if self.agent.status == Status::Ready && self.agent.proc_id.is_some() {
-            self.agent.session = None;
-            self.agent.status = Status::Starting;
-            let cwd = self.agent_cwd();
-            self.agent_request(Req::NewSession, "session/new", json!({ "cwd": cwd, "mcpServers": self.agent_mcp_servers() }));
-        }
-        cx.notify();
+        let next = Run::new(self.settings.agent_cli.clone(), None);
+        self.agent_switch_to(next, true, cx);
     }
 
-    /// A chat starts clean: what was opened, timed or changed belonged to the last one
-    /// (its changes count as kept, as with Keep all).
-    fn agent_fresh_view(&mut self) {
-        self.agent.open_thoughts.clear();
-        self.agent.open_groups.clear();
-        self.agent.times.clear();
-        self.agent.changes.clear();
-        self.agent.changes_folded = false;
-    }
-
-    /// Reopen a saved chat. OpenCode can't resume the old session, so the next
-    /// message carries the earlier ones as context.
+    /// Reopen a saved chat. One still running in the background comes back as it is;
+    /// otherwise it gets its own agent, folder and account again, and since most
+    /// harnesses can't resume the old session, the next message carries the earlier
+    /// ones as context.
     fn agent_open_chat(&mut self, id: u64, cx: &mut Context<Self>) {
-        let Some(chat) = self.agent.history.iter().find(|c| c.id == id).cloned() else { return };
-        self.agent_fresh_view();
-        if self.agent.chat_id != Some(id) {
-            self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+        if self.agent.chat_id == Some(id) {
+            self.agent.show_history = false;
+            return cx.notify();
         }
-        self.agent.items = chat
+        if let Some(ix) = self.agent.runs.iter().position(|r| r.chat_id == Some(id)) {
+            let run = self.agent.runs.remove(ix);
+            self.agent_switch_to(run, false, cx);
+            return;
+        }
+        let Some(chat) = self.agent.history.iter().find(|c| c.id == id).cloned() else { return };
+        let folder = chat.folder.as_ref().map(PathBuf::from).filter(|p| p.is_dir());
+        let mut next = Run::new(chat.agent.clone().unwrap_or_else(|| self.settings.agent_cli.clone()), folder);
+        next.account = chat.account.clone();
+        next.items = chat
             .messages
             .iter()
             .map(|(role, t)| match role.as_str() {
@@ -1648,12 +1857,14 @@ impl Workbench {
             let t: String = t.chars().take(2000).collect();
             earlier.push_str(&format!("{who}: {t}\n\n"));
         }
-        self.agent.carry = Some(earlier);
-        self.agent.chat_id = Some(id);
-        self.agent.show_history = false;
-        self.agent.follow = true;
-        self.agent_to_end();
-        cx.notify();
+        // Its own session continues when the harness can load it (the agent falls back
+        // to these messages as context when it can't).
+        match chat.session.clone() {
+            Some(sid) => next.resume_id = Some(sid),
+            None => next.carry = Some(earlier),
+        }
+        next.chat_id = Some(id);
+        self.agent_switch_to(next, true, cx);
     }
 
     /// Move a chat into the archive or back out (taken out, it stays out).
@@ -1667,6 +1878,13 @@ impl Workbench {
     }
 
     fn agent_delete_chat(&mut self, id: u64, cx: &mut Context<Self>) {
+        // Its agent, if still up in the background, goes with it.
+        if let Some(ix) = self.agent.runs.iter().position(|r| r.chat_id == Some(id)) {
+            let run = self.agent.runs.remove(ix);
+            if let Some(p) = run.proc_id {
+                self.procs.kill(p);
+            }
+        }
         self.agent.history.retain(|c| c.id != id);
         crate::settings::save_json(HISTORY_FILE, &self.agent.history);
         if self.agent.chat_id == Some(id) {
@@ -1746,15 +1964,19 @@ impl Workbench {
 
     /// Switch the harness from the title menu. A running agent is stopped first.
     fn agent_use(&mut self, cli: &str, window: &mut Window, cx: &mut Context<Self>) {
-        if self.settings.agent_cli == cli {
+        if self.agent.agent == cli {
             return;
         }
         let old = agent_name();
         // The chat under the pointer changes: nothing in it stays selected.
         gpui_kit::base::TextSelection::clear(window, cx);
-        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+        self.agent_save();
         self.agent_stop(cx);
         self.agent.install_err = None;
+        // This chat's agent, and the one new chats start with.
+        self.agent.agent = cli.into();
+        // Accounts belong to one family of agents.
+        self.agent.account = None;
         self.settings.agent_cli = cli.into();
         self.settings.save();
         set_choice(cli);
@@ -1929,11 +2151,22 @@ impl Workbench {
         if agent_id() == id {
             self.agent_stop(cx);
         }
+        // Chats running it in the background stop too (its files are about to go).
+        for r in self.agent.runs.iter_mut().filter(|r| r.agent == id) {
+            if let Some(p) = r.proc_id.take() {
+                self.procs.kill(p);
+            }
+            r.status = Status::Off;
+        }
+        self.agent.runs.retain(|r| r.live());
         if let Err(e) = crate::acp::uninstall(id) {
             self.agent.install_err = Some((id.to_string(), e, None));
         }
-        if self.settings.agent_cli == id {
+        if self.agent.agent == id {
             self.agent_use("auto", window, cx);
+        } else if self.settings.agent_cli == id {
+            self.settings.agent_cli = "auto".into();
+            self.settings.save();
         }
         cx.notify();
     }
@@ -2022,6 +2255,7 @@ impl Workbench {
     fn render_history(&self, cx: &mut Context<Self>) -> AnyElement {
         let a = &self.agent;
         let archived_n = a.history.iter().filter(|c| c.archived).count();
+        let working = a.working_ids();
         let mut list = v_flex().id("ag-history").flex_1().min_h_0().px_2().gap_px().overflow_y_scroll();
         if a.history.is_empty() {
             list = list.child(div().px_1().py_2().text_sm().text_color(c(theme::FG_DIM)).child(tr("No saved chats yet. Chats are saved after each answer.")));
@@ -2033,6 +2267,7 @@ impl Workbench {
             }
             let id = chat.id;
             let current = a.chat_id == Some(id);
+            let working = working.contains(&id);
             let count = chat.messages.iter().filter(|m| m.0 == "user").count();
             list = list.child(
                 h_flex()
@@ -2054,7 +2289,12 @@ impl Workbench {
                                 div()
                                     .text_xs()
                                     .text_color(c(theme::FG_DIM))
-                                    .child(format!("{} · {count} message{}", ago(chat.updated), if count == 1 { "" } else { "s" })),
+                                    .when(working, |d| d.text_color(c(theme::ACCENT_TEXT)))
+                                    .child(if working {
+                                        format!("{} · {count} message{}", tr("Working"), if count == 1 { "" } else { "s" })
+                                    } else {
+                                        format!("{} · {count} message{}", ago(chat.updated), if count == 1 { "" } else { "s" })
+                                    }),
                             ),
                     )
                     .child(
@@ -2426,12 +2666,16 @@ impl Workbench {
         }
         let stamp = std::time::Instant::now();
         self.agent.last_active = Some(stamp);
+        // The timer belongs to this chat, on screen or not.
+        let key = self.agent.key;
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(std::time::Duration::from_secs(mins as u64 * 60)).await;
             _ = this.update(cx, |this, cx| {
-                if this.agent.last_active == Some(stamp) && this.agent.status == Status::Ready && this.agent.permission.is_none() {
-                    this.agent_idle_stop(mins, cx);
-                }
+                this.agent_with_run(key, cx, |this, cx| {
+                    if this.agent.last_active == Some(stamp) && this.agent.status == Status::Ready && this.agent.permission.is_none() {
+                        this.agent_idle_stop(mins, cx);
+                    }
+                });
             });
         })
         .detach();
@@ -2440,7 +2684,7 @@ impl Workbench {
     fn agent_idle_stop(&mut self, mins: u32, cx: &mut Context<Self>) {
         let session = self.agent.session.clone();
         let can_load = self.agent.can_load;
-        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+        self.agent_save();
         self.agent_stop(cx);
         if can_load {
             self.agent.resume_id = session;
@@ -2666,11 +2910,9 @@ impl Workbench {
     /// Resume a session OpenCode or Mura Harness saved: its history replays into the panel
     /// and the next message continues it.
     fn agent_open_remote(&mut self, id: String, cx: &mut Context<Self>) {
-        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
-        self.agent.items.clear();
-        self.agent.chat_id = None;
-        self.agent.carry = None;
-        self.agent.show_history = false;
+        let mut next = Run::new(self.agent.agent.clone(), self.agent.folder.clone());
+        next.account = self.agent.account.clone();
+        self.agent_switch_to(next, false, cx);
         match self.agent.status {
             Status::Ready if self.agent.proc_id.is_some() => {
                 if self.agent.can_load {

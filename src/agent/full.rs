@@ -5,7 +5,7 @@
 //! gets the room for everything. Columns give way as the window narrows: the changes
 //! column goes first, then the chats, and each can be shown or hidden from the top bar.
 
-use super::{ago, when_label, Item, Status, HISTORY_FILE};
+use super::{ago, when_label, Item, HISTORY_FILE};
 use crate::i18n::tr;
 use crate::theme::{self, c, GlassExt};
 use crate::workbench::{tool_button, Workbench};
@@ -155,7 +155,7 @@ impl Workbench {
     fn render_full_chats(&self, cx: &mut Context<Self>) -> impl IntoElement {
         use super::chats::{self, ChatView};
         let a = &self.agent;
-        let busy = a.status == Status::Busy;
+        let busy = a.run.working();
         let view = ChatView::from_id(&self.settings.chat_view);
         let mut list = v_flex().id("agf-chats").flex_1().min_h_0().px_2().pb_2().gap_px().overflow_y_scroll();
         let fresh = a.chat_id.is_none() && a.items.iter().any(|i| matches!(i, Item::User(_)));
@@ -163,14 +163,15 @@ impl Workbench {
             let title = a.items.iter().find_map(|i| if let Item::User(t) = i { Some(t.lines().next().unwrap_or("").to_string()) } else { None }).unwrap_or_default();
             list = list.child(chat_row("agf-now", title, tr("Now").into(), true, busy, false));
         }
-        let busy_id = a.chat_id.filter(|_| busy);
+        // Every chat answering now, the ones in the background too.
+        let busy_ids = a.working_ids();
         let now = super::now_ms();
         let today_start = {
             use chrono::{Local, TimeZone};
             let midnight = Local::now().date_naive().and_hms_opt(0, 0, 0).unwrap_or_default();
             Local.from_local_datetime(&midnight).single().map(|t| t.timestamp_millis() as u64).unwrap_or(now)
         };
-        let groups = chats::groups(&a.history, view, busy_id, now, today_start);
+        let groups = chats::groups(&a.history, view, &busy_ids, now, today_start);
         let archived_n = a.history.iter().filter(|c| c.archived).count();
         for (gi, (heading, idx)) in groups.iter().enumerate() {
             if !heading.is_empty() {
@@ -214,7 +215,7 @@ impl Workbench {
                         when = format!("{when} · {}", crate::acp::display_name(agent));
                     }
                 }
-                let working = busy_id == Some(id);
+                let working = busy_ids.contains(&id);
                 let archived = chat.archived;
                 list = list.child(
                     chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), when.into(), current, working, archived)

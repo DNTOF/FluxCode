@@ -96,13 +96,16 @@ impl Workbench {
             return;
         }
         let gen = self.agent.limit.gen;
+        let key = self.agent.key;
         let wait = (resets - chrono::Utc::now().timestamp()).max(0) as u64 + 20;
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(std::time::Duration::from_secs(wait)).await;
             _ = this.update(cx, |this, cx| {
-                if this.agent.limit.gen == gen && this.agent.limit.hit.is_some() {
-                    this.agent_continue_after_limit(cx);
-                }
+                this.agent_with_run(key, cx, |this, cx| {
+                    if this.agent.limit.gen == gen && this.agent.limit.hit.is_some() {
+                        this.agent_continue_after_limit(cx);
+                    }
+                });
             });
         })
         .detach();
