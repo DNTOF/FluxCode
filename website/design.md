@@ -2,7 +2,7 @@
 
 Spesifikasi `index.html`. Satu berkas HTML tanpa build step, gambar di `img/`.
 
-Dial: ENERGY 2 / RHYTHM 3 / MOTION 1. Struktur mengikuti kiwstudio.com: judul rata kiri
+Dial: ENERGY 2 / RHYTHM 3 / MOTION 2. Struktur mengikuti kiwstudio.com: judul rata kiri
 dalam sentence case, panel data yang dibaca live dari sumbernya, satu warna aksen, tab bar
 di bawah layar pada ponsel.
 
@@ -62,6 +62,42 @@ dari logo. Tidak ada grid latar, glow, atau blur.
    ditandai dan tombolnya kuning.
 8. Dibangun terbuka: statistik repo, commit terbaru di `main`, kontributor.
 9. Footer satu baris tautan.
+
+## Gerak
+
+- **Hero:** dua tangkapan layar asli (`agent` di depan, `themes` di belakang) jadi latar,
+  miring dengan perspektif. Saat scroll, lapisan belakang bergerak 0,5x, lapisan depan 0,28x
+  sambil pelan-pelan menegak, dan teks hero turun 0,18x sambil memudar. Dengan mouse, layar
+  depan condong mengikuti pointer (lapisan belakang ke arah sebaliknya). Gradien menjaga
+  kontras teks.
+- **Screenshot viewer:** condong ke belakang (rotateX 18°, skala 0,9) saat mulai masuk layar
+  lalu menegak rata begitu mencapai tengah.
+- **Kedalaman per bagian:** tiap bagian membawa meander besar dari logo (opasitas 6%) yang
+  bergerak 0,18-0,22x dan berputar sampai 18° pada kedalamannya sendiri (`GLYPHS`).
+- **Bagian lain:** judul bagian, statistik, kartu agen, daftar unduhan, panel repo, dan
+  kontributor bergeser maksimal 36 px berlawanan arah scroll; dua kolom fitur bergerak
+  berlawanan arah (`DRIFT` di skrip).
+- **Statistik:** angka benchmark menghitung naik dari nol sekali saat terlihat, dalam format
+  bahasanya (1.4 / 1,4). Baris unduhan masuk bergantian dari kiri dan kanan.
+- **Tab screenshot:** pill kuning bergeser ke tab yang dipilih; gambar memudar keluar,
+  gambar baru di-decode dulu, lalu memudar masuk.
+- **Ganti bahasa:** thumb EN/ID bergeser, teks memudar keluar lalu masuk dalam bahasa baru.
+- **Muncul:** blok naik 16 px dan memudar masuk sekali saat masuk layar (jeda antar
+  saudara 60 ms, maksimal 300 ms); batang grafik tumbuh dari nol. Memakai properti
+  `translate`, jadi tidak bentrok dengan `transform` parallax.
+- **Ringan di ponsel:** di layar sempit, mode hemat data, atau CPU 4 inti ke bawah, parallax
+  hanya di hero dan judul bagian, viewer cuma membesar sedikit (tanpa 3D), tanpa meander dan
+  tanpa condong ke pointer. Semua posisi dibaca dulu lalu ditulis sekaligus per frame, dan
+  hanya elemen yang terlihat (IntersectionObserver) yang dihitung.
+- Hanya `transform`, `translate`, dan `opacity`, satu `requestAnimationFrame` per frame.
+  `prefers-reduced-motion` mematikan semuanya.
+
+## Panel repositori
+
+Tiga tingkat, bukan enam kotak sama besar: jumlah bintang besar dengan tombol Star; total
+unduhan installer dengan bar pembagian unduhan build terbaru per sistem (Windows, Portable,
+macOS, Linux, dari `download_count` aset rilis); lalu satu baris kontributor dan push
+terakhir. Tingginya mengikuti panel commit di sebelahnya.
 
 ## Bahasa
 
