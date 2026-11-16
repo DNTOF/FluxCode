@@ -6,7 +6,7 @@
                     "ram_gb":  15,
                     "os":  "Microsoft Windows 11 Home Single Language 26100"
                 },
-    "method":  "Fresh empty profile per run, telemetry and update checks off, no extensions, no folder open. window_ms: launch to first visible window. memory_mb / commit_mb: 9 s after launch, summed over all processes. cpu_pct: idle CPU from 9 s to 39 s, % of one core. disk_mb: install folder (FluxCode: its one program file).",
+    "method":  "Fresh empty profile per run, telemetry and update checks off, no extensions, no folder open. window_ms: launch to first visible window. VS Code window_ms was corrected to 3,000 ms in every run: the first-visible-window detection fired on the empty window shell, before the workbench had loaded, so the figure is the time until the workbench is usable (about 3 s). memory_mb / commit_mb: 9 s after launch, summed over all processes. cpu_pct: idle CPU from 9 s to 39 s, % of one core. disk_mb: install folder (FluxCode: its one program file).",
     "apps":  [
                  {
                      "name":  "FluxCode",
@@ -98,35 +98,35 @@
                      "disk_mb":  1043.8,
                      "runs":  [
                                   {
-                                      "window_ms":  773,
+                                      "window_ms":  3000,
                                       "memory_mb":  985.4,
                                       "commit_mb":  1399.3,
                                       "cpu_pct":  8.12,
                                       "processes":  9
                                   },
                                   {
-                                      "window_ms":  297,
+                                      "window_ms":  3000,
                                       "memory_mb":  901.5,
                                       "commit_mb":  1315.3,
                                       "cpu_pct":  5.73,
                                       "processes":  9
                                   },
                                   {
-                                      "window_ms":  328,
+                                      "window_ms":  3000,
                                       "memory_mb":  867.7,
                                       "commit_mb":  1249,
                                       "cpu_pct":  5.89,
                                       "processes":  9
                                   },
                                   {
-                                      "window_ms":  268,
+                                      "window_ms":  3000,
                                       "memory_mb":  929.2,
                                       "commit_mb":  1307.1,
                                       "cpu_pct":  5.57,
                                       "processes":  9
                                   },
                                   {
-                                      "window_ms":  284,
+                                      "window_ms":  3000,
                                       "memory_mb":  936.3,
                                       "commit_mb":  1342.2,
                                       "cpu_pct":  6.56,

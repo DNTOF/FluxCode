@@ -36,6 +36,20 @@ Opening the HTML preview now shows a notice first: the preview runs a WebView (W
 @id
 Membuka pratinjau HTML sekarang menampilkan pemberitahuan dulu: pratinjau menjalankan WebView (WebView2), bukan UI Rust native FluxCode. Pratinjau baru berjalan setelah kamu menekan Lanjutkan; Batal tidak membuka apa pun. Kotak "Jangan tampilkan lagi" membuat pemberitahuan tidak muncul lagi.
 
+@title en: File links for WSL and network folders
+@title id: Tautan file untuk folder WSL dan jaringan
+@en
+Files in a WSL workspace or on a network share are now sent to Copilot and the
+agents as proper `file://` links, the same form VS Code uses. A WSL path written
+with forward slashes or mixed slashes is recognised as the same WSL folder, and
+a `file://wsl.localhost/...` link printed in the terminal opens the file.
+@id
+File di workspace WSL atau di folder jaringan sekarang dikirim ke Copilot dan
+agen sebagai tautan `file://` yang benar, bentuk yang sama dengan yang dipakai
+VS Code. Path WSL yang ditulis dengan garis miring biasa atau campuran dikenali
+sebagai folder WSL yang sama, dan tautan `file://wsl.localhost/...` yang
+tercetak di terminal membuka filenya.
+
 @title en: What's new shows only what is new
 @title id: What's new hanya menampilkan yang baru
 @en

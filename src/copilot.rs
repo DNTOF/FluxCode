@@ -1015,27 +1015,9 @@ fn diff_change(old: &str, new: &str) -> (usize, usize, String) {
 }
 
 /// `file://` URI for a path, with spaces and non-ASCII percent-encoded.
+/// UNC and `\\?\` paths are handled by [`crate::docs::file_uri`].
 pub(crate) fn uri_for_path(path: &Path) -> String {
-    let abs = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir().unwrap_or_default().join(path)
-    };
-    let text = abs.to_string_lossy();
-    #[cfg(windows)]
-    let text = text.replace('\\', "/");
-    let mut s = String::from("file://");
-    #[cfg(windows)]
-    s.push('/');
-    for b in text.as_bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => {
-                s.push(*b as char)
-            }
-            _ => s.push_str(&format!("%{b:02X}")),
-        }
-    }
-    s
+    crate::docs::file_uri(path)
 }
 
 /// The LSP language id for FluxCode's language token. Unknown tokens pass
