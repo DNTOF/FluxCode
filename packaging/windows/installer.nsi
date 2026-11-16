@@ -5,6 +5,8 @@
 ; %USERPROFILE%\.fluxcode\app (where FluxCode updates itself), a Start Menu shortcut (so
 ; Windows Search finds "FluxCode"), a Desktop shortcut, and an entry in Settings > Apps
 ; with a working Uninstall. Settings and the session in %APPDATA%\FluxCode-GPUI are kept.
+; An option on the components page (on by default) adds "Open with FluxCode" to Explorer:
+; FluxCode.exe --register-shell does it, so the list of file types lives in src/shell.rs.
 ;
 ; The folder is outside AppData on purpose: from a packaged (MSIX) host, writes to
 ; AppData\Local are redirected into that host's private folder.
@@ -37,6 +39,8 @@ InstallDir "$PROFILE\.fluxcode\app"
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
+!include "LogicLib.nsh"
+!include "Sections.nsh"
 
 !define MUI_ICON "..\..\assets\icon.ico"
 !define MUI_UNICON "..\..\assets\icon.ico"
@@ -45,6 +49,8 @@ InstallDir "$PROFILE\.fluxcode\app"
 !define MUI_WELCOMEPAGE_TITLE "Install ${APP}"
 !define MUI_WELCOMEPAGE_TEXT "A native code editor that runs as one process.$\r$\n$\r$\nThis installs build ${BUILD} for your Windows account only. No administrator rights are needed.$\r$\n$\r$\nFluxCode goes in $INSTDIR and updates itself there. Your settings are kept."
 !insertmacro MUI_PAGE_WELCOME
+!define MUI_COMPONENTSPAGE_SMALLDESC
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\FluxCode.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "Open FluxCode"
@@ -62,7 +68,8 @@ InstallDir "$PROFILE\.fluxcode\app"
   Sleep 300
 !macroend
 
-Section "FluxCode"
+Section "FluxCode" SecApp
+  SectionIn RO
   !insertmacro StopRunning
   SetOutPath "$INSTDIR"
   File "/oname=FluxCode.exe" "${EXE}"
@@ -97,8 +104,28 @@ Section "FluxCode"
   Pop $0
 SectionEnd
 
+; Right-click "Open with FluxCode" on files and folders, and FluxCode in "Open with" for
+; code and text files (the default where no app opens a type yet). Settings > Windows
+; turns it on and off later.
+Section "Open with FluxCode in Explorer" SecShell
+  ExecWait '"$INSTDIR\FluxCode.exe" --register-shell'
+SectionEnd
+
+; A reinstall without the option takes the entries away again.
+Function .onInstSuccess
+  ${IfNot} ${SectionIsSelected} ${SecShell}
+    ExecWait '"$INSTDIR\FluxCode.exe" --unregister-shell'
+  ${EndIf}
+FunctionEnd
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecApp} "The editor, a Start Menu and a Desktop shortcut."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecShell} "Open files by double-click or the right-click menu: adds $\"Open with FluxCode$\" to Explorer and FluxCode to Open with for .js, .ts, .json, .html, .css, .py and other code files."
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
+
 Section "Uninstall"
   !insertmacro StopRunning
+  ExecWait '"$INSTDIR\FluxCode.exe" --unregister-shell'
   Delete "$SMPROGRAMS\FluxCode.lnk"
   Delete "$DESKTOP\FluxCode.lnk"
   Delete "$INSTDIR\FluxCode.exe"

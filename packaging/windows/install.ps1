@@ -1,15 +1,17 @@
 # Install FluxCode for the current user (no admin needed).
 #   From the release ZIP: double-click Install.cmd (it runs this script).
 #   From a build:         powershell -ExecutionPolicy Bypass -File packaging/windows/install.ps1 -Exe <path>\fluxcode.exe
-# Copies the exe, adds a Start Menu shortcut (so Windows Search finds "FluxCode")
-# and an entry in Settings > Apps with a working Uninstall.
+# Copies the exe, adds a Start Menu shortcut (so Windows Search finds "FluxCode"),
+# "Open with FluxCode" in Explorer (skip it with -NoShell) and an entry in
+# Settings > Apps with a working Uninstall.
 #
 # The install folder is outside AppData on purpose: when this runs from a
 # packaged (MSIX) host, writes to AppData\Local are redirected into that host's
 # private package folder. FluxCode updates itself in this folder.
 param(
   [string]$Exe = "$PSScriptRoot\FluxCode.exe",
-  [string]$Dir = "$env:USERPROFILE\.fluxcode\app"
+  [string]$Dir = "$env:USERPROFILE\.fluxcode\app",
+  [switch]$NoShell
 )
 $ErrorActionPreference = "Stop"
 if (-not (Test-Path $Exe)) { throw "FluxCode.exe not found at $Exe" }
@@ -27,6 +29,7 @@ $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\FluxCode"
 @"
 # Uninstall FluxCode. Settings and the session in %APPDATA%\FluxCode-GPUI are kept.
 Get-Process FluxCode -ErrorAction SilentlyContinue | Where-Object { `$_.Path -eq '$Dir\FluxCode.exe' } | Stop-Process -Force
+Start-Process -FilePath '$Dir\FluxCode.exe' -ArgumentList '--unregister-shell' -Wait -ErrorAction SilentlyContinue
 Remove-Item '$shortcut' -Force -ErrorAction SilentlyContinue
 Remove-Item '$regKey' -Recurse -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 300
@@ -43,6 +46,10 @@ $lnk.Save()
 # The shell caches the shortcut's icon by path; a reinstall with a new icon kept the
 # old one on the taskbar and in Start until this.
 Start-Process -FilePath "$env:SystemRoot\System32\ie4uinit.exe" -ArgumentList "-show" -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue
+
+# "Open with FluxCode" in Explorer (src/shell.rs has the file types).
+$shellArg = if ($NoShell) { "--unregister-shell" } else { "--register-shell" }
+Start-Process -FilePath "$Dir\FluxCode.exe" -ArgumentList $shellArg -Wait -ErrorAction SilentlyContinue
 
 New-Item -Path $regKey -Force | Out-Null
 $size = [int]((Get-Item "$Dir\FluxCode.exe").Length / 1KB)

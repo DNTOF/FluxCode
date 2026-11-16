@@ -643,16 +643,17 @@ impl Workbench {
             }
             this.settings.save();
         }
-        let restore = root.is_none() && open.is_empty();
+        // Files without a folder (a double-click in Explorer) open on top of the
+        // last session, so closing the window doesn't save a one-file session over it.
         if let Some(root) = root {
             this.open_folder(root, cx);
+            for path in open {
+                this.open_file(path, window, cx);
+            }
+        } else {
+            this.restore_session(open, window, cx);
         }
-        for path in open {
-            this.open_file(path, window, cx);
-        }
-        if restore {
-            this.restore_session(window, cx);
-        }
+        this.take_forwarded_files(window, cx);
         crate::boot::mark("  folder + session");
         this.start_update_checks(cx);
         crate::boot::mark("  update check scheduled");
@@ -1440,7 +1441,31 @@ impl Workbench {
         .save();
     }
 
-    fn restore_session(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    /// Files `fluxcode file...` hands over from another launch (`instance.rs`)
+    /// open here, and the window comes to the front.
+    fn take_forwarded_files(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        use futures::StreamExt;
+        let Some(mut rx) = crate::instance::listen() else { return };
+        cx.spawn_in(window, async move |this, cx| {
+            while let Some(paths) = rx.next().await {
+                let alive = this.update_in(cx, |this, window, cx| {
+                    for p in paths.into_iter().filter(|p| p.is_file()) {
+                        this.open_file(p, window, cx);
+                    }
+                    window.activate_window();
+                    cx.notify();
+                });
+                if alive.is_err() {
+                    break;
+                }
+            }
+        })
+        .detach();
+    }
+
+    /// Reopen the last session, then `then` on top of it (the active tab is the
+    /// last of those, else the session's own).
+    fn restore_session(&mut self, then: Vec<PathBuf>, window: &mut Window, cx: &mut Context<Self>) {
         let s = crate::settings::Session::load();
         self.workspace.extra = s.extra.into_iter().filter(|p| p.is_dir()).collect();
         // A saved WSL root is checked by the helper when there is one: over 9p
@@ -1463,6 +1488,9 @@ impl Workbench {
             .collect();
         let active = s.active;
         if files.is_empty() {
+            for p in then {
+                self.open_file(p, window, cx);
+            }
             return;
         }
         // Read them together, off the UI thread, then open them in the order they
@@ -1485,8 +1513,13 @@ impl Workbench {
                         this.finish_open_file(p, b, window, cx);
                     }
                 }
-                if let Some(a) = active.filter(|a| *a < this.docs.len()) {
-                    this.activate(a, window, cx);
+                if then.is_empty() {
+                    if let Some(a) = active.filter(|a| *a < this.docs.len()) {
+                        this.activate(a, window, cx);
+                    }
+                }
+                for p in then {
+                    this.open_file(p, window, cx);
                 }
             })
             .ok()

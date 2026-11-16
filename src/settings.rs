@@ -354,6 +354,7 @@ pub(crate) enum SettingsSection {
     Appearance,
     Editor,
     Wsl,
+    Windows,
     Agents,
     SoulFiles,
     Shortcuts,
@@ -362,10 +363,11 @@ pub(crate) enum SettingsSection {
 }
 
 impl SettingsSection {
-    pub(crate) const ALL: [SettingsSection; 8] = [
+    pub(crate) const ALL: [SettingsSection; 9] = [
         SettingsSection::Appearance,
         SettingsSection::Editor,
         SettingsSection::Wsl,
+        SettingsSection::Windows,
         SettingsSection::Agents,
         SettingsSection::SoulFiles,
         SettingsSection::Shortcuts,
@@ -379,6 +381,7 @@ impl SettingsSection {
             SettingsSection::Appearance => "Appearance",
             SettingsSection::Editor => "Editor",
             SettingsSection::Wsl => "WSL",
+            SettingsSection::Windows => "Windows",
             SettingsSection::Agents => "AI agents and GitHub",
             SettingsSection::SoulFiles => "Agent instructions (soul files)",
             SettingsSection::Shortcuts => "Keyboard shortcuts",
@@ -401,6 +404,7 @@ impl SettingsSection {
             SettingsSection::Appearance => "Theme, language, interface size, and the picture behind the panels.",
             SettingsSection::Editor => "Font, wrapping, line numbers, and the Copilot suggestions the editor shows as you type.",
             SettingsSection::Wsl => "Read folders inside a WSL distro through a helper, instead of the slow Windows share.",
+            SettingsSection::Windows => "How FluxCode shows up in Windows Explorer.",
             SettingsSection::Agents => "What the agent may do, how it docks, and the GitHub and Copilot sign-ins.",
             SettingsSection::SoulFiles => "The files each installed agent reads for its standing instructions and character. Open one to read or edit it; a missing one can be created empty.",
             SettingsSection::Shortcuts => "VS Code's keys. Ctrl+Shift+P (or F1) opens every command with its keys; type to filter.",
@@ -440,7 +444,7 @@ impl SettingsSection {
                     || !s.agent_follow_edits
                     || w.github.is_some()
             }
-            SettingsSection::SoulFiles | SettingsSection::Shortcuts | SettingsSection::About => false,
+            SettingsSection::Windows | SettingsSection::SoulFiles | SettingsSection::Shortcuts | SettingsSection::About => false,
             SettingsSection::Updates => !s.update_check,
         }
     }
@@ -691,7 +695,8 @@ impl Workbench {
                     .text_color(c(theme::FG_STRONG))
                     .child(tr("Settings")),
             )
-            .children(SettingsSection::ALL.iter().enumerate().map(|(ix, sec)| {
+            // Windows integration means nothing on Linux or macOS.
+            .children(SettingsSection::ALL.iter().enumerate().filter(|(_, s)| cfg!(windows) || **s != SettingsSection::Windows).map(|(ix, sec)| {
                 let sec = *sec;
                 let active = sec == self.settings_section;
                 let modified = sec.modified(self);
@@ -960,6 +965,41 @@ impl Workbench {
                 tr("Faster: the helper reads the distro's own disk instead of Windows' 9p share. It is FluxCode itself, built for Linux, taken from this build's release and installed once in ~/.fluxcode/helper. Off: folders are read through \\\\wsl.localhost, which works but is slower.").into(),
                 toggle("wslh", s.wsl_helper, |w| w.settings.wsl_helper = !w.settings.wsl_helper),
             )]),
+            SettingsSection::Windows => {
+                let on = crate::shell::is_registered();
+                let controls = h_flex()
+                    .gap_2()
+                    .when(on, |h| {
+                        h.child(
+                            Button::new("shell-defaults")
+                                .label(tr("Default apps…"))
+                                .xsmall()
+                                .ghost()
+                                .on_click(|_, _, cx| cx.open_url("ms-settings:defaultapps")),
+                        )
+                    })
+                    .child(
+                        Button::new("shell-open-with")
+                            .label(if on { tr("On") } else { tr("Off") })
+                            .xsmall()
+                            .when(on, |b| b.primary())
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                let r = if on { crate::shell::unregister() } else { crate::shell::register() };
+                                this.status = match (r, on) {
+                                    (Ok(()), false) => tr("FluxCode is in Explorer's right-click menu and in Open with").into(),
+                                    (Ok(()), true) => tr("Removed FluxCode from Explorer's right-click menu and Open with").into(),
+                                    (Err(e), _) => crate::trf!("Could not change the Explorer entries: {0}"; 0 => e).into(),
+                                };
+                                cx.notify();
+                            })),
+                    )
+                    .into_any_element();
+                settings_card(vec![settings_row(
+                    tr("Open with FluxCode"),
+                    tr("Adds \"Open with FluxCode\" to the right-click menu of files and folders, and FluxCode to Open with for code and text files (.js, .ts, .json, .html, .css, .py and more). Types no app opens yet open in FluxCode on a double-click. For the rest, Windows asks you: pick FluxCode once in Open with, tick Always, or set it in Default apps. A file opened this way joins the FluxCode window that is already open.").into(),
+                    controls,
+                )])
+            }
             SettingsSection::Agents => {
                 let access = s.access().to_string();
                 let access_controls = h_flex()

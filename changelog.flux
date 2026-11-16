@@ -11,6 +11,14 @@
 // Lines starting with // before the first @release are comments.
 
 @release 2026-11-16
+@title en: Open with FluxCode
+@title id: Buka dengan FluxCode
+@en
+Files open from **Windows Explorer** now: right-click a file or folder and pick **Open with FluxCode**, or double-click a code file. The installer has this as an option (on by default) and **Settings > Windows** turns it on and off. It adds FluxCode to Open with for .js, .ts, .json, .html, .css, .py and other code and text files; types no app opens yet open in FluxCode right away, and for the rest Windows lets you pick FluxCode once and tick Always. A file opened this way joins the FluxCode window that is already open instead of starting a second one, and a fresh start opens it on top of your last session.
+@id
+File sekarang bisa dibuka dari **Windows Explorer**: klik kanan file atau folder lalu pilih **Open with FluxCode**, atau klik ganda file kode. Installer menyediakannya sebagai opsi (aktif secara default) dan **Pengaturan > Windows** bisa menyalakan atau mematikannya. FluxCode ditambahkan ke Open with untuk file .js, .ts, .json, .html, .css, .py, dan file kode atau teks lainnya; jenis file yang belum punya aplikasi langsung terbuka di FluxCode, dan untuk yang lain Windows membiarkanmu memilih FluxCode sekali lalu mencentang Always. File yang dibuka begini masuk ke jendela FluxCode yang sudah terbuka, bukan membuka jendela kedua, dan kalau FluxCode belum jalan, file itu dibuka di atas sesi terakhirmu.
+
+@release 2026-11-16
 @title en: VS Code themes in FluxCode
 @title id: Tema VS Code di FluxCode
 @en

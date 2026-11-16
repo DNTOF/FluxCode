@@ -5,6 +5,25 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## Open with FluxCode (16 November 2026)
+
+- Right-click a file or folder in Windows Explorer and pick **Open with
+  FluxCode**, or double-click a code file ([#87](https://github.com/MuaraAI/FluxCode/issues/87)).
+  The installer has this as an option on its components page (on by default),
+  **Settings > Windows** turns it on and off, and `FluxCode.exe
+  --register-shell` / `--unregister-shell` do the same from a script.
+- FluxCode joins Open with for .js, .ts, .json, .html, .css, .py and other code
+  and text files (`src/shell.rs` has the list), and becomes the default only
+  for types no app opens yet. Windows doesn't let an app take a type over from
+  another one: pick FluxCode once in Open with and tick Always. Everything is
+  written under `HKCU\Software\Classes`, so no administrator rights are needed,
+  and uninstalling takes it away again.
+- A file opened from Explorer (or `fluxcode file.ts` in a terminal) goes to the
+  FluxCode window that is already open, which comes to the front. With no
+  FluxCode open it starts one with your last session and the file on top, so
+  closing it no longer saves a one-file session over the real one.
+  `--new-window` still opens a window of its own.
+
 ## VS Code themes and languages work natively (16 November 2026)
 
 - A color theme installed from the VS Code Marketplace (Dracula, One Dark Pro,
