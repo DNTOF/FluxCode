@@ -1876,8 +1876,13 @@ impl Workbench {
                 .child(item(id, icon, active, this, cx))
                 .on_click(cx.listener(move |this, _, w, cx| {
                     this.toggle_view(view, cx);
+                    // Like VS Code: opening Search or Extensions puts the caret in its box.
                     if view == SideView::Search && this.view_shown(view) {
                         let h = this.search_input.focus_handle(cx);
+                        h.focus(w, cx);
+                    }
+                    if view == SideView::Extensions && this.view_shown(view) {
+                        let h = this.ext.query.focus_handle(cx);
                         h.focus(w, cx);
                     }
                 }))

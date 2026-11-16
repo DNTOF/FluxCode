@@ -417,9 +417,9 @@ impl Workbench {
         }
     }
 
-    /// One row, readable at a 260 px side bar: the name alone on the first line; the
-    /// publisher (with its check when verified), installs and rating on the second;
-    /// the description and the button on the third. Always `ROW_H` tall.
+    /// One row, readable at a 260 px side bar: the name alone on the first line, the
+    /// description on the second, then the publisher (with its check when verified),
+    /// installs, rating and the button, as in VS Code. Always `ROW_H` tall.
     fn market_row(
         &self,
         keys: (&'static str, &'static str),
@@ -431,8 +431,11 @@ impl Workbench {
         let id = it.id();
         let selected =
             self.ext.page.as_deref().and_then(|p| p.strip_prefix(PAGE)) == Some(id.as_str());
+        // Clipped before the button is: at the narrowest the button always stays.
         let stats = h_flex()
-            .flex_none()
+            .flex_shrink(1.)
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .when(it.installs > 0, |h| {
                 h.child(
@@ -482,6 +485,16 @@ impl Workbench {
                             .child(it.display.clone()),
                     )
                     .child(
+                        div()
+                            .w_full()
+                            .truncate()
+                            .text_xs()
+                            .text_color(c(theme::FG_MUTED))
+                            .child(it.short.clone()),
+                    )
+                    // Publisher, numbers and the button share the last line; the
+                    // publisher gives way first but always keeps a readable stub.
+                    .child(
                         h_flex()
                             .w_full()
                             .gap_2()
@@ -489,8 +502,8 @@ impl Workbench {
                             .text_color(c(theme::FG_DIM))
                             .child(
                                 h_flex()
-                                    .flex_shrink(1.)
-                                    .min_w_0()
+                                    .flex_1()
+                                    .min_w(theme::u(48.))
                                     .gap_1()
                                     .when(it.verified, |h| {
                                         h.child(
@@ -507,21 +520,7 @@ impl Workbench {
                                             .child(it.publisher_display.clone()),
                                     ),
                             )
-                            .child(stats),
-                    )
-                    .child(
-                        h_flex()
-                            .w_full()
-                            .gap_2()
-                            .child(
-                                div()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .truncate()
-                                    .text_xs()
-                                    .text_color(c(theme::FG_MUTED))
-                                    .child(it.short.clone()),
-                            )
+                            .child(stats)
                             .child(div().flex_none().child(self.market_button(
                                 (keys.1, ix),
                                 it,
