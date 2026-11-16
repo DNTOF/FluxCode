@@ -49,6 +49,15 @@ pub const KNOWN: &[Known] = &[
     Known { id: "cursor", name: "Cursor", by: "Anysphere", path: &[("cursor-agent", &["acp"])] },
     Known { id: "qwen-code", name: "Qwen Code", by: "Alibaba", path: &[("qwen", &["--acp"])] },
     Known { id: "kimi-code", name: "Kimi Code", by: "Moonshot AI", path: &[] },
+    // Command Code: installed by the user (`npm i -g command-code`); FluxCode only
+    // detects it. Not in the ACP registry, so the picker opens its docs instead of
+    // a download. The bare `cmd` bin is skipped: on Windows it is cmd.exe.
+    Known {
+        id: "commandcode",
+        name: "Command Code",
+        by: "Command Code · open models",
+        path: &[("commandcode", &["acp"]), ("cmdc", &["acp"])],
+    },
     Known { id: "goose", name: "goose", by: "Block", path: &[("goose", &["acp"])] },
     Known { id: "mistral-vibe", name: "Mistral Vibe", by: "Mistral AI", path: &[("vibe-acp", &[])] },
     Known { id: "cline", name: "Cline", by: "Cline", path: &[("cline", &["--acp"])] },
@@ -1017,6 +1026,23 @@ fn sha256_of(file: &Path) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn commandcode_is_known_and_avoids_windows_cmd() {
+        // npm's command-code ships four bins (cmd, cmdc, commandcode, command-code),
+        // but probing the bare `cmd` would find Windows' own cmd.exe and start it
+        // with "acp", so the known entry lists the unambiguous names only.
+        let k = known("commandcode").expect("Command Code is in the known list");
+        assert!(k.path.iter().all(|(exe, _)| *exe != "cmd"));
+        assert!(k
+            .path
+            .iter()
+            .any(|(exe, args)| *exe == "commandcode" && *args == ["acp"]));
+        assert!(k
+            .path
+            .iter()
+            .any(|(exe, args)| *exe == "cmdc" && *args == ["acp"]));
+    }
 
     #[test]
     fn copilot_models_from_its_help() {
