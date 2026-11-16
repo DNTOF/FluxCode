@@ -41,7 +41,8 @@ pub fn frames_for(len: usize) -> usize {
 impl Workbench {
     /// The agent finished writing `p`: replay it on the next frame.
     pub(crate) fn agent_follow_edit(&mut self, p: PathBuf) {
-        if !self.settings.agent_follow_edits {
+        // A chat working in the background doesn't move the editor.
+        if !self.settings.agent_follow_edits || self.agent.bg {
             return;
         }
         self.agent.follow_q.retain(|x| *x != p);

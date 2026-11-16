@@ -512,7 +512,8 @@ impl Workbench {
         crate::agent::set_choice(&settings.agent_cli);
         let term_cwd = root.clone().or_else(|| std::env::current_dir().ok()).unwrap_or_default();
         crate::boot::mark("  settings");
-        let agent = crate::agent::AgentState::new(window, cx);
+        let mut agent = crate::agent::AgentState::new(window, cx);
+        agent.run.agent = settings.agent_cli.clone();
         crate::boot::mark("  agent state");
         let (scm, scm_sub) = crate::scm::Scm::new(window, cx);
         let ext = crate::ext::Ext::new(window, cx);
@@ -1699,6 +1700,9 @@ impl Workbench {
                     self.out_scroll.scroll_to_bottom();
                 } else if self.agent.owns(id) {
                     self.agent_on_output(&text, err, cx);
+                } else if let Some(key) = self.agent.run_of(id) {
+                    // A chat working in the background.
+                    self.agent_with_run(key, cx, |this, cx| this.agent_on_output(&text, err, cx));
                 }
             }
             ProcEvent::Exit { id, code } => {
@@ -1711,6 +1715,8 @@ impl Workbench {
                     self.finish_run(false, code, cx);
                 } else if self.agent.owns(id) {
                     self.agent_on_exit(cx);
+                } else if let Some(key) = self.agent.run_of(id) {
+                    self.agent_with_run(key, cx, |this, cx| this.agent_on_exit(cx));
                 }
             }
         }
@@ -2893,6 +2899,10 @@ impl Render for Workbench {
                 })
                 .detach();
             }
+        }
+        if std::mem::take(&mut self.agent.placeholder_dirty) {
+            let name = crate::agent::agent_name();
+            self.agent.input.update(cx, |s, cx| s.set_placeholder(crate::trf!("Ask {name}…"; name => name), window, cx));
         }
         if !self.agent.follow_q.is_empty() {
             self.apply_agent_follow(window, cx);

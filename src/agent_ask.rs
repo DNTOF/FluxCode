@@ -207,7 +207,7 @@ impl Workbench {
     }
 
     fn agent_pick(&mut self, field: usize, opt: usize, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(ask) = self.agent.ask.as_mut() else { return };
+        let Some(ask) = self.agent.run.ask.as_mut() else { return };
         let multi = matches!(ask.fields.get(field).map(|f| &f.kind), Some(Kind::Choice { multi: true, .. }));
         let sel = &mut ask.picked[field];
         if multi {

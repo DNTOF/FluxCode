@@ -60,22 +60,22 @@ impl ChatView {
 /// it holds, in order.
 pub type Groups = Vec<(String, Vec<usize>)>;
 
-/// The chats `view` shows, grouped. `busy` is the chat answering now, if any;
+/// The chats `view` shows, grouped. `busy` are the chats answering now;
 /// `now` and `today_start` are Unix ms (today_start: local midnight).
-pub fn groups(history: &[Chat], view: ChatView, busy: Option<u64>, now: u64, today_start: u64) -> Groups {
+pub fn groups(history: &[Chat], view: ChatView, busy: &[u64], now: u64, today_start: u64) -> Groups {
     let mut idx: Vec<usize> = (0..history.len())
         .filter(|&i| {
             let c = &history[i];
             match view {
                 ChatView::Archived => c.archived,
-                ChatView::Working => busy == Some(c.id),
+                ChatView::Working => busy.contains(&c.id),
                 // A chat working right now always shows, archived or not.
-                _ => !c.archived || busy == Some(c.id),
+                _ => !c.archived || busy.contains(&c.id),
             }
         })
         .collect();
     // Working first, then newest.
-    idx.sort_by_key(|&i| (busy != Some(history[i].id), std::cmp::Reverse(history[i].updated)));
+    idx.sort_by_key(|&i| (!busy.contains(&history[i].id), std::cmp::Reverse(history[i].updated)));
     let day = 86_400_000;
     let mut out: Groups = Vec::new();
     let mut push = |key: String, i: usize| match out.iter_mut().find(|(k, _)| *k == key) {
@@ -86,7 +86,7 @@ pub fn groups(history: &[Chat], view: ChatView, busy: Option<u64>, now: u64, tod
         let c = &history[i];
         let key = match view {
             ChatView::Recent | ChatView::Working | ChatView::Archived => String::new(),
-            _ if busy == Some(c.id) => "Working now".to_string(),
+            _ if busy.contains(&c.id) => "Working now".to_string(),
             ChatView::Date => {
                 let _ = now;
                 if c.updated >= today_start {
@@ -134,7 +134,7 @@ mod tests {
     use super::*;
 
     fn chat(id: u64, updated: u64) -> Chat {
-        Chat { id, title: format!("c{id}"), renamed: false, updated, messages: Vec::new(), archived: false, keep: false, folder: None, agent: None }
+        Chat { id, title: format!("c{id}"), renamed: false, updated, messages: Vec::new(), archived: false, keep: false, folder: None, agent: None, account: None, session: None }
     }
 
     const DAY: u64 = 86_400_000;
@@ -143,7 +143,7 @@ mod tests {
     fn date_groups_put_working_first() {
         let today = 100 * DAY;
         let h = vec![chat(1, today + 5), chat(2, today - DAY / 2), chat(3, today - 3 * DAY), chat(4, today - 30 * DAY), chat(5, today - 2 * DAY)];
-        let g = groups(&h, ChatView::Date, Some(3), today + 10, today);
+        let g = groups(&h, ChatView::Date, &[3], today + 10, today);
         let names: Vec<&str> = g.iter().map(|(k, _)| k.as_str()).collect();
         assert_eq!(names, ["Working now", "Today", "Yesterday", "This week", "Earlier"]);
         assert_eq!(g[0].1, vec![2]);
@@ -156,9 +156,9 @@ mod tests {
         h[2].keep = true;
         assert!(auto_archive(&mut h, 10 * DAY + 1, None));
         assert!(!h[0].archived && h[1].archived && !h[2].archived);
-        let recent = groups(&h, ChatView::Recent, None, 0, 0);
+        let recent = groups(&h, ChatView::Recent, &[], 0, 0);
         assert_eq!(recent, vec![(String::new(), vec![0, 2])]);
-        assert_eq!(groups(&h, ChatView::Archived, None, 0, 0), vec![(String::new(), vec![1])]);
+        assert_eq!(groups(&h, ChatView::Archived, &[], 0, 0), vec![(String::new(), vec![1])]);
         // Nothing left to move.
         assert!(!auto_archive(&mut h, 10 * DAY + 1, None));
     }
@@ -169,7 +169,20 @@ mod tests {
         h[0].folder = Some(r"C:\work\api".into());
         h[1].folder = Some("/home/me/web/".into());
         h[2].folder = Some(r"C:\work\api".into());
-        let g = groups(&h, ChatView::Folder, None, 0, 0);
+        let g = groups(&h, ChatView::Folder, &[], 0, 0);
         assert_eq!(g, vec![("api".to_string(), vec![0, 2]), ("web".to_string(), vec![1])]);
+    }
+
+    #[test]
+    fn several_chats_work_at_once() {
+        let today = 100 * DAY;
+        let mut h = vec![chat(1, today + 3), chat(2, today + 2), chat(3, today - 20 * DAY), chat(4, today + 1)];
+        // An archived chat still shows while its agent answers.
+        h[2].archived = true;
+        let g = groups(&h, ChatView::Date, &[2, 3], today + 10, today);
+        assert_eq!(g[0], ("Working now".to_string(), vec![1, 2]));
+        assert_eq!(g[1], ("Today".to_string(), vec![0, 3]));
+        assert_eq!(groups(&h, ChatView::Working, &[2, 3], 0, 0), vec![(String::new(), vec![1, 2])]);
+        assert_eq!(groups(&h, ChatView::Working, &[], 0, 0), Vec::new());
     }
 }

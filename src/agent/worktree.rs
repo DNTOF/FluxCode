@@ -174,8 +174,49 @@ impl Workbench {
     pub(crate) fn agent_cwd(&self) -> PathBuf {
         match &self.agent.worktree {
             Some(w) => w.path.clone(),
-            None => self.root.clone().unwrap_or_else(|| self.term_cwd.clone()),
+            None => self.agent.folder.clone().or_else(|| self.root.clone()).unwrap_or_else(|| self.term_cwd.clone()),
         }
+    }
+
+    /// Work in `folder` (None: the folder open in the editor). A chat that already
+    /// talked restarts its agent there and carries on.
+    pub(crate) fn agent_use_folder(&mut self, folder: Option<PathBuf>, cx: &mut Context<Self>) {
+        let folder = folder.or_else(|| self.root.clone());
+        if folder == self.agent.folder {
+            return;
+        }
+        if self.agent.worktree.is_some() {
+            self.agent.items.push(Item::Note(tr("This chat works in its own worktree: remove it first to pick another folder.").into(), true));
+            return cx.notify();
+        }
+        self.agent.folder = folder.clone();
+        if self.agent.items.iter().any(|i| matches!(i, Item::User(_))) {
+            let name = folder.as_deref().map(|f| super::chats::folder_name(&f.display().to_string())).unwrap_or_default();
+            self.agent.items.push(Item::Branch(crate::trf!("Now working in {folder}."; folder => name)));
+        }
+        if self.agent.live() {
+            self.agent_restart_here(cx);
+        }
+        cx.notify();
+    }
+
+    /// Pick the chat's folder with the system dialog.
+    pub(crate) fn agent_pick_folder(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let paths = cx.prompt_for_paths(PathPromptOptions { files: false, directories: true, multiple: false, prompt: Some(tr("Work in this folder").into()) });
+        let key = self.agent.key;
+        cx.spawn_in(window, async move |this, cx| {
+            let picked = paths.await.ok()?.ok()??.into_iter().next()?;
+            this.update(cx, |this, cx| {
+                this.agent_with_run(key, cx, |this, cx| this.agent_use_folder(Some(picked), cx));
+            })
+            .ok()
+        })
+        .detach();
+    }
+
+    /// The chat works somewhere other than the open folder.
+    pub(crate) fn agent_other_folder(&self) -> Option<PathBuf> {
+        self.agent.folder.clone().filter(|f| self.agent.worktree.is_none() && Some(f) != self.root.as_ref())
     }
 
     /// Restart the agent in a new place (or as another account); the chat goes on.
@@ -184,7 +225,7 @@ impl Workbench {
         if self.agent.items.iter().any(|i| matches!(i, Item::User(_))) {
             self.agent.carry = Some(super::transcript(&self.agent.items));
         }
-        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
+        self.agent_save();
         self.agent_stop(cx);
         if was_on {
             self.agent_start(cx);
@@ -196,13 +237,14 @@ impl Workbench {
             self.agent_worktree_remove(w, cx);
             return;
         }
-        let Some(repo) = self.root.clone() else { return };
+        let Some(repo) = self.agent.folder.clone().or_else(|| self.root.clone()) else { return };
+        let key = self.agent.key;
         if self.wsl.is_some() {
             self.agent.items.push(Item::Note(tr("A worktree inside a WSL folder isn't supported yet.").into(), true));
             cx.notify();
             return;
         }
-        if self.scm.repo.is_none() {
+        if self.scm.repo.is_none() && self.root.as_ref() == Some(&repo) {
             self.agent.items.push(Item::Note(tr("A worktree needs a git repository: this folder isn't one yet (Source Control can make it one).").into(), true));
             cx.notify();
             return;
@@ -212,7 +254,7 @@ impl Workbench {
         let task = cx.background_spawn(async move { create(&repo) });
         cx.spawn(async move |this, cx| {
             let r = task.await;
-            _ = this.update(cx, |this, cx| {
+            _ = this.update(cx, |this, cx| this.agent_with_run(key, cx, |this, cx| {
                 this.agent.worktree_busy = false;
                 match r {
                     Ok(w) => {
@@ -223,20 +265,21 @@ impl Workbench {
                     Err(e) => this.agent.items.push(Item::Note(crate::trf!("Couldn't make a worktree: {e}"; e => e), true)),
                 }
                 cx.notify();
-            });
+            }));
         })
         .detach();
     }
 
     fn agent_worktree_merge(&mut self, cx: &mut Context<Self>) {
         let Some(w) = self.agent.worktree.clone() else { return };
+        let key = self.agent.key;
         let title = self.agent.items.iter().find_map(|i| if let Item::User(t) = i { Some(t.chars().take(60).collect::<String>()) } else { None }).unwrap_or_default();
         self.agent.worktree_busy = true;
         cx.notify();
         let task = cx.background_spawn(async move { merge(&w, &title) });
         cx.spawn(async move |this, cx| {
             let r = task.await;
-            _ = this.update(cx, |this, cx| {
+            _ = this.update(cx, |this, cx| this.agent_with_run(key, cx, |this, cx| {
                 this.agent.worktree_busy = false;
                 match r {
                     Ok(_) => {
@@ -247,12 +290,13 @@ impl Workbench {
                     Err(e) => this.agent.items.push(Item::Note(crate::trf!("Merge stopped: {e}"; e => e), true)),
                 }
                 cx.notify();
-            });
+            }));
         })
         .detach();
     }
 
     fn agent_worktree_remove(&mut self, w: Worktree, cx: &mut Context<Self>) {
+        let key = self.agent.key;
         self.agent.worktree_busy = true;
         self.agent.worktree = None;
         self.agent.changes.clear();
@@ -260,7 +304,7 @@ impl Workbench {
         let task = cx.background_spawn(async move { remove(&w) });
         cx.spawn(async move |this, cx| {
             let r = task.await;
-            _ = this.update(cx, |this, cx| {
+            _ = this.update(cx, |this, cx| this.agent_with_run(key, cx, |this, cx| {
                 this.agent.worktree_busy = false;
                 let note = match r {
                     Ok(()) => Item::Branch(tr("Back in your checkout; the worktree is removed.").into()),
@@ -268,7 +312,7 @@ impl Workbench {
                 };
                 this.agent.items.push(note);
                 cx.notify();
-            });
+            }));
         })
         .detach();
     }
@@ -283,21 +327,29 @@ impl Workbench {
     /// The account the next run uses (None: the default sign-in).
     pub(crate) fn agent_account(&self) -> Option<Account> {
         let f = family(&agent_id())?;
-        let name = self.settings.agent_account.get(f)?;
+        // The chat's own pick first, then the one set for new chats.
+        let name = match &self.agent.account {
+            Some(n) if n.is_empty() => return None,
+            Some(n) => n,
+            None => self.settings.agent_account.get(f)?,
+        };
         self.settings.agent_accounts.iter().find(|a| a.family == f && &a.name == name).cloned()
     }
 
     fn agent_use_account(&mut self, name: Option<String>, cx: &mut Context<Self>) {
         let Some(f) = family(&agent_id()) else { return };
+        // This chat signs in with it; new chats start with it too.
+        self.agent.account = Some(name.clone().unwrap_or_default());
         match name {
             Some(n) => self.settings.agent_account.insert(f.to_string(), n),
             None => self.settings.agent_account.remove(f),
         };
         self.settings.save();
-        self.agent.items.push(Item::Branch(match self.agent_account() {
+        let note = match self.agent_account() {
             Some(a) => crate::trf!("Now using the account {name}."; name => a.name),
             None => tr("Now using the default account.").into(),
-        }));
+        };
+        self.agent.items.push(Item::Branch(note));
         self.agent_restart_here(cx);
         cx.notify();
     }
@@ -396,6 +448,8 @@ impl Workbench {
         let waiting = self.agent.account_wait.as_ref().map(|a| a.name.clone());
         let mode = self.agent_config_view().into_iter().find(|o| o.category == "mode").filter(|o| o.choices.len() > 1);
         let right = self.settings.agent_right;
+        let other = self.agent_other_folder();
+        let open_name = self.root.as_ref().map(|r| super::chats::folder_name(&r.display().to_string()));
         // A mode that skips the questions shows on the button, so it is never on unnoticed.
         let risky = mode.as_ref().is_some_and(|m| {
             let c = m.current.to_ascii_lowercase();
@@ -406,7 +460,7 @@ impl Workbench {
             .icon(Icon::new(IconName::Ellipsis).when(risky, |i| i.text_color(c(theme::WARN))))
             .xsmall()
             .ghost()
-            .selected(on || current.is_some())
+            .selected(on || current.is_some() || other.is_some())
             .loading(self.agent.worktree_busy)
             .tooltip(match &mode {
                 Some(m) => crate::trf!("More · mode: {m}"; m => m.current_name()),
@@ -428,6 +482,19 @@ impl Workbench {
                     }
                     m = m.separator();
                 }
+                m = m.label(tr("Folder"));
+                if let Some(n) = &open_name {
+                    m = m.item(act(crate::trf!("The open folder ({name})"; name => n), other.is_none(), Box::new(|this, _, cx| this.agent_use_folder(None, cx))));
+                }
+                m = m.item(act(
+                    match &other {
+                        Some(f) => crate::trf!("{name} (pick another…)"; name => super::chats::folder_name(&f.display().to_string())),
+                        None => tr("Another folder…").into(),
+                    },
+                    other.is_some(),
+                    Box::new(|this, w, cx| this.agent_pick_folder(w, cx)),
+                ));
+                m = m.separator();
                 m = m.item(act(
                     if on { tr("Own worktree (on): remove it") } else { tr("Work in its own git worktree") }.into(),
                     on,
@@ -470,7 +537,31 @@ impl Workbench {
     }
 
     /// The strip under the header while the chat has a worktree: where, Merge, Remove.
+    /// A chat in another folder than the open one gets a strip naming it instead.
     pub(crate) fn render_worktree_strip(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        if let Some(f) = self.agent_other_folder() {
+            let open = f.clone();
+            return Some(
+                h_flex()
+                    .flex_none()
+                    .mx_3()
+                    .mb_1()
+                    .px_2()
+                    .h(theme::u(26.))
+                    .gap_1p5()
+                    .rounded(px(6.))
+                    .border_1()
+                    .border_color(c(theme::BORDER))
+                    .bg(c(theme::BG_ELEVATED))
+                    .text_xs()
+                    .child(Icon::new(IconName::Folder).flex_none().size(theme::u(12.)).text_color(c(theme::ACCENT_TEXT)))
+                    .child(div().min_w_0().truncate().text_color(c(theme::FG)).child(f.display().to_string()))
+                    .child(div().flex_1())
+                    .child(Button::new("ag-dir-open").label(tr("Open folder")).xsmall().ghost().on_click(move |_, _, cx| cx.reveal_path(&open)))
+                    .child(Button::new("ag-dir-back").label(tr("Use the open folder")).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| this.agent_use_folder(None, cx))))
+                    .into_any_element(),
+            );
+        }
         let w = self.agent.worktree.as_ref()?;
         let path = w.path.clone();
         Some(
