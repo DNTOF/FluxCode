@@ -550,6 +550,10 @@ pub fn display_name(id: &str) -> String {
 /// The asset path prefix `main.rs` serves from the icon folder.
 pub const ICON_ASSETS: &str = "acp-icons/";
 
+/// Command Code is not in the ACP registry, so nothing fetches its icon; the
+/// mark ships with the app and is served like the fetched ones.
+const COMMANDCODE_ICON: &str = include_str!("../assets/acp-icons/commandcode.svg");
+
 pub fn icons_dir() -> PathBuf {
     crate::settings::config_dir().join("acp-icons")
 }
@@ -570,6 +574,9 @@ pub fn icon_asset(id: &str) -> Option<String> {
     let map = g.1.get_or_insert_with(HashMap::new);
     map.entry(id.to_string())
         .or_insert_with(|| {
+            if id == "commandcode" {
+                return Some(format!("{ICON_ASSETS}commandcode.svg"));
+            }
             let e = registry().iter().find(|e| e.id == id).cloned()?;
             let name = icon_file_name(&e);
             icons_dir().join(&name).is_file().then(|| format!("{ICON_ASSETS}{name}"))
@@ -582,6 +589,9 @@ pub fn load_icon(path: &str) -> Option<Vec<u8>> {
     let name = path.strip_prefix(ICON_ASSETS)?;
     if name.contains(['/', '\\']) || name.contains("..") {
         return None;
+    }
+    if name == "commandcode.svg" {
+        return Some(COMMANDCODE_ICON.as_bytes().to_vec());
     }
     std::fs::read(icons_dir().join(name)).ok()
 }
@@ -1042,6 +1052,16 @@ mod tests {
             .path
             .iter()
             .any(|(exe, args)| *exe == "cmdc" && *args == ["acp"]));
+    }
+    #[test]
+    fn commandcode_icon_is_bundled() {
+        // Command Code is not in the ACP registry, so nothing fetches its icon;
+        // the mark ships with the app and is served like the fetched ones.
+        let path = icon_asset("commandcode").expect("the bundled Command Code icon");
+        assert_eq!(path, format!("{ICON_ASSETS}commandcode.svg"));
+        let bytes = load_icon(&path).expect("the bundled icon's bytes");
+        let head = String::from_utf8_lossy(&bytes[..bytes.len().min(512)]).to_lowercase();
+        assert!(head.contains("<svg"), "the icon is an SVG");
     }
 
     #[test]
