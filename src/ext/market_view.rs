@@ -1,8 +1,10 @@
-//! The Marketplace in the Extensions view: live search, rows laid out like VS Code's
-//! (icon, name, installs and rating, one line of description, publisher and the
-//! button), and an extension's page in the editor area beside the built-in ones.
+//! The Extensions side bar: the VS Code Marketplace, all of it. Pages of 50 load as
+//! the list scrolls (a virtual list: only the rows in view are built), icons load for
+//! the rows near the viewport, and every page fetched is kept in memory, so typing
+//! back to an earlier query shows it at once. An extension's page opens in the
+//! editor area beside the built-in pages.
 
-use super::market::{self, Busy, Item};
+use super::market::{self, Busy, Item, Query, Sort};
 use super::view::tile;
 use super::Filter;
 use crate::i18n::tr;
@@ -12,20 +14,27 @@ use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
     h_flex,
+    input::Input,
+    menu::{DropdownMenu, PopupMenu, PopupMenuItem},
     spinner::Spinner,
     text::TextView,
     v_flex, Icon, Sizable,
 };
 use gpui_kit::{prelude::FluentBuilder, *};
+use std::ops::Range;
 use std::path::PathBuf;
 use std::time::Duration;
 
 /// Page ids of Marketplace extensions start with this; built-in ids have no colon.
 pub const PAGE: &str = "vsx:";
 /// Quiet time after a keystroke before the Marketplace is asked.
-const DEBOUNCE_MS: u64 = 300;
+const DEBOUNCE_MS: u64 = 150;
 /// Icons downloaded at the same time.
 const ICON_WORKERS: usize = 6;
+/// A row's height: three lines (name; publisher and numbers; description and button).
+const ROW_H: f32 = 66.;
+/// The next page is asked for when the viewport is this many rows from the end.
+const PREFETCH_ROWS: usize = 20;
 
 /// A Marketplace extension's icon, or the Blocks tile until it is on disk.
 fn vsx_icon(path: Option<&PathBuf>, size: f32) -> AnyElement {
@@ -40,76 +49,103 @@ fn vsx_icon(path: Option<&PathBuf>, size: f32) -> AnyElement {
     }
 }
 
-/// What a row shows: the item, and its icon once it is on disk.
-struct Row {
-    item: Item,
-    icon: Option<PathBuf>,
+/// A small pill (tabs, sort orders).
+fn chip(id: impl Into<ElementId>, label: SharedString, on: bool) -> Stateful<Div> {
+    div()
+        .id(id)
+        .flex_none()
+        .px_2()
+        .h(theme::u(22.))
+        .flex()
+        .items_center()
+        .rounded(px(4.))
+        .text_xs()
+        .cursor_pointer()
+        .text_color(c(if on {
+            theme::FG_STRONG
+        } else {
+            theme::FG_MUTED
+        }))
+        .when(on, |d| d.bg(c(theme::BG_HOVER)))
+        .hover(|d| d.text_color(c(theme::FG_STRONG)))
+        .child(label)
 }
 
 impl Workbench {
-    /// The query box changed: search again once typing pauses, on the tabs that show
-    /// the Marketplace (the others search when they're left).
+    /// The query the box, the sort and the category ask for.
+    fn market_query(&self, cx: &App) -> Query {
+        let m = &self.ext.market;
+        Query::new(&self.ext.query.read(cx).value(), m.sort, m.category)
+    }
+
+    /// The query box changed: on the Marketplace tab, search once typing pauses
+    /// (at once when the answer is cached). The Installed tab filters as you type.
     pub(crate) fn market_query_changed(&mut self, cx: &mut Context<Self>) {
-        if matches!(self.ext.filter, Filter::All | Filter::Market) {
+        if self.ext.filter == Filter::Market {
             self.market_search(DEBOUNCE_MS, cx);
         }
         cx.notify();
     }
 
-    /// A tab was picked: search now when the shown answer is for another query.
-    pub(crate) fn market_tab_shown(&mut self, cx: &mut Context<Self>) {
-        let q = self.ext.query.read(cx).value().trim().to_string();
-        if matches!(self.ext.filter, Filter::All | Filter::Market)
-            && self.ext.market.answered.as_deref() != Some(q.as_str())
-        {
-            self.market_search(0, cx);
-        }
-    }
-
-    /// Ask the Marketplace for the query box's text after `delay` ms. Each call
-    /// bumps the generation; a wait or an answer that belongs to an older one is
-    /// dropped, so a slow reply never replaces a newer list.
+    /// Show the current query: from the cache when its first page is there, else
+    /// from the gallery after `delay` ms. Each call bumps the generation; a wait or an
+    /// answer that belongs to an older one is dropped. The old list stays (dimmed)
+    /// until the new one is here.
     pub(crate) fn market_search(&mut self, delay: u64, cx: &mut Context<Self>) {
-        let q = self.ext.query.read(cx).value().trim().to_string();
+        let q = self.market_query(cx);
         let m = &mut self.ext.market;
         m.kicked.set(true);
         m.generation += 1;
         let generation = m.generation;
+        // Back to what the list shows (typed and erased): keep it, pages and all; the
+        // bump above already dropped the request in flight.
+        if m.shown.as_ref() == Some(&q) {
+            if m.loading {
+                m.loading = false;
+                cx.notify();
+            }
+            return;
+        }
+        if let Some(page) = m.cache.get(&market::cache_key(&q, 1)).cloned() {
+            m.show_first(q, page);
+            m.scroll.scroll_to_item(0, ScrollStrategy::Top);
+            cx.notify();
+            return;
+        }
+        m.loading = true;
+        m.error = None;
+        cx.notify();
         cx.spawn(async move |this, cx| {
             if delay > 0 {
                 cx.background_executor()
                     .timer(Duration::from_millis(delay))
                     .await;
-            }
-            let current = this
-                .update(cx, |this, cx| {
-                    let m = &mut this.ext.market;
-                    m.loading = m.generation == generation;
-                    cx.notify();
-                    m.loading
-                })
-                .unwrap_or(false);
-            if !current {
-                return;
+                let current = this
+                    .update(cx, |this, _| this.ext.market.generation == generation)
+                    .unwrap_or(false);
+                if !current {
+                    return;
+                }
             }
             let asked = q.clone();
             let res = cx
-                .background_spawn(async move { market::search(&asked) })
+                .background_spawn(async move { market::search(&asked, 1) })
                 .await;
             _ = this.update(cx, |this, cx| {
                 let m = &mut this.ext.market;
-                if m.generation != generation {
-                    return;
-                }
-                m.loading = false;
                 match res {
-                    Ok(list) => {
-                        m.results = list;
-                        m.error = None;
-                        m.answered = Some(q);
-                        this.market_fetch_icons(cx);
+                    Ok(page) => {
+                        m.remember(market::cache_key(&q, 1), page.clone());
+                        if m.generation == generation {
+                            m.show_first(q, page);
+                            m.scroll.scroll_to_item(0, ScrollStrategy::Top);
+                        }
                     }
-                    Err(e) => m.error = Some(e),
+                    Err(e) if m.generation == generation => {
+                        m.loading = false;
+                        m.error = Some(e);
+                    }
+                    Err(_) => {}
                 }
                 cx.notify();
             });
@@ -117,13 +153,65 @@ impl Workbench {
         .detach();
     }
 
-    /// Download the icons the list doesn't have yet, a few at a time.
-    fn market_fetch_icons(&mut self, cx: &mut Context<Self>) {
+    /// Load the next page of the shown query (from the cache when it's there).
+    fn market_load_more(&mut self, cx: &mut Context<Self>) {
         let m = &mut self.ext.market;
-        let mut todo: Vec<(String, Vec<String>, PathBuf)> = Vec::new();
-        for it in &m.results {
+        let Some(q) = m.shown.clone() else { return };
+        if m.done || m.loading || m.loading_more || m.more_error.is_some() {
+            return;
+        }
+        let page_no = m.pages + 1;
+        let key = market::cache_key(&q, page_no);
+        if let Some(page) = m.cache.get(&key).cloned() {
+            m.append(page);
+            cx.notify();
+            return;
+        }
+        m.loading_more = true;
+        let generation = m.generation;
+        cx.spawn(async move |this, cx| {
+            let asked = q.clone();
+            let res = cx
+                .background_spawn(async move { market::search(&asked, page_no) })
+                .await;
+            _ = this.update(cx, |this, cx| {
+                let m = &mut this.ext.market;
+                let current = m.generation == generation
+                    && m.shown.as_ref() == Some(&q)
+                    && m.pages + 1 == page_no;
+                match res {
+                    Ok(page) => {
+                        m.remember(key, page.clone());
+                        if current {
+                            m.append(page);
+                        }
+                    }
+                    Err(e) if current => {
+                        m.loading_more = false;
+                        m.more_error = Some(e);
+                    }
+                    Err(_) => {}
+                }
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    /// The list drew `range`: ask for the next page near the end, and queue the
+    /// icons of the rows in and around the viewport (nearest first, replacing what
+    /// was queued for rows scrolled away).
+    fn market_in_view(&mut self, range: Range<usize>, cx: &mut Context<Self>) {
+        let n = self.ext.market.items.len();
+        if n > 0 && range.end + PREFETCH_ROWS >= n {
+            self.market_load_more(cx);
+        }
+        let m = &mut self.ext.market;
+        let around = range.start.saturating_sub(4)..(range.end + 8).min(m.items.len());
+        let mut queue = Vec::new();
+        for it in &m.items[around] {
             let id = it.id();
-            if m.icons.contains_key(&id) || !m.icons_tried.insert(id.clone()) {
+            if m.icons.contains_key(&id) || m.icons_tried.contains(&id) {
                 continue;
             }
             let Some(to) = it.icon_cache() else { continue };
@@ -131,26 +219,33 @@ impl Workbench {
                 .iter()
                 .filter_map(|k| it.asset(k))
                 .collect();
-            todo.push((id, urls, to));
+            queue.push((id, urls, to));
         }
-        for w in 0..ICON_WORKERS {
-            let part: Vec<_> = todo.iter().skip(w).step_by(ICON_WORKERS).cloned().collect();
-            if part.is_empty() {
-                break;
-            }
+        m.icon_queue = queue;
+        self.market_pump_icons(cx);
+    }
+
+    /// Start queued icon downloads while fewer than `ICON_WORKERS` run.
+    fn market_pump_icons(&mut self, cx: &mut Context<Self>) {
+        let m = &mut self.ext.market;
+        while m.icons_running < ICON_WORKERS && !m.icon_queue.is_empty() {
+            let (id, urls, to) = m.icon_queue.remove(0);
+            m.icons_tried.insert(id.clone());
+            m.icons_running += 1;
             cx.spawn(async move |this, cx| {
-                for (id, urls, to) in part {
-                    let path = to.clone();
-                    if cx
-                        .background_spawn(async move { market::fetch_icon(&urls, &path) })
-                        .await
-                    {
-                        _ = this.update(cx, |this, cx| {
-                            this.ext.market.icons.insert(id, to);
-                            cx.notify();
-                        });
+                let path = to.clone();
+                let ok = cx
+                    .background_spawn(async move { market::fetch_icon(&urls, &path) })
+                    .await;
+                _ = this.update(cx, |this, cx| {
+                    let m = &mut this.ext.market;
+                    m.icons_running -= 1;
+                    if ok {
+                        m.icons.insert(id, to);
                     }
-                }
+                    this.market_pump_icons(cx);
+                    cx.notify();
+                });
             })
             .detach();
         }
@@ -184,6 +279,40 @@ impl Workbench {
         })
         .detach();
         cx.notify();
+    }
+
+    /// Install a .vsix file the user picks.
+    fn market_install_file(&mut self, cx: &mut Context<Self>) {
+        let paths = cx.prompt_for_paths(PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: false,
+            prompt: Some(tr("Install from VSIX").into()),
+        });
+        cx.spawn(async move |this, cx| {
+            let Ok(Ok(Some(paths))) = paths.await else {
+                return;
+            };
+            let Some(p) = paths.into_iter().next() else {
+                return;
+            };
+            let res = cx
+                .background_spawn(async move {
+                    market::install_file(&p).map(|name| (name, market::installed_list()))
+                })
+                .await;
+            _ = this.update(cx, |this, cx| {
+                match res {
+                    Ok((name, list)) => {
+                        this.ext.market.installed = list;
+                        this.ext.note = Some(crate::trf!("Installed {name}"; name => name));
+                    }
+                    Err(e) => this.ext.note = Some(crate::trf!("Couldn't install it: {e}"; e => e)),
+                }
+                cx.notify();
+            });
+        })
+        .detach();
     }
 
     pub(crate) fn market_uninstall(&mut self, id: String, cx: &mut Context<Self>) {
@@ -242,7 +371,7 @@ impl Workbench {
         cx.notify();
     }
 
-    /// Install, the busy state, or Installed (which opens the page).
+    /// Install (with a spinner while it runs), Removing, or Installed (opens the page).
     fn market_button(
         &self,
         id: (&'static str, usize),
@@ -288,24 +417,23 @@ impl Workbench {
         }
     }
 
-    /// One row, like VS Code's list: icon; name with installs and rating; a line
-    /// of description; the publisher (with its check when verified) and the button.
+    /// One row, readable at a 260 px side bar: the name alone on the first line; the
+    /// publisher (with its check when verified), installs and rating on the second;
+    /// the description and the button on the third. Always `ROW_H` tall.
     fn market_row(
         &self,
         keys: (&'static str, &'static str),
         ix: usize,
-        row: Row,
+        it: &Item,
+        icon: Option<&PathBuf>,
         cx: &mut Context<Self>,
     ) -> AnyElement {
-        let it = &row.item;
         let id = it.id();
         let selected =
             self.ext.page.as_deref().and_then(|p| p.strip_prefix(PAGE)) == Some(id.as_str());
         let stats = h_flex()
             .flex_none()
             .gap_2()
-            .text_xs()
-            .text_color(c(theme::FG_DIM))
             .when(it.installs > 0, |h| {
                 h.child(
                     h_flex()
@@ -326,66 +454,48 @@ impl Workbench {
                         .child(format!("{r:.1}")),
                 )
             });
-        let open = row.item.clone();
+        let open = it.clone();
         h_flex()
             .id((keys.0, ix))
-            .flex_none()
             .w_full()
+            .h(theme::u(ROW_H))
             .min_w_0()
             .overflow_hidden()
             .px_3()
-            .py_1p5()
             .gap_2p5()
-            .items_start()
             .cursor_pointer()
             .when(selected, |d| d.bg(c(theme::BG_HOVER)))
             .hover(|d| d.bg(c(theme::BG_HOVER)))
-            .child(div().pt_0p5().child(vsx_icon(row.icon.as_ref(), 36.)))
+            .child(vsx_icon(icon, 34.))
             .child(
                 v_flex()
                     .flex_1()
                     .min_w_0()
+                    .gap(px(1.))
                     .child(
-                        h_flex()
+                        div()
                             .w_full()
-                            .gap_2()
-                            .child(
-                                div()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .truncate()
-                                    .text_sm()
-                                    .font_weight(FontWeight::SEMIBOLD)
-                                    .text_color(c(theme::FG_STRONG))
-                                    .child(it.display.clone()),
-                            )
-                            .child(stats),
+                            .truncate()
+                            .text_sm()
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(c(theme::FG_STRONG))
+                            .child(it.display.clone()),
                     )
-                    .when(!it.short.is_empty(), |v| {
-                        v.child(
-                            div()
-                                .w_full()
-                                .truncate()
-                                .text_xs()
-                                .text_color(c(theme::FG_MUTED))
-                                .child(it.short.clone()),
-                        )
-                    })
                     .child(
                         h_flex()
                             .w_full()
-                            .pt_0p5()
                             .gap_2()
+                            .text_xs()
+                            .text_color(c(theme::FG_DIM))
                             .child(
                                 h_flex()
-                                    .flex_1()
+                                    .flex_shrink(1.)
                                     .min_w_0()
                                     .gap_1()
-                                    .text_xs()
-                                    .text_color(c(theme::FG_DIM))
                                     .when(it.verified, |h| {
                                         h.child(
                                             Icon::new(Ico::BadgeCheck)
+                                                .flex_none()
                                                 .size(theme::u(12.))
                                                 .text_color(c(theme::ACCENT_TEXT)),
                                         )
@@ -397,94 +507,325 @@ impl Workbench {
                                             .child(it.publisher_display.clone()),
                                     ),
                             )
-                            .child(self.market_button((keys.1, ix), it, cx)),
+                            .child(stats),
+                    )
+                    .child(
+                        h_flex()
+                            .w_full()
+                            .gap_2()
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .text_xs()
+                                    .text_color(c(theme::FG_MUTED))
+                                    .child(it.short.clone()),
+                            )
+                            .child(div().flex_none().child(self.market_button(
+                                (keys.1, ix),
+                                it,
+                                cx,
+                            ))),
                     ),
             )
             .on_click(cx.listener(move |this, _, _, cx| this.market_open(open.clone(), cx)))
             .into_any_element()
     }
 
-    /// The Marketplace part of the list (All and Marketplace tabs): a header with a
-    /// spinner while it asks, then the answer.
-    pub(crate) fn market_section(&self, cx: &mut Context<Self>) -> Div {
+    /// The row under the last one while there is more: loading, or why it stopped.
+    fn market_more_row(&self, cx: &mut Context<Self>) -> AnyElement {
         let m = &self.ext.market;
-        let empty_query = self.ext.query.read(cx).value().trim().is_empty();
-        let title: SharedString = if empty_query {
-            tr("VS Code Marketplace · most installed")
-        } else {
-            tr("VS Code Marketplace")
+        let row = h_flex()
+            .id("vsx-more")
+            .w_full()
+            .h(theme::u(ROW_H))
+            .px_3()
+            .gap_2()
+            .justify_center()
+            .text_xs()
+            .text_color(c(theme::FG_DIM));
+        match &m.more_error {
+            Some(e) => row
+                .cursor_pointer()
+                .hover(|d| d.text_color(c(theme::FG_STRONG)))
+                .child(
+                    div()
+                        .min_w_0()
+                        .truncate()
+                        .child(crate::trf!("Couldn't load more: {e} · Retry"; e => e)),
+                )
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.ext.market.more_error = None;
+                    this.market_load_more(cx);
+                }))
+                .into_any_element(),
+            None => row
+                .child(
+                    Spinner::new()
+                        .icon(Ico::LoaderCircle)
+                        .xsmall()
+                        .color(c(theme::FG_DIM)),
+                )
+                .child(tr("Loading more…"))
+                .into_any_element(),
         }
-        .into();
-        let mut col = v_flex().w_full().child(
-            h_flex()
-                .px_3()
-                .pt_3()
-                .pb_1()
-                .gap_2()
-                .text_xs()
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(c(theme::FG_MUTED))
-                .child(div().flex_1().min_w_0().truncate().child(title))
-                .when(m.loading, |h| {
-                    h.child(
-                        Spinner::new()
-                            .icon(Ico::LoaderCircle)
-                            .xsmall()
-                            .color(c(theme::FG_DIM)),
-                    )
-                }),
-        );
-        let note =
-            |t: SharedString, color| div().px_3().py_2().text_xs().text_color(c(color)).child(t);
-        if let Some(e) = &m.error {
-            col = col.child(note(
-                crate::trf!("Couldn't reach the Marketplace: {e}"; e => e).into(),
-                theme::DANGER,
-            ));
-        } else if m.answered.is_some() && m.results.is_empty() && !m.loading {
-            col = col.child(note(
-                tr("No Marketplace extension matches.").into(),
-                theme::FG_DIM,
-            ));
-        } else if m.answered.is_none() && !m.loading {
-            col = col.child(note(
-                tr("Type to search the VS Code Marketplace.").into(),
-                theme::FG_DIM,
-            ));
-        }
-        for (i, it) in m.results.iter().enumerate() {
-            let row = Row {
-                icon: m.icons.get(&it.id()).cloned(),
-                item: it.clone(),
-            };
-            col = col.child(self.market_row(("vsx-row", "vsx-btn"), i, row, cx));
-        }
-        col
     }
 
-    /// Installed VS Code extensions matching the query (Installed tab), and how many.
-    pub(crate) fn market_installed_rows(&self, q: &str, cx: &mut Context<Self>) -> (Div, usize) {
-        let m = &self.ext.market;
-        let mut col = v_flex().w_full();
-        let mut n = 0;
-        for inst in &m.installed {
-            let hay = format!("{} {} {}", inst.display, inst.id, inst.description).to_lowercase();
-            if !q.split_whitespace().all(|w| hay.contains(w)) {
+    /// The sort orders and the category menu.
+    fn market_filters(&self, cx: &mut Context<Self>) -> Div {
+        let q = self.market_query(cx);
+        let mut chips = h_flex().px_2().gap_0p5().flex_wrap();
+        for (k, s) in Sort::ALL.into_iter().enumerate() {
+            if s == Sort::Relevance && q.text.is_empty() {
                 continue;
             }
-            // The search's entry when it lists the same extension: its numbers, and
-            // the newer version for the page's Update.
-            let item = m
-                .results
-                .iter()
-                .find(|r| r.id() == inst.id)
-                .cloned()
-                .unwrap_or_else(|| inst.item());
-            let icon = inst.icon.clone().or_else(|| m.icons.get(&inst.id).cloned());
-            col = col.child(self.market_row(("vsx-irow", "vsx-ibtn"), n, Row { item, icon }, cx));
-            n += 1;
+            chips = chips.child(
+                chip(("vsx-sort", k), s.label().into(), q.sort == s).on_click(cx.listener(
+                    move |this, _, _, cx| {
+                        this.ext.market.sort = Some(s);
+                        this.market_search(0, cx);
+                    },
+                )),
+            );
         }
-        (col, n)
+        let weak = cx.entity().downgrade();
+        let current = q.category;
+        let label: SharedString = current.map(tr).unwrap_or(tr("All categories")).into();
+        let menu = Button::new("vsx-cat")
+            .label(label)
+            .icon(Icon::new(Ico::ChevronDown))
+            .xsmall()
+            .ghost()
+            .dropdown_menu(move |mut menu: PopupMenu, _, _| {
+                menu = menu.min_w(px(200.)).max_h(px(420.)).scrollable(true);
+                for cat in std::iter::once(None).chain(market::CATEGORIES.iter().copied().map(Some))
+                {
+                    let w = weak.clone();
+                    menu = menu.item(
+                        PopupMenuItem::new(cat.map(tr).unwrap_or(tr("All categories")))
+                            .checked(cat == current)
+                            .on_click(move |_, _, cx| {
+                                _ = w.update(cx, |this, cx| {
+                                    this.ext.market.category = cat;
+                                    this.market_search(0, cx);
+                                });
+                            }),
+                    );
+                }
+                menu
+            });
+        v_flex()
+            .gap_1()
+            .child(chips)
+            .child(h_flex().px_1().child(menu))
+    }
+
+    /// The Extensions side bar: search, the Marketplace / Installed tabs, the sort and
+    /// category on the Marketplace tab, then the list.
+    pub(crate) fn render_market_view(&self, cx: &mut Context<Self>) -> AnyElement {
+        let m = &self.ext.market;
+        let on_market = self.ext.filter == Filter::Market;
+        // The first time the Marketplace shows: most installed, or the query.
+        if on_market && !m.kicked.replace(true) {
+            cx.spawn(async move |this, cx| {
+                _ = this.update(cx, |this, cx| this.market_search(0, cx));
+            })
+            .detach();
+        }
+        let tab = |id: &'static str, label: SharedString, f: Filter, cx: &mut Context<Self>| {
+            chip(id, label, self.ext.filter == f).on_click(cx.listener(move |this, _, _, cx| {
+                this.ext.filter = f;
+                if f == Filter::Market {
+                    this.market_search(0, cx);
+                }
+                cx.notify();
+            }))
+        };
+        let tabs = h_flex()
+            .px_2()
+            .gap_0p5()
+            .child(tab(
+                "ext-f-market",
+                tr("Marketplace").into(),
+                Filter::Market,
+                cx,
+            ))
+            .child(tab(
+                "ext-f-inst",
+                format!("{} {}", tr("Installed"), m.installed.len()).into(),
+                Filter::Installed,
+                cx,
+            ));
+        let status: Option<SharedString> = if !on_market {
+            None
+        } else if let Some(e) = &m.error {
+            Some(crate::trf!("Couldn't reach the Marketplace: {e}"; e => e).into())
+        } else {
+            m.total
+                .map(|t| crate::trf!("{n} results"; n => market::format_thousands(t)).into())
+        };
+        let status_line = h_flex()
+            .px_3()
+            .pt_1()
+            .gap_2()
+            .h(theme::u(20.))
+            .text_xs()
+            .text_color(c(if m.error.is_some() && on_market {
+                theme::DANGER
+            } else {
+                theme::FG_DIM
+            }))
+            .child(div().flex_1().min_w_0().truncate().children(status))
+            .when(on_market && (m.loading || m.loading_more), |h| {
+                h.child(
+                    Spinner::new()
+                        .icon(Ico::LoaderCircle)
+                        .xsmall()
+                        .color(c(theme::FG_DIM)),
+                )
+            });
+
+        let list: AnyElement = if on_market {
+            if m.items.is_empty() {
+                let text: SharedString = if m.loading || m.shown.is_none() {
+                    tr("Searching the Marketplace…").into()
+                } else if m.error.is_some() {
+                    SharedString::default()
+                } else {
+                    tr("No Marketplace extension matches.").into()
+                };
+                div()
+                    .px_3()
+                    .py_4()
+                    .text_xs()
+                    .text_color(c(theme::FG_DIM))
+                    .child(text)
+                    .into_any_element()
+            } else {
+                let extra = usize::from(!m.done);
+                uniform_list(
+                    "vsx-list",
+                    m.items.len() + extra,
+                    cx.processor(|this, range: Range<usize>, _, cx| {
+                        this.market_in_view(range.clone(), cx);
+                        range
+                            .map(|i| match this.ext.market.items.get(i) {
+                                Some(it) => {
+                                    let icon = this.ext.market.icons.get(&it.id()).cloned();
+                                    this.market_row(
+                                        ("vsx-row", "vsx-btn"),
+                                        i,
+                                        it,
+                                        icon.as_ref(),
+                                        cx,
+                                    )
+                                }
+                                None => this.market_more_row(cx),
+                            })
+                            .collect::<Vec<_>>()
+                    }),
+                )
+                .track_scroll(&m.scroll)
+                .flex_1()
+                .min_h_0()
+                .w_full()
+                // The old list stays while a new query loads, dimmed.
+                .when(m.loading, |l| l.opacity(0.5))
+                .into_any_element()
+            }
+        } else {
+            let q = self.ext.query.read(cx).value().to_lowercase();
+            let mut col = v_flex()
+                .id("vsx-installed")
+                .w_full()
+                .flex_1()
+                .min_h_0()
+                .overflow_y_scroll()
+                .pb_2();
+            let mut n = 0;
+            for inst in &m.installed {
+                let hay =
+                    format!("{} {} {}", inst.display, inst.id, inst.description).to_lowercase();
+                if !q.split_whitespace().all(|w| hay.contains(w)) {
+                    continue;
+                }
+                // The search's entry when it has the same extension: its numbers, and
+                // the newer version for the page's Update.
+                let item = m
+                    .items
+                    .iter()
+                    .find(|r| r.id() == inst.id)
+                    .cloned()
+                    .unwrap_or_else(|| inst.item());
+                let icon = inst.icon.clone().or_else(|| m.icons.get(&inst.id).cloned());
+                col = col.child(self.market_row(
+                    ("vsx-irow", "vsx-ibtn"),
+                    n,
+                    &item,
+                    icon.as_ref(),
+                    cx,
+                ));
+                n += 1;
+            }
+            if n == 0 {
+                col = col.child(
+                    div()
+                        .px_3()
+                        .py_4()
+                        .text_xs()
+                        .text_color(c(theme::FG_DIM))
+                        .child(if m.installed.is_empty() {
+                            tr("No VS Code extension installed yet: find one under Marketplace.")
+                        } else {
+                            tr("No installed extension matches.")
+                        }),
+                );
+            }
+            col.into_any_element()
+        };
+
+        v_flex()
+            .size_full()
+            .child(
+                h_flex()
+                    .px_2()
+                    .pt_1()
+                    .pb_2()
+                    .gap_1()
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .child(Input::new(&self.ext.query).small().cleanable(true)),
+                    )
+                    .child(
+                        Button::new("ext-from-file")
+                            .icon(Icon::new(Ico::FolderOpen))
+                            .ghost()
+                            .small()
+                            .tooltip(tr("Install from VSIX"))
+                            .on_click(cx.listener(|this, _, _, cx| this.market_install_file(cx))),
+                    ),
+            )
+            .child(tabs)
+            .when(on_market, |v| {
+                v.child(div().pt_1().child(self.market_filters(cx)))
+            })
+            .child(status_line)
+            .when_some(self.ext.note.clone(), |v, n| {
+                v.child(
+                    div()
+                        .px_3()
+                        .pt_1()
+                        .text_xs()
+                        .text_color(c(theme::FG_MUTED))
+                        .child(n),
+                )
+            })
+            .child(div().h(px(1.)).mt_1().bg(c(theme::BORDER)))
+            .child(list)
+            .into_any_element()
     }
 
     /// A Marketplace extension's page.
@@ -682,7 +1023,7 @@ impl Workbench {
             facts.push(("Categories", it.categories.join(", ")));
         }
         if it.installs > 0 {
-            facts.push(("Installs", it.installs.to_string()));
+            facts.push(("Installs", market::format_thousands(it.installs)));
         }
         if let Some(r) = it.rating {
             facts.push((

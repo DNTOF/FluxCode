@@ -74,18 +74,124 @@ impl Item {
     }
 }
 
-/// The JSON a gallery query sends: VS Code extensions, without unpublished ones,
-/// relevance order for a search and most installed first without one.
-pub fn query_body(query: &str) -> String {
-    let q = query.trim();
+/// Extensions per gallery page.
+pub const PAGE_SIZE: usize = 50;
+
+/// VS Code's Marketplace categories, as the gallery names them.
+pub const CATEGORIES: &[&str] = &[
+    "Programming Languages",
+    "Themes",
+    "Snippets",
+    "Linters",
+    "Formatters",
+    "Debuggers",
+    "Keymaps",
+    "AI",
+    "Chat",
+    "Data Science",
+    "Machine Learning",
+    "Notebooks",
+    "Testing",
+    "SCM Providers",
+    "Language Packs",
+    "Extension Packs",
+    "Visualization",
+    "Education",
+    "Azure",
+    "Other",
+];
+
+/// List orders the gallery can sort by.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum Sort {
+    Relevance,
+    Installs,
+    Rating,
+    Updated,
+    Name,
+}
+
+impl Sort {
+    pub const ALL: [Sort; 5] = [
+        Sort::Relevance,
+        Sort::Installs,
+        Sort::Rating,
+        Sort::Updated,
+        Sort::Name,
+    ];
+
+    /// The gallery's `sortBy` and `sortOrder` (0: its default, 1: ascending). Rating
+    /// is the weighted one, as in VS Code: a plain average puts one 5-star review first.
+    fn code(self) -> (u32, u32) {
+        match self {
+            Sort::Relevance => (0, 0),
+            Sort::Installs => (4, 0),
+            Sort::Rating => (12, 0),
+            Sort::Updated => (1, 0),
+            Sort::Name => (2, 1),
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Sort::Relevance => tr("Relevance"),
+            Sort::Installs => tr("Installs"),
+            Sort::Rating => tr("Rating"),
+            Sort::Updated => tr("Updated"),
+            Sort::Name => tr("Name"),
+        }
+    }
+}
+
+/// What the list asks the gallery for.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct Query {
+    pub text: String,
+    pub sort: Sort,
+    pub category: Option<&'static str>,
+}
+
+impl Query {
+    /// The text trimmed with single spaces; no pick means relevance for a search and
+    /// most installed without one (relevance means nothing without text).
+    pub fn new(text: &str, sort: Option<Sort>, category: Option<&'static str>) -> Self {
+        let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+        let sort = match sort {
+            Some(Sort::Relevance) | None if text.is_empty() => Sort::Installs,
+            None => Sort::Relevance,
+            Some(s) => s,
+        };
+        Query {
+            text,
+            sort,
+            category,
+        }
+    }
+}
+
+/// One page of answers is cached under this: the gallery's search ignores case.
+pub type CacheKey = (String, Sort, Option<&'static str>, usize);
+
+pub fn cache_key(q: &Query, page: usize) -> CacheKey {
+    (q.text.to_lowercase(), q.sort, q.category, page)
+}
+
+/// The JSON a gallery query sends for one page (from 1): VS Code extensions without
+/// unpublished ones, maybe a search text and a category.
+pub fn query_body(q: &Query, page: usize) -> String {
     let mut criteria = vec![json!({"filterType": 8, "value": "Microsoft.VisualStudio.Code"})];
-    if !q.is_empty() {
-        criteria.push(json!({"filterType": 10, "value": q}));
+    if !q.text.is_empty() {
+        criteria.push(json!({"filterType": 10, "value": q.text}));
+    }
+    if let Some(c) = q.category {
+        criteria.push(json!({"filterType": 5, "value": c}));
     }
     criteria.push(json!({"filterType": 12, "value": "4096"}));
-    let sort = if q.is_empty() { 4 } else { 0 };
-    // 914: files, version properties, asset URI, statistics, latest version only.
-    json!({"filters": [{"criteria": criteria, "pageNumber": 1, "pageSize": 40, "sortBy": sort, "sortOrder": 0}], "flags": 914}).to_string()
+    let (sort, order) = q.sort.code();
+    // 918 = files (2) + categories and tags (4) + version properties (16) + asset URI
+    // (128) + statistics (256) + latest version only (512): every row's icon, numbers,
+    // categories and VSIX in one answer. VS Code's own 914 leaves categories out.
+    json!({"filters": [{"criteria": criteria, "pageNumber": page, "pageSize": PAGE_SIZE, "sortBy": sort, "sortOrder": order}], "flags": 918}).to_string()
 }
 
 /// The VSIX target this build runs on (`win32-x64`); platform-specific extensions
@@ -135,11 +241,13 @@ fn item(e: &Value) -> Option<Item> {
     if publisher.is_empty() || name.is_empty() {
         return None;
     }
+    // Some names start with spaces to sort first by name: trimmed.
     let or = |s: String, d: &str| {
-        if s.trim().is_empty() {
+        let t = s.trim();
+        if t.is_empty() {
             d.to_string()
         } else {
-            s
+            t.to_string()
         }
     };
     let files = ver
@@ -181,15 +289,57 @@ fn item(e: &Value) -> Option<Item> {
     })
 }
 
-/// The extensions in a gallery answer.
-pub fn parse(body: &str) -> Result<Vec<Item>, String> {
+/// One page of a gallery answer.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Page {
+    pub items: Vec<Item>,
+    /// How many extensions match in all (the answer's ResultCount).
+    pub total: Option<u64>,
+}
+
+/// `resultMetadata`'s TotalCount.
+fn result_count(result: &Value) -> Option<u64> {
+    result
+        .get("resultMetadata")?
+        .as_array()?
+        .iter()
+        .find(|m| m.get("metadataType").and_then(Value::as_str) == Some("ResultCount"))?
+        .get("metadataItems")?
+        .as_array()?
+        .iter()
+        .find(|i| i.get("name").and_then(Value::as_str) == Some("TotalCount"))?
+        .get("count")?
+        .as_u64()
+}
+
+/// The extensions in a gallery answer, and how many match in all.
+pub fn parse(body: &str) -> Result<Page, String> {
     let v: Value = serde_json::from_str(body)
         .map_err(|e| format!("The Marketplace sent something unexpected ({e})."))?;
-    let list = v
-        .pointer("/results/0/extensions")
+    let result = v
+        .pointer("/results/0")
+        .ok_or_else(|| "The Marketplace answer has no results.".to_string())?;
+    let list = result
+        .get("extensions")
         .and_then(Value::as_array)
         .ok_or_else(|| "The Marketplace answer has no results.".to_string())?;
-    Ok(list.iter().filter_map(item).collect())
+    Ok(Page {
+        items: list.iter().filter_map(item).collect(),
+        total: result_count(result),
+    })
+}
+
+/// A count with thousands separators: 1,234,567.
+pub fn format_thousands(n: u64) -> String {
+    let digits = n.to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
+    for (i, ch) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out
 }
 
 /// An install count the way VS Code shows it: 950, 5.6K, 48.4M.
@@ -271,8 +421,8 @@ fn finish(out: std::process::Output) -> Result<Vec<u8>, String> {
     }
 }
 
-/// Search the gallery (blocking: run it off the UI thread).
-pub fn search(query: &str) -> Result<Vec<Item>, String> {
+/// One page (from 1) of a gallery query (blocking: run it off the UI thread).
+pub fn search(query: &Query, page: usize) -> Result<Page, String> {
     use std::io::Write;
     let mut child = curl()
         .args([
@@ -301,7 +451,7 @@ pub fn search(query: &str) -> Result<Vec<Item>, String> {
     // The body goes through stdin: no quoting of JSON on a Windows command line.
     if let Some(mut stdin) = child.stdin.take() {
         stdin
-            .write_all(query_body(query).as_bytes())
+            .write_all(query_body(query, page).as_bytes())
             .map_err(|e| e.to_string())?;
     }
     let out = finish(child.wait_with_output().map_err(|e| e.to_string())?)?;
@@ -553,27 +703,68 @@ pub fn installed_list() -> Vec<Installed> {
     out
 }
 
-/// Download the VSIX and unpack its `extension/` folder; replaces other versions
-/// of the same extension. Blocking.
+/// Download the VSIX and unpack it; replaces other versions of the same
+/// extension. Blocking.
 pub fn install(item: &Item) -> Result<(), String> {
-    let folder = folder_name(&item.publisher, &item.name, &item.version).ok_or_else(|| tr("The extension's name or version has characters FluxCode won't use in a folder name.").to_string())?;
+    let folder = folder_name(&item.publisher, &item.name, &item.version).ok_or_else(bad_name)?;
     let url = item
         .asset(VSIX)
         .ok_or_else(|| tr("The Marketplace lists no package for it.").to_string())?;
-    let root = dir();
-    std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     let tmp = std::env::temp_dir().join(format!("fluxcode-{folder}.vsix"));
     download(&url, &tmp, 900, 1 << 30)?;
     let bytes = std::fs::read(&tmp).map_err(|e| e.to_string());
     let _ = std::fs::remove_file(&tmp);
-    let bytes = bytes?;
-    let entries = super::zip::list(&bytes)
-        .ok_or_else(|| tr("The download is not a VSIX package.").to_string())?;
-    // Unpack beside the others under a hidden name, then rename: a failed install
-    // never leaves a half folder that looks installed.
+    unpack(&bytes?, &folder, &item.id())
+}
+
+/// Install a `.vsix` file from disk; returns the extension's name. Blocking.
+pub fn install_file(path: &Path) -> Result<String, String> {
+    let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+    let entries = super::zip::list(&bytes).ok_or_else(not_vsix)?;
+    let pkg = entries
+        .iter()
+        .find(|e| e.name == "extension/package.json")
+        .and_then(|e| super::zip::read(&bytes, e, 4 << 20))
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .ok_or_else(|| tr("The package has no extension/package.json.").to_string())?;
+    let (publisher, name, version) = (
+        text(&pkg, "publisher"),
+        text(&pkg, "name"),
+        text(&pkg, "version"),
+    );
+    let folder = folder_name(&publisher, &name, &version).ok_or_else(bad_name)?;
+    unpack(
+        &bytes,
+        &folder,
+        &format!("{publisher}.{name}").to_lowercase(),
+    )?;
+    let display = text(&pkg, "displayName");
+    Ok(if display.is_empty() || display.starts_with('%') {
+        name
+    } else {
+        display
+    })
+}
+
+fn bad_name() -> String {
+    tr("The extension's name or version has characters FluxCode won't use in a folder name.")
+        .to_string()
+}
+
+fn not_vsix() -> String {
+    tr("The file is not a VSIX package.").to_string()
+}
+
+/// Unpack a VSIX's `extension/` folder into `dir()/<folder>`, through a hidden
+/// partial folder renamed at the end: a failed install never leaves a half folder
+/// that looks installed. Other versions of `id` are removed.
+fn unpack(bytes: &[u8], folder: &str, id: &str) -> Result<(), String> {
+    let entries = super::zip::list(bytes).ok_or_else(not_vsix)?;
+    let root = dir();
+    std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     let partial = root.join(format!(".partial-{folder}"));
     let _ = std::fs::remove_dir_all(&partial);
-    let unpack = || -> Result<(), String> {
+    let write = || -> Result<(), String> {
         let mut total = 0u64;
         for e in &entries {
             let Some(rel) = entry_path(&e.name) else {
@@ -583,7 +774,7 @@ pub fn install(item: &Item) -> Result<(), String> {
             if total > MAX_UNPACKED {
                 return Err(tr("The package unpacks to more than 1 GB.").into());
             }
-            let data = super::zip::read(&bytes, e, (MAX_UNPACKED - total + e.size as u64) as usize)
+            let data = super::zip::read(bytes, e, (MAX_UNPACKED - total + e.size as u64) as usize)
                 .ok_or_else(|| format!("{}: unreadable entry", e.name))?;
             let to = partial.join(rel);
             if let Some(d) = to.parent() {
@@ -596,15 +787,14 @@ pub fn install(item: &Item) -> Result<(), String> {
         }
         Ok(())
     };
-    if let Err(e) = unpack() {
+    if let Err(e) = write() {
         let _ = std::fs::remove_dir_all(&partial);
         return Err(e);
     }
-    let id = item.id();
     for old in installed_list().into_iter().filter(|i| i.id == id) {
         let _ = std::fs::remove_dir_all(&old.folder);
     }
-    let dest = root.join(&folder);
+    let dest = root.join(folder);
     let _ = std::fs::remove_dir_all(&dest);
     std::fs::rename(&partial, &dest).map_err(|e| e.to_string())
 }
@@ -633,21 +823,40 @@ pub enum Busy {
     Removing,
 }
 
-/// The Marketplace part of the Extensions view.
+/// Pages kept in memory before the cache starts over.
+const CACHE_PAGES: usize = 400;
+
+/// The Marketplace list: the pages loaded so far for one query, and a cache of
+/// every page fetched, so going back to an earlier query (Backspace) is instant.
 #[derive(Default)]
 pub struct Market {
-    pub results: Vec<Item>,
-    /// The query `results` answer (None: nothing asked yet).
-    pub answered: Option<String>,
+    /// The sort the user picked (None: relevance for a search, else installs).
+    pub sort: Option<Sort>,
+    pub category: Option<&'static str>,
+    /// The query `items` answer (None: nothing shown yet).
+    pub shown: Option<Query>,
+    pub items: Vec<Item>,
+    pub total: Option<u64>,
+    /// Pages of `shown` loaded; the last one came back short.
+    pub pages: usize,
+    pub done: bool,
+    /// A new query's first page is on its way: the old list stays, dimmed.
     pub loading: bool,
+    pub loading_more: bool,
     pub error: Option<String>,
-    /// Bumped per search: an answer for an older one is dropped.
+    pub more_error: Option<String>,
+    /// Bumped per query: a wait or an answer that belongs to an older one is dropped.
     pub generation: u64,
     /// The first search was started (set while drawing, hence a Cell).
     pub kicked: Cell<bool>,
-    /// Icons on disk, by id.
+    pub cache: HashMap<CacheKey, Page>,
+    pub scroll: gpui_kit::UniformListScrollHandle,
+    /// Icons on disk, by id; the ones asked for or failed; downloads running.
     pub icons: HashMap<String, PathBuf>,
     pub icons_tried: HashSet<String>,
+    pub icons_running: usize,
+    /// Icons the rows near the viewport still need, nearest first.
+    pub icon_queue: Vec<(String, Vec<String>, PathBuf)>,
     pub installed: Vec<Installed>,
     pub busy: HashMap<String, Busy>,
     /// The extension the page shows.
@@ -659,6 +868,41 @@ pub struct Market {
 impl Market {
     pub fn installed(&self, id: &str) -> Option<&Installed> {
         self.installed.iter().find(|i| i.id == id)
+    }
+
+    pub fn remember(&mut self, key: CacheKey, page: Page) {
+        if self.cache.len() >= CACHE_PAGES {
+            self.cache.clear();
+        }
+        self.cache.insert(key, page);
+    }
+
+    /// Show a query's first page in place of the list.
+    pub fn show_first(&mut self, q: Query, page: Page) {
+        self.done = page.items.len() < PAGE_SIZE;
+        self.items = page.items;
+        self.total = page.total;
+        self.pages = 1;
+        self.shown = Some(q);
+        self.loading = false;
+        self.loading_more = false;
+        self.error = None;
+        self.more_error = None;
+        self.icon_queue.clear();
+    }
+
+    /// Add the next page under the list (an extension already listed is skipped:
+    /// the order can shift between two requests).
+    pub fn append(&mut self, page: Page) {
+        self.done = page.items.len() < PAGE_SIZE;
+        let seen: HashSet<String> = self.items.iter().map(Item::id).collect();
+        self.items
+            .extend(page.items.into_iter().filter(|i| !seen.contains(&i.id())));
+        if page.total.is_some() {
+            self.total = page.total;
+        }
+        self.pages += 1;
+        self.loading_more = false;
     }
 }
 
@@ -678,33 +922,136 @@ mod tests {
         {"publisher":{"publisherName":"someone","displayName":"","flags":"none","isDomainVerified":false},
          "extensionName":"theme","versions":[{"version":"1.0.0","assetUri":"https://cdn/t"}]},
         {"publisher":{"publisherName":""},"extensionName":"broken","versions":[{"version":"1"}]}
-    ]}]}"#;
+    ],
+    "resultMetadata":[{"metadataType":"ResultCount","metadataItems":[{"name":"TotalCount","count":125913}]},
+                      {"metadataType":"Categories","metadataItems":[{"name":"Themes","count":19044}]}]}]}"#;
 
-    #[test]
-    fn query_body_sorts_by_installs_without_a_query() {
-        let v: Value = serde_json::from_str(&query_body("")).unwrap();
-        let f = &v["filters"][0];
-        assert_eq!(f["sortBy"], 4);
-        assert_eq!(f["pageSize"], 40);
-        assert_eq!(v["flags"], 914);
-        assert!(!f["criteria"]
+    fn criteria(body: &str) -> (Value, Vec<(i64, String)>) {
+        let v: Value = serde_json::from_str(body).unwrap();
+        let crit = v["filters"][0]["criteria"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|c| c["filterType"] == 10));
-        let v: Value = serde_json::from_str(&query_body("  python \"x\" ")).unwrap();
+            .map(|c| {
+                (
+                    c["filterType"].as_i64().unwrap(),
+                    c["value"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect();
+        (v, crit)
+    }
+
+    #[test]
+    fn paged_query_body_with_sort_and_category() {
+        let (v, crit) = criteria(&query_body(&Query::new("", None, None), 1));
         let f = &v["filters"][0];
-        assert_eq!(f["sortBy"], 0);
-        let crit = f["criteria"].as_array().unwrap();
-        assert!(crit
-            .iter()
-            .any(|c| c["filterType"] == 8 && c["value"] == "Microsoft.VisualStudio.Code"));
-        assert!(crit
-            .iter()
-            .any(|c| c["filterType"] == 10 && c["value"] == "python \"x\""));
-        assert!(crit
-            .iter()
-            .any(|c| c["filterType"] == 12 && c["value"] == "4096"));
+        assert_eq!(
+            (
+                f["sortBy"].as_i64(),
+                f["sortOrder"].as_i64(),
+                f["pageNumber"].as_i64()
+            ),
+            (Some(4), Some(0), Some(1))
+        );
+        assert_eq!(f["pageSize"], PAGE_SIZE);
+        assert_eq!(v["flags"], 918);
+        assert_eq!(
+            crit,
+            [
+                (8, "Microsoft.VisualStudio.Code".to_string()),
+                (12, "4096".to_string())
+            ]
+        );
+
+        let q = Query::new("  python   \"x\" ", None, Some("Themes"));
+        assert_eq!((q.text.as_str(), q.sort), ("python \"x\"", Sort::Relevance));
+        let (v, crit) = criteria(&query_body(&q, 3));
+        assert_eq!(
+            (
+                v["filters"][0]["sortBy"].as_i64(),
+                v["filters"][0]["pageNumber"].as_i64()
+            ),
+            (Some(0), Some(3))
+        );
+        assert!(
+            crit.contains(&(10, "python \"x\"".into())) && crit.contains(&(5, "Themes".into()))
+        );
+
+        let by_name = Query::new("go", Some(Sort::Name), None);
+        let (v, _) = criteria(&query_body(&by_name, 2));
+        assert_eq!(
+            (
+                v["filters"][0]["sortBy"].as_i64(),
+                v["filters"][0]["sortOrder"].as_i64()
+            ),
+            (Some(2), Some(1))
+        );
+        // Relevance means nothing without text: most installed instead.
+        assert_eq!(
+            Query::new(" ", Some(Sort::Relevance), None).sort,
+            Sort::Installs
+        );
+        assert_eq!(Query::new("", Some(Sort::Rating), None).sort, Sort::Rating);
+    }
+
+    #[test]
+    fn cache_keys() {
+        let a = Query::new("Python  Debugger", None, None);
+        let b = Query::new(" python debugger ", None, None);
+        assert_eq!(
+            cache_key(&a, 1),
+            cache_key(&b, 1),
+            "case and spaces don't matter"
+        );
+        assert_ne!(cache_key(&a, 1), cache_key(&a, 2));
+        assert_ne!(
+            cache_key(&a, 1),
+            cache_key(&Query::new("python debugger", Some(Sort::Rating), None), 1)
+        );
+        assert_ne!(
+            cache_key(&a, 1),
+            cache_key(&Query::new("python debugger", None, Some("Debuggers")), 1)
+        );
+    }
+
+    #[test]
+    fn result_counts() {
+        assert_eq!(parse(FIXTURE).unwrap().total, Some(125_913));
+        assert_eq!(
+            parse(r#"{"results":[{"extensions":[]}]}"#).unwrap(),
+            Page::default()
+        );
+        assert_eq!(format_thousands(125_913), "125,913");
+        assert_eq!(format_thousands(1_234_567), "1,234,567");
+        assert_eq!(format_thousands(999), "999");
+        assert_eq!(format_thousands(0), "0");
+    }
+
+    #[test]
+    fn appending_pages_skips_repeats() {
+        let it = |n: &str| Item {
+            publisher: "p".into(),
+            name: n.into(),
+            ..Default::default()
+        };
+        let mut m = Market::default();
+        m.show_first(
+            Query::new("", None, None),
+            Page {
+                items: (0..PAGE_SIZE).map(|i| it(&i.to_string())).collect(),
+                total: Some(60),
+            },
+        );
+        assert!(!m.done && m.pages == 1);
+        m.append(Page {
+            items: vec![it("49"), it("x")],
+            total: None,
+        });
+        assert_eq!(
+            (m.items.len(), m.pages, m.done, m.total),
+            (PAGE_SIZE + 1, 2, true, Some(60))
+        );
     }
 
     #[test]
@@ -720,7 +1067,7 @@ mod tests {
 
     #[test]
     fn parses_a_gallery_answer() {
-        let list = parse(FIXTURE).unwrap();
+        let list = parse(FIXTURE).unwrap().items;
         assert_eq!(list.len(), 2, "the entry without a publisher is skipped");
         let py = &list[0];
         assert_eq!(py.id(), "ms-python.python");
