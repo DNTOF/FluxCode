@@ -74,8 +74,8 @@ pub fn groups(history: &[Chat], view: ChatView, busy: &[u64], now: u64, today_st
             }
         })
         .collect();
-    // Working first, then newest.
-    idx.sort_by_key(|&i| (!busy.contains(&history[i].id), std::cmp::Reverse(history[i].updated)));
+    // Working first, then pinned, then newest.
+    idx.sort_by_key(|&i| (!busy.contains(&history[i].id), !history[i].pinned, std::cmp::Reverse(history[i].updated)));
     let day = 86_400_000;
     let mut out: Groups = Vec::new();
     let mut push = |key: String, i: usize| match out.iter_mut().find(|(k, _)| *k == key) {
@@ -87,18 +87,10 @@ pub fn groups(history: &[Chat], view: ChatView, busy: &[u64], now: u64, today_st
         let key = match view {
             ChatView::Recent | ChatView::Working | ChatView::Archived => String::new(),
             _ if busy.contains(&c.id) => "Working now".to_string(),
+            _ if c.pinned => "Pinned".to_string(),
             ChatView::Date => {
-                let _ = now;
-                if c.updated >= today_start {
-                    "Today"
-                } else if c.updated >= today_start.saturating_sub(day) {
-                    "Yesterday"
-                } else if c.updated >= today_start.saturating_sub(6 * day) {
-                    "This week"
-                } else {
-                    "Earlier"
-                }
-                .to_string()
+                let _ = (now, day);
+                recency(c.updated, today_start).label().to_string()
             }
             ChatView::Folder => c.folder.as_deref().map(folder_name).unwrap_or_else(|| "No folder".to_string()),
             ChatView::Agent => c.agent.as_deref().map(crate::acp::display_name).unwrap_or_else(|| "Unknown agent".to_string()),
@@ -106,6 +98,60 @@ pub fn groups(history: &[Chat], view: ChatView, busy: &[u64], now: u64, today_st
         push(key, i);
     }
     out
+}
+
+/// How recent a chat is, for the date headings and the coloured mark on each row.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Recency {
+    Today,
+    Yesterday,
+    ThisWeek,
+    Earlier,
+}
+
+impl Recency {
+    pub fn label(self) -> &'static str {
+        match self {
+            Recency::Today => "Today",
+            Recency::Yesterday => "Yesterday",
+            Recency::ThisWeek => "This week",
+            Recency::Earlier => "Earlier",
+        }
+    }
+
+    /// The heading for this recency, if it is one.
+    pub fn of_heading(s: &str) -> Option<Recency> {
+        [Recency::Today, Recency::Yesterday, Recency::ThisWeek, Recency::Earlier].into_iter().find(|r| r.label() == s)
+    }
+}
+
+/// `updated` (Unix ms) against local midnight `today_start`.
+pub fn recency(updated: u64, today_start: u64) -> Recency {
+    let day = 86_400_000;
+    if updated >= today_start {
+        Recency::Today
+    } else if updated >= today_start.saturating_sub(day) {
+        Recency::Yesterday
+    } else if updated >= today_start.saturating_sub(6 * day) {
+        Recency::ThisWeek
+    } else {
+        Recency::Earlier
+    }
+}
+
+/// The compact list: the chats that stay in view (working, open, pinned) and how many
+/// are folded behind "Show all".
+pub fn compact(groups: Groups, history: &[Chat], busy: &[u64], open: Option<u64>) -> (Groups, usize) {
+    let mut hidden = 0;
+    let mut out: Groups = Vec::new();
+    for (k, idx) in groups {
+        let keep: Vec<usize> = idx.iter().copied().filter(|&i| busy.contains(&history[i].id) || history[i].pinned || Some(history[i].id) == open).collect();
+        hidden += idx.len() - keep.len();
+        if !keep.is_empty() {
+            out.push((k, keep));
+        }
+    }
+    (out, hidden)
 }
 
 /// The last part of a folder path, for a heading.
@@ -121,7 +167,7 @@ pub fn auto_archive(history: &mut [Chat], now: u64, keep_id: Option<u64>) -> boo
     let limit = AUTO_ARCHIVE_DAYS * 86_400_000;
     let mut moved = false;
     for c in history.iter_mut() {
-        if !c.archived && !c.keep && Some(c.id) != keep_id && now.saturating_sub(c.updated) > limit {
+        if !c.archived && !c.keep && !c.pinned && Some(c.id) != keep_id && now.saturating_sub(c.updated) > limit {
             c.archived = true;
             moved = true;
         }
@@ -134,7 +180,7 @@ mod tests {
     use super::*;
 
     fn chat(id: u64, updated: u64) -> Chat {
-        Chat { id, title: format!("c{id}"), renamed: false, updated, messages: Vec::new(), archived: false, keep: false, folder: None, agent: None, account: None, session: None }
+        Chat { id, title: format!("c{id}"), renamed: false, updated, messages: Vec::new(), archived: false, keep: false, folder: None, agent: None, account: None, session: None, pinned: false }
     }
 
     const DAY: u64 = 86_400_000;
@@ -148,6 +194,25 @@ mod tests {
         assert_eq!(names, ["Working now", "Today", "Yesterday", "This week", "Earlier"]);
         assert_eq!(g[0].1, vec![2]);
         assert_eq!(g[3].1, vec![4]);
+    }
+
+    #[test]
+    fn pinned_chats_lead_and_compact_keeps_them() {
+        let today = 100 * DAY;
+        let mut h = vec![chat(1, today + 5), chat(2, today - 30 * DAY), chat(3, today - 3 * DAY), chat(4, today + 1)];
+        h[1].pinned = true;
+        let g = groups(&h, ChatView::Date, &[4], today + 10, today);
+        let names: Vec<&str> = g.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(names, ["Working now", "Pinned", "Today", "This week"]);
+        // Compact: working, pinned and the open chat stay; two are folded away.
+        let (c, hidden) = compact(g, &h, &[4], Some(3));
+        let kept: Vec<usize> = c.iter().flat_map(|(_, v)| v.clone()).collect();
+        assert_eq!(kept, vec![3, 1, 2]);
+        assert_eq!(hidden, 1);
+        // A pinned chat is never archived on its own.
+        assert!(!auto_archive(&mut h[1..2], today, None));
+        assert_eq!(recency(today - DAY / 2, today), Recency::Yesterday);
+        assert_eq!(Recency::of_heading("This week"), Some(Recency::ThisWeek));
     }
 
     #[test]

@@ -505,7 +505,7 @@ gpui_kit::assets::icon_assets!(pub FileIcons, [
     // Agent full screen: only the chat, and the limits card's way to the usage panel
     Focus, Maximize2,
     // Agent chats: the view menu and the archive
-    ListFilter, Archive, ArchiveRestore,
+    ListFilter, Archive, ArchiveRestore, Pin, PinOff,
     // Editor header: word wrap and image zoom
     TextWrap, ZoomIn, ZoomOut
 ]);

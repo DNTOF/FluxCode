@@ -169,6 +169,9 @@ pub struct Chat {
     /// harness can load sessions).
     #[serde(default)]
     pub session: Option<String>,
+    /// Pinned to the top of the chat list (and never archived on its own).
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 /// When a chat last changed, as a clock time: "14.32" today, "Yesterday 09.10",
@@ -401,6 +404,10 @@ pub struct Run {
     pub(crate) config: Vec<ConfigOpt>,
     /// The next answer that ends was cancelled on purpose (an edit): no "cancelled" note.
     pub(crate) quiet_stop: bool,
+    /// The token saver is compacting the context (`/compact` running quietly).
+    pub(crate) compacting: bool,
+    /// Items before this index were compacted away (the context estimate skips them).
+    pub(crate) compact_from: usize,
     /// Stamp of the last finished turn; the idle timer only fires if it's unchanged.
     pub(crate) last_active: Option<std::time::Instant>,
     /// Resuming after an idle stop: the replayed history is already on screen.
@@ -472,6 +479,8 @@ impl Run {
         commands: Vec::new(),
         config: Vec::new(),
         quiet_stop: false,
+        compacting: false,
+        compact_from: 0,
         last_active: None,
         silent_load: false,
         resume_id: None,
@@ -721,6 +730,7 @@ impl AgentState {
         }
         let renamed = old.map(|c| (c.renamed, c.title.clone())).filter(|(r, _)| *r);
         let keep = old.is_some_and(|c| c.keep);
+        let pinned = old.is_some_and(|c| c.pinned);
         let folder = folder.or_else(|| old.and_then(|c| c.folder.clone()));
         let account = self.run.account.clone().or_else(|| old.and_then(|c| c.account.clone()));
         let session = self.run.session.clone().or_else(|| self.run.resume_id.clone()).or_else(|| old.and_then(|c| c.session.clone()));
@@ -734,7 +744,7 @@ impl AgentState {
         };
         self.history.retain(|c| c.id != id);
         // A new message brings an archived chat back.
-        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages, archived: false, keep, folder, agent: Some(agent_id()), account, session });
+        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages, archived: false, keep, folder, agent: Some(agent_id()), account, session, pinned });
         self.history.truncate(HISTORY_MAX);
         crate::settings::save_json(HISTORY_FILE, &self.history);
     }
@@ -1430,6 +1440,9 @@ impl Workbench {
                 Req::SetOption => self.agent.items.push(Item::Note(crate::trf!("Couldn't change the setting: {m}"; m => m), true)),
                 Req::Probe => {
                     self.agent.status = Status::Ready;
+                    if std::mem::take(&mut self.agent.compacting) {
+                        self.agent_compact_done(false);
+                    }
                     self.agent_probe_done(Some(m), cx);
                     self.agent_flush_queue(cx);
                     self.agent_probe_next(cx);
@@ -1509,6 +1522,9 @@ impl Workbench {
             Req::SetOption => self.agent_take_config(&result),
             Req::Probe => {
                 self.agent.status = Status::Ready;
+                if std::mem::take(&mut self.agent.compacting) {
+                    self.agent_compact_done(true);
+                }
                 self.agent_probe_done(None, cx);
                 self.agent_flush_queue(cx);
                 self.agent_probe_next(cx);
@@ -1537,6 +1553,9 @@ impl Workbench {
                 self.refresh_tree(cx);
                 if std::mem::take(&mut self.agent.relaunch) {
                     return self.agent_relaunch(cx);
+                }
+                if self.agent_auto_compact(cx) {
+                    return cx.notify();
                 }
                 self.agent_flush_queue(cx);
                 self.agent_probe_next(cx);
@@ -1574,6 +1593,10 @@ impl Workbench {
         }
         if u.get("sessionUpdate").and_then(Value::as_str) == Some("usage_update") {
             self.agent.usage.live.get_or_insert_with(Default::default).take(u);
+            return;
+        }
+        // The token saver's /compact runs quietly: its reply is not part of the chat.
+        if self.agent.compacting {
             return;
         }
         // A quiet command's reply goes to the usage panel.
@@ -1872,6 +1895,18 @@ impl Workbench {
         if let Some(chat) = self.agent.history.iter_mut().find(|c| c.id == id) {
             chat.archived = archive;
             chat.keep = !archive;
+            crate::settings::save_json(HISTORY_FILE, &self.agent.history);
+        }
+        cx.notify();
+    }
+
+    /// Pin a chat to the top of the list, or unpin it. A pinned chat leaves the archive.
+    pub(crate) fn agent_pin_chat(&mut self, id: u64, pin: bool, cx: &mut Context<Self>) {
+        if let Some(chat) = self.agent.history.iter_mut().find(|c| c.id == id) {
+            chat.pinned = pin;
+            if pin {
+                chat.archived = false;
+            }
             crate::settings::save_json(HISTORY_FILE, &self.agent.history);
         }
         cx.notify();
