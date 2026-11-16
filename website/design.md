@@ -67,10 +67,18 @@ dari logo. Tidak ada grid latar, glow, atau blur.
 
 - **Hero:** dua tangkapan layar asli (`agent` di depan, `themes` di belakang) jadi latar,
   miring dengan perspektif. Saat scroll, lapisan belakang bergerak 0,5x, lapisan depan 0,28x
-  sambil pelan-pelan menegak, dan teks hero turun 0,18x sambil memudar. Gradien menjaga
+  sambil pelan-pelan menegak, dan teks hero turun 0,18x sambil memudar. Dengan mouse, layar
+  depan condong mengikuti pointer (lapisan belakang ke arah sebaliknya). Gradien menjaga
   kontras teks.
-- **Bagian lain:** judul bagian, screenshot, statistik, kartu agen, daftar unduhan, panel
-  repo, dan kontributor bergeser maksimal 36 px berlawanan arah scroll (`DRIFT` di skrip).
+- **Screenshot viewer:** condong ke belakang (rotateX 18°, skala 0,9) saat mulai masuk layar
+  lalu menegak rata begitu mencapai tengah.
+- **Kedalaman per bagian:** tiap bagian membawa meander besar dari logo (opasitas 6%) yang
+  bergerak 0,18-0,22x dan berputar sampai 18° pada kedalamannya sendiri (`GLYPHS`).
+- **Bagian lain:** judul bagian, statistik, kartu agen, daftar unduhan, panel repo, dan
+  kontributor bergeser maksimal 36 px berlawanan arah scroll; dua kolom fitur bergerak
+  berlawanan arah (`DRIFT` di skrip).
+- **Statistik:** angka benchmark menghitung naik dari nol sekali saat terlihat, dalam format
+  bahasanya (1.4 / 1,4). Baris unduhan masuk bergantian dari kiri dan kanan.
 - **Tab screenshot:** pill kuning bergeser ke tab yang dipilih; gambar memudar keluar,
   gambar baru di-decode dulu, lalu memudar masuk.
 - **Ganti bahasa:** thumb EN/ID bergeser, teks memudar keluar lalu masuk dalam bahasa baru.
@@ -78,7 +86,9 @@ dari logo. Tidak ada grid latar, glow, atau blur.
   saudara 60 ms, maksimal 300 ms); batang grafik tumbuh dari nol. Memakai properti
   `translate`, jadi tidak bentrok dengan `transform` parallax.
 - **Ringan di ponsel:** di layar sempit, mode hemat data, atau CPU 4 inti ke bawah, parallax
-  hanya di hero dan judul bagian. Semua posisi dibaca dulu lalu ditulis sekaligus per frame.
+  hanya di hero dan judul bagian, viewer cuma membesar sedikit (tanpa 3D), tanpa meander dan
+  tanpa condong ke pointer. Semua posisi dibaca dulu lalu ditulis sekaligus per frame, dan
+  hanya elemen yang terlihat (IntersectionObserver) yang dihitung.
 - Hanya `transform`, `translate`, dan `opacity`, satu `requestAnimationFrame` per frame.
   `prefers-reduced-motion` mematikan semuanya.
 

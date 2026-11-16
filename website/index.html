@@ -492,9 +492,31 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
 .rv { opacity: 0; translate: 0 16px; transition: opacity 0.6s ease, translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); transition-delay: var(--d, 0ms); }
 .rv.in { opacity: 1; translate: 0 0; }
 .chart.rv .bar { transform: scaleX(0); transform-origin: left center; transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); transition-delay: calc(var(--d, 0ms) + 120ms); }
-.chart.rv.in .bar { transform: none; }@media (prefers-reduced-motion: reduce) {
+.chart.rv.in .bar { transform: none; }
+/* Download rows arrive from alternate sides on wide screens. */
+@media (min-width: 721px) {
+  .dl-row.rv:nth-child(odd) { translate: -28px 0; }
+  .dl-row.rv:nth-child(even) { translate: 28px 0; }
+  .dl-row.rv.in { translate: 0 0; }
+}
+/* Depth: a large meander from the logo behind each section, drifting and turning at its
+   own depth as the page scrolls. Added by JS on wide screens only. `overflow: clip` keeps
+   it inside its section without making a scroll container, so sticky blocks still stick. */
+.has-glyph { position: relative; isolation: isolate; overflow: clip; }
+.depth-glyph {
+  position: absolute; z-index: -1; top: 6%; width: min(44vw, 560px); aspect-ratio: 1;
+  opacity: 0.06; pointer-events: none; will-change: transform;
+}
+.depth-glyph.l { left: -14%; }
+.depth-glyph.r { right: -12%; }
+.depth-glyph svg { display: block; width: 100%; height: 100%; }
+/* The screenshot viewer leans back and settles flat as it reaches the middle (JS sets the
+   transform; the origin keeps its bottom edge in place). */
+.viewer .shot { transform-origin: 50% 100%; }
+@media (max-width: 720px) { .depth-glyph { display: none; } }
+@media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .hero-copy, .hero-layer, [data-speed] { will-change: auto; }
+  .hero-copy, .hero-layer, [data-speed], .depth-glyph { will-change: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
@@ -1728,62 +1750,124 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
   }
 
   /* ---------- Parallax ---------- */
-  // Scroll-linked depth: the hero screenshots move slower than the page and straighten as
-  // you scroll, the copy drifts and fades, and section blocks shift a few pixels against
-  // the scroll. Transforms and opacity only, one rAF per frame, off for reduced motion.
-  var DRIFT = [[".viewer .shot", -0.05], [".head", -0.07], [".stat-grid", 0.04], [".flagship", -0.05], [".dl-list", 0.03], [".open-layout", 0.03], [".people-grid", -0.04]];
+  // One scroll-linked depth system: one rAF per frame, transforms and opacity only.
+  // - Hero: two screenshots at different depths that straighten as you scroll, the copy
+  //   drifting and fading; with a mouse the front screen leans toward the pointer.
+  // - Viewer: the screenshot leans back and settles flat as it reaches the middle.
+  // - Each section carries a large meander from the logo, drifting and turning at its own
+  //   depth; heads, stats, downloads and contributors shift a few pixels against the
+  //   scroll, and the two feature columns move at opposite speeds.
+  // Phones, data saver and machines with 4 cores or fewer keep the hero depth, the head
+  // drift and a flat viewer settle; reduced motion turns everything off.
+  var DRIFT = [
+    [".head", -0.07, 36], [".stat-grid", 0.04, 36], [".flagship", -0.05, 36],
+    [".feature-list > .feature:nth-child(odd)", -0.04, 30], [".feature-list > .feature:nth-child(even)", 0.04, 30],
+    [".dl-list", 0.03, 36], [".open-layout", 0.03, 36], [".people-grid", -0.04, 36]
+  ];
+  var GLYPHS = [[".bench", "r", 0.22], [".features", "l", -0.18], [".compare", "r", 0.2], [".download", "l", -0.2], [".open", "r", 0.18]];
+  var MEANDER = '<svg viewBox="0 0 1024 1024" fill="none" stroke-width="58.9" stroke-linejoin="miter">' +
+    '<path d="M394.2 747.5 L747.5 747.5 L747.5 394.2 L394.2 394.2 L394.2 512.0 L512.0 512.0" stroke="#ebe4d6"/>' +
+    '<path d="M512.0 512.0 L629.8 512.0 L629.8 629.8 L276.5 629.8 L276.5 276.5 L629.8 276.5" stroke="#b98a5e"/></svg>';
   function initParallax() {
     var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     var narrow = window.matchMedia("(max-width: 720px)");
+    var fine = window.matchMedia("(hover: hover) and (pointer: fine)");
     var hero = $(".hero"), copy = $(".hero-copy"), front = $(".hero-layer.front"), back = $(".hero-layer.back");
-    // Phones, data-saver and low-core machines keep the hero depth and the section titles
-    // only, so scrolling stays cheap there.
+    var shot = $(".viewer .shot");
     var conn = navigator.connection || {};
     var light = narrow.matches || conn.saveData || (navigator.hardwareConcurrency || 8) <= 4;
     var drift = [];
+    function addDrift(n, speed, max, turn) {
+      n.setAttribute("data-speed", speed);
+      n._max = max; n._turn = turn || 0;
+      drift.push(n);
+    }
     DRIFT.forEach(function (d) {
       if (light && d[0] !== ".head") return;
-      $all(d[0]).forEach(function (n) { n.setAttribute("data-speed", d[1]); drift.push(n); });
+      $all(d[0]).forEach(function (n) { addDrift(n, d[1], d[2]); });
     });
+    if (!light) {
+      GLYPHS.forEach(function (g) {
+        var sec = $(g[0]);
+        if (!sec) return;
+        var glyph = el("span", { "class": "depth-glyph " + g[1], "aria-hidden": "true" });
+        glyph.innerHTML = MEANDER;
+        sec.classList.add("has-glyph");
+        sec.insertBefore(glyph, sec.firstChild);
+        addDrift(glyph, g[2], 240, g[2] > 0 ? 0.016 : -0.016);
+      });
+    }
     var visible = new Set();
+    var watch = drift.concat(shot ? [shot] : []);
     if ("IntersectionObserver" in window) {
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) { if (e.isIntersecting) visible.add(e.target); else visible.delete(e.target); });
         queue();
-      }, { rootMargin: "120px 0px" });
-      drift.forEach(function (n) { io.observe(n); });
+      }, { rootMargin: "160px 0px" });
+      watch.forEach(function (n) { io.observe(n); });
     } else {
-      drift.forEach(function (n) { visible.add(n); });
+      watch.forEach(function (n) { visible.add(n); });
+    }
+
+    // Pointer lean on the hero: the target follows the mouse, the shown value eases to it.
+    var tx = 0, ty = 0, px = 0, py = 0;
+    if (!light && hero) {
+      hero.addEventListener("pointermove", function (e) {
+        if (e.pointerType !== "mouse" || !fine.matches) return;
+        var r = hero.getBoundingClientRect();
+        tx = (e.clientX - r.left) / r.width * 2 - 1;
+        ty = (e.clientY - r.top) / r.height * 2 - 1;
+        queue();
+      });
+      hero.addEventListener("pointerleave", function () { tx = 0; ty = 0; queue(); });
     }
 
     function frame() {
       ticking = false;
       if (reduce.matches) {
-        [copy, front, back].concat(drift).forEach(function (n) { n.style.transform = ""; n.style.opacity = ""; });
+        [copy, front, back, shot].concat(drift).forEach(function (n) { if (n) { n.style.transform = ""; n.style.opacity = ""; } });
         return;
       }
       var y = window.scrollY, h = hero.offsetHeight, vh = window.innerHeight;
+      px += (tx - px) * 0.12; py += (ty - py) * 0.12;
+      var easing = Math.abs(tx - px) > 0.002 || Math.abs(ty - py) > 0.002;
       if (y < h + 200) {
         var p = Math.min(1, Math.max(0, y / h));
         var ry = narrow.matches ? -10 : -14, rx = narrow.matches ? 8 : 6;
-        front.style.transform = "translate3d(0," + (y * 0.28).toFixed(1) + "px,0) rotateY(" + (ry * (1 - p * 0.6)).toFixed(2) + "deg) rotateX(" + (rx * (1 - p)).toFixed(2) + "deg) scale(" + (1 + p * 0.04).toFixed(3) + ")";
-        back.style.transform = "translate3d(0," + (y * 0.5).toFixed(1) + "px,0) rotateY(-18deg) rotateX(8deg)";
+        front.style.transform = "translate3d(" + (px * -10).toFixed(1) + "px," + (y * 0.28 + py * -6).toFixed(1) + "px,0) rotateY(" + (ry * (1 - p * 0.6) + px * 5).toFixed(2) + "deg) rotateX(" + (rx * (1 - p) - py * 4).toFixed(2) + "deg) scale(" + (1 + p * 0.04).toFixed(3) + ")";
+        back.style.transform = "translate3d(" + (px * 14).toFixed(1) + "px," + (y * 0.5 + py * 8).toFixed(1) + "px,0) rotateY(" + (-18 - px * 3).toFixed(2) + "deg) rotateX(" + (8 + py * 2).toFixed(2) + "deg)";
         copy.style.transform = "translate3d(0," + (y * 0.18).toFixed(1) + "px,0)";
         copy.style.opacity = String(Math.max(0, 1 - p * 1.1).toFixed(3));
       }
       // All reads first, then all writes, so the browser never lays out mid-frame.
-      var moves = [];
+      var moves = [], settle = null;
+      if (shot && visible.has(shot)) {
+        var sr = shot.getBoundingClientRect();
+        var t = Math.min(1, Math.max(0, (vh - sr.top) / (vh * 0.75)));
+        settle = 1 - Math.pow(1 - t, 3);
+      }
       visible.forEach(function (n) {
+        if (n === shot) return;
         var r = n.getBoundingClientRect();
         // Measure without our own offset so the movement never feeds back into itself.
         var center = r.top - (n._off || 0) + r.height / 2 - vh / 2;
-        moves.push([n, Math.max(-36, Math.min(36, center * parseFloat(n.getAttribute("data-speed"))))]);
+        var max = n._max || 36;
+        moves.push([n, Math.max(-max, Math.min(max, center * parseFloat(n.getAttribute("data-speed")))), center]);
       });
+      if (settle !== null) {
+        var k = 1 - settle;
+        shot.style.transform = light
+          ? "scale(" + (0.96 + 0.04 * settle).toFixed(4) + ")"
+          : "perspective(1600px) translate3d(0," + (k * 48).toFixed(1) + "px,0) rotateX(" + (k * 18).toFixed(2) + "deg) scale(" + (0.9 + 0.1 * settle).toFixed(4) + ")";
+      }
       moves.forEach(function (m) {
-        if (Math.abs((m[0]._off || 0) - m[1]) < 0.2) return;
-        m[0]._off = m[1];
-        m[0].style.transform = "translate3d(0," + m[1].toFixed(1) + "px,0)";
+        var n = m[0];
+        if (Math.abs((n._off || 0) - m[1]) < 0.2) return;
+        n._off = m[1];
+        var turn = n._turn ? " rotate(" + Math.max(-18, Math.min(18, m[2] * n._turn)).toFixed(2) + "deg)" : "";
+        n.style.transform = "translate3d(0," + m[1].toFixed(1) + "px,0)" + turn;
       });
+      if (easing) queue();
     }
     var ticking = false;
     function queue() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
@@ -1791,6 +1875,36 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
     window.addEventListener("resize", queue);
     if (reduce.addEventListener) { reduce.addEventListener("change", queue); narrow.addEventListener("change", queue); }
     queue();
+  }
+
+  /* ---------- Count up ---------- */
+  // A stat's number counts up from zero once, when it first comes into view, in the
+  // format it is written in (1.4 in English, 1,4 in Indonesian, ~50 keeps its tilde).
+  function countUp(stat) {
+    var v = stat.querySelector(".v");
+    if (!v) return;
+    var node = v.querySelector("[data-i18n]");
+    if (!node) {
+      for (var i = 0; i < v.childNodes.length; i++) {
+        var c = v.childNodes[i];
+        if (c.nodeType === 3 && /\d/.test(c.nodeValue)) { node = c; break; }
+      }
+    }
+    if (!node) return;
+    var isText = node.nodeType === 3;
+    var text = isText ? node.nodeValue : node.textContent;
+    var m = text.match(/^(\D*)(\d+)(?:([.,])(\d+))?(.*)$/);
+    if (!m) return;
+    var dec = m[4] ? m[4].length : 0, sep = m[3] || ".";
+    var target = parseFloat(m[2] + (dec ? "." + m[4] : ""));
+    var t0 = performance.now();
+    function step(now) {
+      var k = Math.min(1, (now - t0) / 900), e = 1 - Math.pow(1 - k, 3);
+      var val = (target * e).toFixed(dec).replace(".", sep);
+      if (isText) node.nodeValue = m[1] + val + m[5]; else node.textContent = m[1] + val + m[5];
+      if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
   }
 
   /* ---------- Reveal ---------- */
@@ -1813,6 +1927,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
       entries.forEach(function (e) {
         if (!e.isIntersecting) return;
         e.target.classList.add("in");
+        if (e.target.classList.contains("stat")) countUp(e.target);
         revealIO.unobserve(e.target);
       });
     }, { rootMargin: "0px 0px -8% 0px" });
