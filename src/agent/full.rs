@@ -161,7 +161,7 @@ impl Workbench {
         let fresh = a.chat_id.is_none() && a.items.iter().any(|i| matches!(i, Item::User(_)));
         if fresh && view != ChatView::Archived {
             let title = a.items.iter().find_map(|i| if let Item::User(t) = i { Some(t.lines().next().unwrap_or("").to_string()) } else { None }).unwrap_or_default();
-            list = list.child(chat_row("agf-now", title, tr("Now").into(), true, busy, false));
+            list = list.child(chat_row("agf-now", title, tr("Now").into(), Flags { current: true, working: busy, archived: false, pinned: false, mark: Some(c(theme::GREEN)) }));
         }
         // Every chat answering now, the ones in the background too.
         let busy_ids = a.working_ids();
@@ -171,20 +171,60 @@ impl Workbench {
             let midnight = Local::now().date_naive().and_hms_opt(0, 0, 0).unwrap_or_default();
             Local.from_local_datetime(&midnight).single().map(|t| t.timestamp_millis() as u64).unwrap_or(now)
         };
-        let groups = chats::groups(&a.history, view, &busy_ids, now, today_start);
+        let all = chats::groups(&a.history, view, &busy_ids, now, today_start);
+        // Compact (the default): only what is working, open or pinned; the rest one
+        // click away. The archive and the working view always list everything.
+        let foldable = !matches!(view, ChatView::Archived | ChatView::Working);
+        let show_all = self.settings.chat_show_all || !foldable;
+        let (groups, hidden) = if show_all { (all, 0) } else { chats::compact(all, &a.history, &busy_ids, a.chat_id) };
         let archived_n = a.history.iter().filter(|c| c.archived).count();
         for (gi, (heading, idx)) in groups.iter().enumerate() {
+            let folded = !heading.is_empty() && self.settings.chat_collapsed.iter().any(|h| h == heading);
             if !heading.is_empty() {
+                let key = heading.clone();
+                let label = tr_dyn(heading);
+                let pill = chats::Recency::of_heading(heading).and_then(recency_color).or(match heading.as_str() {
+                    "Working now" => Some(c(theme::ACCENT_TEXT)),
+                    "Pinned" => Some(c(theme::FG_MUTED)),
+                    _ => None,
+                });
                 list = list.child(
-                    div()
-                        .px_2()
-                        .when(gi > 0 || fresh, |d| d.pt_3())
-                        .pb_1()
+                    h_flex()
+                        .id(("agf-g", gi))
+                        .mx_1()
+                        .px_1()
+                        .when(gi > 0 || fresh, |d| d.mt_2())
+                        .mb_0p5()
+                        .h(theme::u(22.))
+                        .gap_1p5()
+                        .rounded(px(6.))
+                        .cursor_pointer()
                         .text_size(theme::u(11.))
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(c(theme::FG_DIM))
-                        .child(tr_dyn(heading)),
+                        .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_MUTED)))
+                        .child(Icon::new(if folded { Ico::ChevronRight } else { Ico::ChevronDown }).size(theme::u(11.)))
+                        .child(match pill {
+                            // Date headings (and Working / Pinned) as a tinted pill, so
+                            // Today, This week and the rest are told apart at a glance.
+                            Some(col) => div().px_1p5().rounded(px(4.)).bg(col.opacity(0.14)).text_color(col).child(label).into_any_element(),
+                            None => div().min_w_0().truncate().child(label).into_any_element(),
+                        })
+                        .child(div().text_color(c(theme::FG_DIM)).font_weight(FontWeight::NORMAL).child(idx.len().to_string()))
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            let list = &mut this.settings.chat_collapsed;
+                            if let Some(p) = list.iter().position(|h| *h == key) {
+                                list.remove(p);
+                            } else {
+                                list.push(key.clone());
+                            }
+                            this.settings.save();
+                            cx.notify();
+                        })),
                 );
+            }
+            if folded {
+                continue;
             }
             for &i in idx {
                 let chat = &a.history[i];
@@ -217,8 +257,10 @@ impl Workbench {
                 }
                 let working = busy_ids.contains(&id);
                 let archived = chat.archived;
+                let pinned = chat.pinned;
+                let mark = recency_color(chats::recency(chat.updated, today_start));
                 list = list.child(
-                    chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), when.into(), current, working, archived)
+                    chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), when.into(), Flags { current, working, archived, pinned, mark })
                         .on_mouse_down(MouseButton::Left, cx.listener(move |this, e: &MouseDownEvent, w, cx| {
                             if e.click_count >= 2 {
                                 cx.stop_propagation();
@@ -226,6 +268,10 @@ impl Workbench {
                             }
                         }))
                         .on_click(cx.listener(move |this, _, _, cx| this.agent_open_chat(id, cx)))
+                        .child(row_action(("agf-pin", i), if pinned { Ico::PinOff } else { Ico::Pin }, if pinned { tr("Unpin") } else { tr("Pin to the top") }).on_click(cx.listener(move |this, _, _, cx| {
+                            cx.stop_propagation();
+                            this.agent_pin_chat(id, !pinned, cx)
+                        })))
                         .child(row_action(("agf-rename", i), Ico::Pencil, tr("Rename (or double-click)")).on_click(cx.listener(move |this, _, w, cx| {
                             cx.stop_propagation();
                             this.agent_rename_start(id, w, cx)
@@ -241,7 +287,33 @@ impl Workbench {
                 );
             }
         }
-        let empty = groups.is_empty() && !fresh;
+        // Folded away in the compact list: one row brings them back (and one folds them).
+        if foldable && (hidden > 0 || self.settings.chat_show_all) {
+            let more = hidden > 0;
+            let label: SharedString = if more { crate::trf!("Show {n} more chats"; n => hidden).into() } else { tr("Show only active and pinned").into() };
+            list = list.child(
+                h_flex()
+                    .id("agf-more")
+                    .mx_1()
+                    .mt_1()
+                    .px_2()
+                    .h(theme::u(28.))
+                    .gap_1p5()
+                    .rounded(px(8.))
+                    .cursor_pointer()
+                    .text_xs()
+                    .text_color(c(theme::FG_MUTED))
+                    .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
+                    .child(Icon::new(if more { Ico::ChevronDown } else { Ico::ChevronUp }).size(theme::u(12.)))
+                    .child(label)
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.settings.chat_show_all = more;
+                        this.settings.save();
+                        cx.notify();
+                    })),
+            );
+        }
+        let empty = groups.is_empty() && !fresh && hidden == 0;
         if empty {
             let text = match view {
                 ChatView::Archived => tr("Nothing archived. Chats untouched for a week move here on their own; the archive button on a chat moves it now."),
@@ -280,30 +352,28 @@ impl Workbench {
             .h_full()
             .glass()
             .overflow_hidden()
-            .child(
-                v_flex().p_2().gap_1().child(
-                    h_flex()
-                        .id("agf-new")
-                        .h(theme::u(34.))
-                        .px_2()
-                        .gap_2()
-                        .rounded(px(10.))
-                        .cursor_pointer()
-                        .text_sm()
-                        .text_color(c(theme::FG_STRONG))
-                        .hover(|s| s.bg(c(theme::BG_HOVER)))
-                        .on_click(cx.listener(|this, _, _, cx| this.agent_new_chat(cx)))
-                        .child(Icon::new(IconName::Plus).size(theme::u(15.)))
-                        .child(tr("New chat")),
-                ),
-            )
+            // One row on top: New chat, then the view menu and the hide button beside it.
             .child(
                 h_flex()
-                    .pl_4()
-                    .pr_2()
-                    .pb_1()
+                    .p_2()
                     .gap_1()
-                    .child(div().flex_1().text_xs().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_DIM)).child(tr("Chats")))
+                    .child(
+                        h_flex()
+                            .id("agf-new")
+                            .flex_1()
+                            .min_w_0()
+                            .h(theme::u(34.))
+                            .px_2()
+                            .gap_2()
+                            .rounded(px(10.))
+                            .cursor_pointer()
+                            .text_sm()
+                            .text_color(c(theme::FG_STRONG))
+                            .hover(|s| s.bg(c(theme::BG_HOVER)))
+                            .on_click(cx.listener(|this, _, _, cx| this.agent_new_chat(cx)))
+                            .child(Icon::new(IconName::Plus).flex_none().size(theme::u(15.)))
+                            .child(div().min_w_0().truncate().child(tr("New chat"))),
+                    )
                     .child(view_menu)
                     .child(tool_button("agf-left-hide", IconName::PanelLeftClose, tr("Hide chats"), cx, |this, _, cx| {
                         this.agent.full.left = false;
@@ -411,9 +481,32 @@ impl Workbench {
     }
 }
 
-/// One chat in the left column: title, when (and which agent), and while it
-/// answers a spinning mark and "Working". Archived chats are dimmed.
-fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, current: bool, working: bool, archived: bool) -> Stateful<Div> {
+/// How a chat row is drawn.
+struct Flags {
+    current: bool,
+    working: bool,
+    archived: bool,
+    pinned: bool,
+    /// The colour of its recency mark (Today, Yesterday, This week); None for older.
+    mark: Option<Hsla>,
+}
+
+/// Today green, yesterday blue, this week amber; older chats get no mark.
+fn recency_color(r: super::chats::Recency) -> Option<Hsla> {
+    use super::chats::Recency;
+    match r {
+        Recency::Today => Some(c(theme::GREEN)),
+        Recency::Yesterday => Some(c(theme::BLUE)),
+        Recency::ThisWeek => Some(c(theme::WARN)),
+        Recency::Earlier => None,
+    }
+}
+
+/// One chat in the left column: title (a pin when pinned), when it last changed
+/// with a coloured recency mark, and which agent; while it answers a spinning mark
+/// and "Working". Archived chats are dimmed.
+fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, f: Flags) -> Stateful<Div> {
+    let Flags { current, working, archived, pinned, mark } = f;
     h_flex()
         .id(id)
         .group("agf-row")
@@ -437,13 +530,20 @@ fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, current
                 .flex_1()
                 .min_w_0()
                 .when(archived, |d| d.opacity(0.7))
-                .child(div().text_sm().truncate().text_color(c(if current { theme::FG_STRONG } else { theme::FG })).child(if title.is_empty() { tr("Untitled chat").to_string() } else { title }))
+                .child(
+                    h_flex()
+                        .min_w_0()
+                        .gap_1()
+                        .when(pinned, |h| h.child(Icon::new(Ico::Pin).flex_none().size(theme::u(11.)).text_color(c(theme::FG_MUTED))))
+                        .child(div().min_w_0().text_sm().truncate().text_color(c(if current { theme::FG_STRONG } else { theme::FG })).child(if title.is_empty() { tr("Untitled chat").to_string() } else { title })),
+                )
                 .child(
                     h_flex()
                         .gap_1()
                         .min_w_0()
                         .text_xs()
                         .when(working, |h| h.child(div().flex_none().text_color(c(theme::ACCENT_TEXT)).child(tr("Working"))).child(div().flex_none().text_color(c(theme::FG_DIM)).child("·")))
+                        .when_some(mark.filter(|_| !working), |h, col| h.child(div().flex_none().size(px(6.)).rounded_full().bg(col)))
                         .child(div().min_w_0().truncate().text_color(c(theme::FG_DIM)).child(when)),
                 ),
         )
@@ -469,6 +569,7 @@ fn row_action(id: impl Into<ElementId>, icon: Ico, tip: &'static str) -> Statefu
 fn tr_dyn(s: &str) -> String {
     match s {
         "Working now" => tr("Working now").into(),
+        "Pinned" => tr("Pinned").into(),
         "Today" => tr("Today").into(),
         "Yesterday" => tr("Yesterday").into(),
         "This week" => tr("This week").into(),

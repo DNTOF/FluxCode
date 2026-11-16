@@ -32,6 +32,12 @@ pub const PACKS: [(&str, &str, &str); 3] = [
 
 pub const LEVELS: [(&str, &str); 3] = [("lite", "Lite"), ("full", "Full"), ("ultra", "Ultra")];
 
+/// Auto compact's marks: how full the context gets before it is compacted (percent).
+pub const COMPACT_AT: [u8; 3] = [50, 70, 85];
+
+/// The context window assumed when the agent doesn't say (most of today's models have 200K or more).
+const DEFAULT_WINDOW: u64 = 200_000;
+
 #[derive(Default)]
 pub struct SaverState {
     pub open: bool,
@@ -167,7 +173,69 @@ impl Workbench {
             .when(n > 0, |d| d.child(n.to_string()))
     }
 
-    /// The token saver panel, floating over the chat above the message box.
+    /// How full the context is (0..1): the agent's own count when it sends one, else an
+    /// estimate (about 4 characters a token, over a 200K window) of what was said
+    /// since the last compaction.
+    pub(crate) fn agent_context_fill(&self) -> f32 {
+        if let Some(l) = self.agent.usage.live.as_ref().filter(|l| l.size > 0 && l.used > 0) {
+            return l.used as f32 / l.size as f32;
+        }
+        let from = self.agent.compact_from.min(self.agent.items.len());
+        let chars: usize = self.agent.items[from..]
+            .iter()
+            .map(|i| match i {
+                super::Item::User(t) | super::Item::Text(t) | super::Item::Thought(t) => t.len(),
+                _ => 200,
+            })
+            .sum();
+        chars as f32 / 4. / DEFAULT_WINDOW as f32
+    }
+
+    /// After a turn: when auto compact is on and the context is past its mark, compact
+    /// it. With the agent's own `/compact` (Claude, OpenCode, ...) that runs quietly in
+    /// the same session; otherwise the chat goes on in a fresh session that carries the
+    /// recent messages. True when a compaction started (the caller waits for it).
+    pub(crate) fn agent_auto_compact(&mut self, cx: &mut Context<Self>) -> bool {
+        if !self.settings.saver_compact || self.agent.compacting {
+            return false;
+        }
+        let fill = self.agent_context_fill();
+        if fill < self.settings.saver_compact_at as f32 / 100. {
+            return false;
+        }
+        let pct = (fill * 100.).round() as u32;
+        self.agent.compact_from = self.agent.items.len();
+        if let Some(l) = self.agent.usage.live.as_mut() {
+            l.used = 0;
+        }
+        // Claude Agent calls it `compact`; OpenCode also answers to `summarize`.
+        let cmd = self.agent.commands.iter().find(|c| c.name == "compact" || c.name == "summarize").map(|c| format!("/{}", c.name));
+        if let Some(cmd) = cmd {
+            self.agent.compacting = true;
+            self.agent.items.push(super::Item::Note(crate::trf!("Context {pct}% full: compacting it…"; pct => pct), false));
+            self.agent_send_probe(&cmd);
+        } else {
+            self.agent.items.push(super::Item::Note(crate::trf!("Context {pct}% full: the chat goes on in a fresh session that carries its recent messages."; pct => pct), false));
+            self.agent.carry = Some(super::transcript(&self.agent.items));
+            self.agent_save();
+            self.agent_stop(cx);
+            self.agent_start(cx);
+        }
+        true
+    }
+
+    /// `/compact` finished: say so where the "compacting" note was.
+    pub(crate) fn agent_compact_done(&mut self, ok: bool) {
+        let text = if ok { crate::i18n::tr("Context compacted: the conversation continues with a summary, using fewer tokens.").to_string() } else { crate::i18n::tr("Couldn't compact the context this time; it will try again after the next answer.").to_string() };
+        if let Some(super::Item::Note(t, err)) = self.agent.items.iter_mut().rev().find(|i| matches!(i, super::Item::Note(..))) {
+            *t = text;
+            *err = !ok;
+        }
+    }
+
+    /// The token saver panel, floating over the chat above the message box: what each
+    /// pack does in a sentence, the level for short answers, and auto compact with
+    /// how full the context is now.
     pub(crate) fn render_saver_panel(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         if !self.agent.saver.open {
             return None;
@@ -175,63 +243,132 @@ impl Workbench {
         let s = &self.settings;
         let on = |id: &str| s.saver_packs.iter().any(|p| p == id);
         let pct = (estimate(&s.saver_packs, &s.saver_level) * 100.).round() as u32;
-        let since = self.agent.saver.changed.map(|t| {
-            let m = t.elapsed().as_secs() / 60;
-            if m == 0 { tr("Packs changed just now.").to_string() } else { crate::trf!("Packs changed {0}m ago; they go out with your next message."; 0 => m) }
-        });
-        let mut rows = v_flex().gap_2();
-        for (id, title, sub) in PACKS {
-            let checked = on(id);
-            rows = rows.child(
+        let changed = self.agent.saver.changed.is_some();
+        // One switch row: an icon tile, the name and a sentence, the switch.
+        let row = |key: &'static str, icon: gpui_kit::assets::IconName, title: &'static str, sub: SharedString, checked: bool, cx: &mut Context<Self>, set: fn(&mut Workbench, bool, &mut Context<Workbench>)| {
+            h_flex()
+                .gap_2p5()
+                .items_start()
+                .child(
+                    div()
+                        .flex_none()
+                        .size(theme::u(28.))
+                        .rounded(px(8.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .bg(c(if checked { theme::GREEN } else { theme::FG_DIM }).opacity(0.14))
+                        .text_color(c(if checked { theme::GREEN } else { theme::FG_MUTED }))
+                        .child(Icon::new(icon).size(theme::u(14.))),
+                )
+                .child(
+                    v_flex()
+                        .flex_1()
+                        .min_w_0()
+                        .gap(px(1.))
+                        .child(div().text_sm().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_STRONG)).child(tr(title)))
+                        .child(div().text_xs().text_color(c(theme::FG_DIM)).child(sub)),
+                )
+                .child(Switch::new(SharedString::from(format!("sv-{key}"))).checked(checked).small().on_click(cx.listener(move |this, v: &bool, _, cx| set(this, *v, cx))))
+        };
+        // A segmented control: the chosen option sits on a raised pill.
+        let seg = |id: &'static str, opts: Vec<(SharedString, bool, Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)>)>, cx: &mut Context<Self>| {
+            let mut h = h_flex().ml(theme::u(38.)).p_0p5().gap_0p5().rounded(px(8.)).bg(c(theme::BG_HOVER));
+            for (k, (label, picked, f)) in opts.into_iter().enumerate() {
+                h = h.child(
+                    div()
+                        .id((id, k))
+                        .flex_1()
+                        .py_0p5()
+                        .rounded(px(6.))
+                        .text_center()
+                        .text_xs()
+                        .cursor_pointer()
+                        .text_color(c(if picked { theme::FG_STRONG } else { theme::FG_MUTED }))
+                        .when(picked, |d| d.bg(c(theme::BG_ELEVATED)).border_1().border_color(theme::glass_edge()).shadow_sm())
+                        .when(!picked, |d| d.hover(|s| s.text_color(c(theme::FG))))
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            f(this, cx);
+                            this.agent.saver.changed = Some(std::time::Instant::now());
+                            this.settings.save();
+                            cx.notify();
+                        }))
+                        .child(label),
+                );
+            }
+            h
+        };
+        let level_hint = match s.saver_level.as_str() {
+            "lite" => tr("Brief, in full sentences: no greetings, no recap."),
+            "ultra" => tr("Telegraphic: keywords and symbols, no prose around code."),
+            _ => tr("Terse: no filler or pleasantries; fragments are fine."),
+        };
+        let mut answers = v_flex().gap_1p5().child(row("caveman", gpui_kit::assets::IconName::MessageSquareCode, "Short answers", level_hint.into(), on("caveman"), cx, |w, v, cx| w.saver_set("caveman", v, cx)));
+        if on("caveman") {
+            let opts = LEVELS
+                .iter()
+                .map(|&(lv, label)| {
+                    let f: Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)> = Box::new(move |w, _| w.settings.saver_level = lv.into());
+                    (SharedString::from(tr(label)), s.saver_level == lv, f)
+                })
+                .collect();
+            answers = answers.child(seg("sv-lv", opts, cx));
+        }
+        // Auto compact, with the context meter it acts on.
+        let fill = self.agent_context_fill().clamp(0., 1.);
+        let at = s.saver_compact_at;
+        let meter_col = if fill * 100. >= at as f32 { theme::WARN } else { theme::GREEN };
+        let mut compact = v_flex().gap_1p5().child(row(
+            "compact",
+            gpui_kit::assets::IconName::ListCollapse,
+            "Auto compact",
+            crate::trf!("When the context is {at}% full, the chat is summarized so later messages cost less."; at => at).into(),
+            s.saver_compact,
+            cx,
+            |w, v, cx| {
+                w.settings.saver_compact = v;
+                w.settings.save();
+                cx.notify();
+            },
+        ));
+        if s.saver_compact {
+            let opts = COMPACT_AT
+                .iter()
+                .map(|&p| {
+                    let f: Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)> = Box::new(move |w, _| w.settings.saver_compact_at = p);
+                    (SharedString::from(format!("{p}%")), at == p, f)
+                })
+                .collect();
+            compact = compact.child(seg("sv-at", opts, cx)).child(
                 v_flex()
+                    .ml(theme::u(38.))
                     .gap_1()
                     .child(
                         h_flex()
-                            .gap_2()
-                            .child(
-                                v_flex()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .child(div().text_sm().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_STRONG)).child(tr(title)))
-                                    .child(div().text_xs().text_color(c(theme::FG_DIM)).child(tr(sub))),
-                            )
-                            .child(Switch::new(SharedString::from(format!("sv-{id}"))).checked(checked).on_click(cx.listener(move |this, v: &bool, _, cx| this.saver_set(id, *v, cx)))),
+                            .text_xs()
+                            .text_color(c(theme::FG_DIM))
+                            .child(div().flex_1().child(tr("Context now")))
+                            .child(div().text_color(c(meter_col)).child(format!("{}%", (fill * 100.).round() as u32))),
                     )
-                    .when(id == "caveman" && checked, |v| {
-                        // A segmented control: the chosen level sits on a raised pill.
-                        let mut seg = h_flex().p_0p5().gap_0p5().rounded(px(8.)).bg(c(theme::BG_HOVER));
-                        for (lv, label) in LEVELS {
-                            let on = s.saver_level == lv;
-                            seg = seg.child(
-                                div()
-                                    .id(SharedString::from(format!("sv-l-{lv}")))
-                                    .flex_1()
-                                    .py_0p5()
-                                    .rounded(px(6.))
-                                    .text_center()
-                                    .text_sm()
-                                    .cursor_pointer()
-                                    .text_color(c(if on { theme::FG_STRONG } else { theme::FG_MUTED }))
-                                    .when(on, |d| d.bg(c(theme::BG_ELEVATED)).border_1().border_color(theme::glass_edge()).shadow_sm())
-                                    .when(!on, |d| d.hover(|s| s.text_color(c(theme::FG))))
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.settings.saver_level = lv.into();
-                                        this.agent.saver.changed = Some(std::time::Instant::now());
-                                        this.settings.save();
-                                        cx.notify();
-                                    }))
-                                    .child(tr(label)),
-                            );
-                        }
-                        v.child(seg)
-                    }),
+                    .child(
+                        div()
+                            .relative()
+                            .w_full()
+                            .h(px(4.))
+                            .rounded_full()
+                            .bg(c(theme::BG_HOVER))
+                            .child(div().absolute().left_0().top_0().h_full().w(relative(fill.max(0.02))).rounded_full().bg(c(meter_col)))
+                            .child(div().absolute().top(px(-2.)).h(px(8.)).w(px(2.)).left(relative(at as f32 / 100.)).rounded_full().bg(c(theme::FG_MUTED))),
+                    ),
             );
         }
+        let section = |t: &'static str| div().text_size(theme::u(11.)).font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_DIM)).child(tr(t));
+        let rule = || div().h(px(1.)).bg(theme::glass_edge());
         Some(
             v_flex()
                 .id("ag-saver-panel")
                 .occlude()
-                .w(theme::u(300.))
+                .w(theme::u(320.))
                 .p_3()
                 .gap_3()
                 .glass_pop()
@@ -242,14 +379,43 @@ impl Workbench {
                 }))
                 .child(
                     h_flex()
+                        .gap_2()
+                        .child(Icon::new(gpui_kit::assets::IconName::Leaf).size(theme::u(16.)).text_color(c(theme::GREEN)))
                         .child(div().flex_1().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr("Token saver")))
-                        .when(pct > 0, |h| h.child(div().text_sm().text_color(c(theme::GREEN)).child(format!("≈ −{pct}%")))),
+                        .when(pct > 0, |h| {
+                            h.child(
+                                div()
+                                    .px_2()
+                                    .py(px(1.))
+                                    .rounded_full()
+                                    .bg(c(theme::GREEN).opacity(0.14))
+                                    .text_xs()
+                                    .font_weight(FontWeight::MEDIUM)
+                                    .text_color(c(theme::GREEN))
+                                    .child(crate::trf!("about {pct}% fewer tokens"; pct => pct)),
+                            )
+                        }),
                 )
-                .child(div().text_xs().text_color(c(theme::FG_DIM)).child(since.unwrap_or_else(|| tr("Guidance goes out with your next message, then every few turns.").to_string())))
-                .child(rows)
+                .child(div().text_xs().text_color(c(theme::FG_DIM)).child(if changed {
+                    tr("Changes apply from your next message.")
+                } else {
+                    tr("A few lines of guidance go out with your next message and again every few turns, so they cost almost nothing.")
+                }))
+                .child(v_flex().gap_2().child(section("Answers")).child(answers))
+                .child(rule())
                 .child(
-                    h_flex().child(div().flex_1()).child(Button::new("sv-off").label(tr("Turn all off")).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| {
+                    v_flex()
+                        .gap_2()
+                        .child(section("Code and tools"))
+                        .child(row("lean", gpui_kit::assets::IconName::Braces, "Lean code", tr("Shows changed lines or a small diff, never whole files again.").into(), on("lean"), cx, |w, v, cx| w.saver_set("lean", v, cx)))
+                        .child(row("quiet", gpui_kit::assets::IconName::Wrench, "Quiet tools", tr("Reads only the lines it needs and keeps command output short.").into(), on("quiet"), cx, |w, v, cx| w.saver_set("quiet", v, cx))),
+                )
+                .child(rule())
+                .child(v_flex().gap_2().child(section("Context")).child(compact))
+                .child(
+                    h_flex().pt_0p5().child(div().flex_1()).child(Button::new("sv-off").label(tr("Turn all off")).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| {
                         this.settings.saver_packs.clear();
+                        this.settings.saver_compact = false;
                         this.agent.saver.changed = Some(std::time::Instant::now());
                         this.settings.save();
                         cx.notify();

@@ -3545,7 +3545,9 @@ impl Workbench {
     /// itself once the status is Ready (or Copilot is switched off).
     fn render_copilot_hint(&self, cx: &mut Context<Self>) -> AnyElement {
         use crate::copilot::Status;
+        let installing = self.copilot_installing;
         let label = match self.copilot.status() {
+            _ if installing => tr("Copilot: installing…"),
             Status::NotInstalled if self.settings.copilot => tr("Copilot: install server"),
             Status::NotSignedIn(_) if self.settings.copilot => tr("Copilot: sign in"),
             _ => return div().into_any_element(),
@@ -3560,7 +3562,11 @@ impl Workbench {
             .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
             .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Copilot suggestions are not set up yet. Click to open Settings.")).build(w, cx))
             .on_click(cx.listener(|_, _, w, cx| w.dispatch_action(Box::new(ShowSettings), cx)))
-            .child(Icon::new(gpui_kit::assets::IconName::Bot).size(theme::u(13.)))
+            .child(if installing {
+                gpui_kit::component::spinner::Spinner::new().icon(gpui_kit::assets::IconName::LoaderCircle).xsmall().into_any_element()
+            } else {
+                Icon::new(gpui_kit::assets::IconName::Bot).size(theme::u(13.)).into_any_element()
+            })
             .child(label)
             .into_any_element()
     }

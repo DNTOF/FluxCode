@@ -84,6 +84,9 @@ pub struct Settings {
     /// Token saver packs on ("caveman", "lean", "quiet") and Caveman's level.
     pub saver_packs: Vec<String>,
     pub saver_level: String,
+    /// Token saver: compact the conversation when the context fills past `saver_compact_at` %.
+    pub saver_compact: bool,
+    pub saver_compact_at: u8,
     /// Send the waiting message again by itself when a usage limit resets.
     pub resume_at_reset: bool,
     /// The animated scene behind the panels ("ocean", "river", "beach", "mountains",
@@ -128,6 +131,11 @@ pub struct Settings {
     pub agent_hint: u8,
     /// How the agent's chat list is grouped (`ChatView::id`).
     pub chat_view: String,
+    /// The chat list shows every chat; off (the default) shows only the ones working,
+    /// open or pinned, with the rest one click away.
+    pub chat_show_all: bool,
+    /// Chat list groups folded shut, by heading.
+    pub chat_collapsed: Vec<String>,
     /// Look for new development builds on GitHub at start and every 6 hours.
     pub update_check: bool,
     /// Read WSL folders through the helper inside the distro instead of the 9p
@@ -182,6 +190,8 @@ impl Default for Settings {
             glass: true,
             saver_packs: Vec::new(),
             saver_level: "full".into(),
+            saver_compact: true,
+            saver_compact_at: 70,
             resume_at_reset: false,
             bg_scene: "ocean".into(),
             bg_anim: true,
@@ -200,6 +210,8 @@ impl Default for Settings {
             extensions: crate::ext::default_installed(),
             agent_hint: 0,
             chat_view: String::new(),
+            chat_show_all: false,
+            chat_collapsed: Vec::new(),
             update_check: true,
             wsl_helper: false,
             #[cfg(feature = "embedded-preview")]
@@ -1190,6 +1202,7 @@ impl Workbench {
         cx.notify();
     }
 
+    #[allow(clippy::too_many_lines)]
     fn render_copilot(&self, cx: &mut Context<Self>) -> AnyElement {
         use crate::copilot::Status;
         let (text, show_signin, show_signout): (SharedString, bool, bool) = match self.copilot.status() {
@@ -1227,8 +1240,10 @@ impl Workbench {
             .gap_1()
             .text_sm()
             .child(div().child(text));
-        if matches!(self.copilot.status(), Status::NotInstalled) {
-            if crate::copilot::npm_present() {
+        if matches!(self.copilot.status(), Status::NotInstalled) || self.copilot_installing {
+            if self.copilot_installing {
+                col = col.child(install_progress());
+            } else if crate::copilot::npm_present() {
                 col = col.child(
                     Button::new("cpl-install")
                         .label(tr("Install server"))
@@ -1401,6 +1416,40 @@ impl Workbench {
             )
             .into_any_element()
     }
+}
+
+/// While npm installs the Copilot server: a spinner, what is happening and how long
+/// it usually takes, and a bar that keeps moving (npm reports no progress to show).
+fn install_progress() -> AnyElement {
+    v_flex()
+        .w_full()
+        .gap_1p5()
+        .child(
+            h_flex()
+                .gap_2()
+                .text_sm()
+                .text_color(c(theme::FG_STRONG))
+                .child(gpui_kit::component::spinner::Spinner::new().icon(gpui_kit::assets::IconName::LoaderCircle).small().color(c(theme::ACCENT_TEXT)))
+                .child(tr("Installing the Copilot server…")),
+        )
+        .child(
+            div()
+                .relative()
+                .w_full()
+                .h(px(3.))
+                .rounded_full()
+                .overflow_hidden()
+                .bg(c(theme::BG_HOVER))
+                .child(
+                    div().absolute().top_0().h_full().w(relative(0.35)).rounded_full().bg(c(theme::ACCENT)).with_animation(
+                        "cpl-install-bar",
+                        Animation::new(Duration::from_millis(1300)).repeat().with_easing(gpui_kit::ease_in_out),
+                        |d, t| d.left(relative(-0.35 + 1.35 * t)),
+                    ),
+                ),
+        )
+        .child(div().text_xs().text_color(c(theme::FG_DIM)).child(tr("npm is downloading @github/copilot-language-server; this usually takes a minute or two. You can keep working.")))
+        .into_any_element()
 }
 
 #[cfg(test)]
