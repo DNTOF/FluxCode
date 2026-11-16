@@ -184,7 +184,7 @@ impl Workbench {
         if self.agent.items.iter().any(|i| matches!(i, Item::User(_))) {
             self.agent.carry = Some(super::transcript(&self.agent.items));
         }
-        self.agent.save_chat();
+        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         self.agent_stop(cx);
         if was_on {
             self.agent_start(cx);

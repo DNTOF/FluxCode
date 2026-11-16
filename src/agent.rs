@@ -43,6 +43,7 @@ enum Req {
 }
 
 mod activity;
+pub(crate) mod chats;
 mod follow;
 mod full;
 mod limit;
@@ -149,6 +150,18 @@ pub struct Chat {
     pub updated: u64,
     /// (role, text) with role "user", "agent" or "note".
     pub messages: Vec<(String, String)>,
+    /// In the archive: out of the list, kept (see `chats::auto_archive`).
+    #[serde(default)]
+    pub archived: bool,
+    /// Taken back out of the archive by the user: never archived on its own again.
+    #[serde(default)]
+    pub keep: bool,
+    /// The folder open when the chat was saved.
+    #[serde(default)]
+    pub folder: Option<String>,
+    /// The agent that answered (its ACP id).
+    #[serde(default)]
+    pub agent: Option<String>,
 }
 
 /// When a chat last changed, as a clock time: "14.32" today, "Yesterday 09.10",
@@ -172,7 +185,8 @@ fn when_label(ms: u64) -> String {
 const HISTORY_FILE: &str = "agent-history.json";
 /// How far back a tool's update is looked for (an agent runs a few tools at a time).
 const RECENT: usize = 4096;
-const HISTORY_MAX: usize = 50;
+/// Chats kept, the archive included.
+const HISTORY_MAX: usize = 200;
 
 fn now_ms() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
@@ -555,7 +569,13 @@ impl AgentState {
             view_start: Default::default(),
             remeasure: Default::default(),
             follow: true,
-            history: crate::settings::load_json(HISTORY_FILE),
+            history: {
+                let mut h: Vec<Chat> = crate::settings::load_json(HISTORY_FILE);
+                if chats::auto_archive(&mut h, now_ms(), None) {
+                    crate::settings::save_json(HISTORY_FILE, &h);
+                }
+                h
+            },
             chat_id: None,
             show_history: false,
             carry: None,
@@ -604,8 +624,9 @@ impl AgentState {
         }
     }
 
-    /// Save the chat on screen into the history (newest first).
-    fn save_chat(&mut self) {
+    /// Save the chat on screen into the history (newest first), with the folder it
+    /// belongs to and the agent that answered.
+    fn save_chat(&mut self, folder: Option<String>) {
         let messages: Vec<(String, String)> = self
             .items
             .iter()
@@ -627,6 +648,8 @@ impl AgentState {
             return;
         }
         let renamed = old.map(|c| (c.renamed, c.title.clone())).filter(|(r, _)| *r);
+        let keep = old.is_some_and(|c| c.keep);
+        let folder = folder.or_else(|| old.and_then(|c| c.folder.clone()));
         let title = match &renamed {
             Some((_, t)) => t.clone(),
             None => messages
@@ -636,7 +659,8 @@ impl AgentState {
                 .unwrap_or_default(),
         };
         self.history.retain(|c| c.id != id);
-        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages });
+        // A new message brings an archived chat back.
+        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages, archived: false, keep, folder, agent: Some(agent_id()) });
         self.history.truncate(HISTORY_MAX);
         crate::settings::save_json(HISTORY_FILE, &self.history);
     }
@@ -795,7 +819,7 @@ impl Workbench {
         let session = self.agent.session.clone();
         let chatted = self.agent.items.iter().any(|i| matches!(i, Item::User(_)));
         let can_load = self.agent.can_load;
-        self.agent.save_chat();
+        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         self.agent_stop(cx);
         if chatted {
             match session {
@@ -1233,7 +1257,7 @@ impl Workbench {
                 self.agent_schedule_idle(cx);
                 self.agent.hinted = false;
                 self.agent.ws_sig = 0;
-                self.agent.save_chat();
+                self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
                 self.agent_flush_queue(cx);
             }
             Req::NewSession => {
@@ -1292,7 +1316,7 @@ impl Workbench {
                 if let Some(t) = last {
                     self.agent_check_limit(&t, cx);
                 }
-                self.agent.save_chat();
+                self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
                 self.agent_schedule_idle(cx);
                 self.refresh_tree(cx);
                 if std::mem::take(&mut self.agent.relaunch) {
@@ -1569,14 +1593,14 @@ impl Workbench {
         if on {
             self.agent_start(cx);
         } else {
-            self.agent.save_chat();
+            self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
             self.agent_stop(cx);
         }
     }
 
     /// Start a new chat; a running OpenCode gets a fresh session.
     fn agent_new_chat(&mut self, cx: &mut Context<Self>) {
-        self.agent.save_chat();
+        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         self.agent.items.clear();
         self.agent_fresh_view();
         self.agent.chat_id = None;
@@ -1607,7 +1631,7 @@ impl Workbench {
         let Some(chat) = self.agent.history.iter().find(|c| c.id == id).cloned() else { return };
         self.agent_fresh_view();
         if self.agent.chat_id != Some(id) {
-            self.agent.save_chat();
+            self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         }
         self.agent.items = chat
             .messages
@@ -1629,6 +1653,16 @@ impl Workbench {
         self.agent.show_history = false;
         self.agent.follow = true;
         self.agent_to_end();
+        cx.notify();
+    }
+
+    /// Move a chat into the archive or back out (taken out, it stays out).
+    pub(crate) fn agent_archive_chat(&mut self, id: u64, archive: bool, cx: &mut Context<Self>) {
+        if let Some(chat) = self.agent.history.iter_mut().find(|c| c.id == id) {
+            chat.archived = archive;
+            chat.keep = !archive;
+            crate::settings::save_json(HISTORY_FILE, &self.agent.history);
+        }
         cx.notify();
     }
 
@@ -1718,7 +1752,7 @@ impl Workbench {
         let old = agent_name();
         // The chat under the pointer changes: nothing in it stays selected.
         gpui_kit::base::TextSelection::clear(window, cx);
-        self.agent.save_chat();
+        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         self.agent_stop(cx);
         self.agent.install_err = None;
         self.settings.agent_cli = cli.into();
@@ -1987,11 +2021,16 @@ impl Workbench {
 
     fn render_history(&self, cx: &mut Context<Self>) -> AnyElement {
         let a = &self.agent;
+        let archived_n = a.history.iter().filter(|c| c.archived).count();
         let mut list = v_flex().id("ag-history").flex_1().min_h_0().px_2().gap_px().overflow_y_scroll();
         if a.history.is_empty() {
             list = list.child(div().px_1().py_2().text_sm().text_color(c(theme::FG_DIM)).child(tr("No saved chats yet. Chats are saved after each answer.")));
         }
         for (i, chat) in a.history.iter().enumerate() {
+            // The archive lives in the full-screen chat list (link below).
+            if chat.archived {
+                continue;
+            }
             let id = chat.id;
             let current = a.chat_id == Some(id);
             let count = chat.messages.iter().filter(|m| m.0 == "user").count();
@@ -2017,6 +2056,17 @@ impl Workbench {
                                     .text_color(c(theme::FG_DIM))
                                     .child(format!("{} · {count} message{}", ago(chat.updated), if count == 1 { "" } else { "s" })),
                             ),
+                    )
+                    .child(
+                        Button::new(("ag-chat-arch", i))
+                            .icon(gpui_kit::assets::IconName::Archive)
+                            .ghost()
+                            .xsmall()
+                            .tooltip(tr("Archive"))
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                cx.stop_propagation();
+                                this.agent_archive_chat(id, true, cx);
+                            })),
                     )
                     .child(
                         Button::new(("ag-chat-del", i))
@@ -2045,6 +2095,29 @@ impl Workbench {
                 ),
             )
             .child(list.child(self.render_remote_sessions(cx)))
+            .when(archived_n > 0, |v| {
+                v.child(
+                    div()
+                        .id("ag-archived")
+                        .mx_3()
+                        .my_1()
+                        .px_2()
+                        .py_1()
+                        .rounded(px(4.))
+                        .cursor_pointer()
+                        .text_xs()
+                        .text_color(c(theme::FG_MUTED))
+                        .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
+                        .child(crate::trf!("Archived chats ({n})"; n => archived_n))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.settings.chat_view = "archived".into();
+                            this.settings.save();
+                            this.agent_full = true;
+                            this.agent.full.left = true;
+                            cx.notify();
+                        })),
+                )
+            })
             .into_any_element()
     }
 
@@ -2367,7 +2440,7 @@ impl Workbench {
     fn agent_idle_stop(&mut self, mins: u32, cx: &mut Context<Self>) {
         let session = self.agent.session.clone();
         let can_load = self.agent.can_load;
-        self.agent.save_chat();
+        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         self.agent_stop(cx);
         if can_load {
             self.agent.resume_id = session;
@@ -2593,7 +2666,7 @@ impl Workbench {
     /// Resume a session OpenCode or Mura Harness saved: its history replays into the panel
     /// and the next message continues it.
     fn agent_open_remote(&mut self, id: String, cx: &mut Context<Self>) {
-        self.agent.save_chat();
+        self.agent.save_chat(self.root.as_ref().map(|r| r.display().to_string()));
         self.agent.items.clear();
         self.agent.chat_id = None;
         self.agent.carry = None;

@@ -14,6 +14,7 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
     h_flex,
     input::{Input, InputEvent, InputState},
+    menu::DropdownMenu,
     v_flex, Icon, IconName, Selectable, Sizable,
 };
 use gpui_kit::{prelude::FluentBuilder, *};
@@ -149,72 +150,131 @@ impl Workbench {
         cx.notify();
     }
 
-    /// Left column: new chat and the saved chats, the open one marked.
+    /// Left column: new chat, the view menu (date, recent, folder, agent, working,
+    /// archive), then the chats in their groups; the one answering is marked.
     fn render_full_chats(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        use super::chats::{self, ChatView};
         let a = &self.agent;
         let busy = a.status == Status::Busy;
-        let mut list = v_flex().id("agf-chats").flex_1().min_h_0().px_2().gap_px().overflow_y_scroll();
+        let view = ChatView::from_id(&self.settings.chat_view);
+        let mut list = v_flex().id("agf-chats").flex_1().min_h_0().px_2().pb_2().gap_px().overflow_y_scroll();
         let fresh = a.chat_id.is_none() && a.items.iter().any(|i| matches!(i, Item::User(_)));
-        if fresh {
+        if fresh && view != ChatView::Archived {
             let title = a.items.iter().find_map(|i| if let Item::User(t) = i { Some(t.lines().next().unwrap_or("").to_string()) } else { None }).unwrap_or_default();
-            list = list.child(chat_row("agf-now", title, tr("Now").into(), true, busy));
+            list = list.child(chat_row("agf-now", title, tr("Now").into(), true, busy, false));
         }
-        for (i, chat) in a.history.iter().enumerate() {
-            let id = chat.id;
-            let current = a.chat_id == Some(id);
-            if let Some(r) = a.full.rename.as_ref().filter(|r| r.id == id) {
+        let busy_id = a.chat_id.filter(|_| busy);
+        let now = super::now_ms();
+        let today_start = {
+            use chrono::{Local, TimeZone};
+            let midnight = Local::now().date_naive().and_hms_opt(0, 0, 0).unwrap_or_default();
+            Local.from_local_datetime(&midnight).single().map(|t| t.timestamp_millis() as u64).unwrap_or(now)
+        };
+        let groups = chats::groups(&a.history, view, busy_id, now, today_start);
+        let archived_n = a.history.iter().filter(|c| c.archived).count();
+        for (gi, (heading, idx)) in groups.iter().enumerate() {
+            if !heading.is_empty() {
                 list = list.child(
                     div()
-                        .id(("agf-rn", i))
-                        .w_full()
-                        .px_1()
-                        .py_1()
-                        .on_key_down(cx.listener(|this, e: &KeyDownEvent, _, cx| {
-                            if e.keystroke.key == "escape" {
+                        .px_2()
+                        .when(gi > 0 || fresh, |d| d.pt_3())
+                        .pb_1()
+                        .text_size(theme::u(11.))
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .text_color(c(theme::FG_DIM))
+                        .child(tr_dyn(heading)),
+                );
+            }
+            for &i in idx {
+                let chat = &a.history[i];
+                let id = chat.id;
+                let current = a.chat_id == Some(id);
+                if let Some(r) = a.full.rename.as_ref().filter(|r| r.id == id) {
+                    list = list.child(
+                        div()
+                            .id(("agf-rn", i))
+                            .w_full()
+                            .px_1()
+                            .py_1()
+                            .on_key_down(cx.listener(|this, e: &KeyDownEvent, _, cx| {
+                                if e.keystroke.key == "escape" {
+                                    cx.stop_propagation();
+                                    this.agent_rename_done(false, cx);
+                                }
+                            }))
+                            .child(Input::new(&r.input).small()),
+                    );
+                    continue;
+                }
+                // A clock time and how long ago, then the agent when the view isn't by agent.
+                let clock = when_label(chat.updated);
+                let mut when = if clock.contains(' ') { clock } else { format!("{clock} · {}", ago(chat.updated)) };
+                if view != ChatView::Agent {
+                    if let Some(agent) = &chat.agent {
+                        when = format!("{when} · {}", crate::acp::display_name(agent));
+                    }
+                }
+                let working = busy_id == Some(id);
+                let archived = chat.archived;
+                list = list.child(
+                    chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), when.into(), current, working, archived)
+                        .on_mouse_down(MouseButton::Left, cx.listener(move |this, e: &MouseDownEvent, w, cx| {
+                            if e.click_count >= 2 {
                                 cx.stop_propagation();
-                                this.agent_rename_done(false, cx);
+                                this.agent_rename_start(id, w, cx);
                             }
                         }))
-                        .child(Input::new(&r.input).small()),
-                );
-                continue;
-            }
-            // A clock time, and how long ago while that is still today.
-            let clock = when_label(chat.updated);
-            let when = if clock.contains(' ') { clock } else { format!("{clock} · {}", ago(chat.updated)) };
-            list = list.child(
-                chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), when.into(), current, current && busy)
-                    .on_mouse_down(MouseButton::Left, cx.listener(move |this, e: &MouseDownEvent, w, cx| {
-                        if e.click_count >= 2 {
+                        .on_click(cx.listener(move |this, _, _, cx| this.agent_open_chat(id, cx)))
+                        .child(row_action(("agf-rename", i), Ico::Pencil, tr("Rename (or double-click)")).on_click(cx.listener(move |this, _, w, cx| {
                             cx.stop_propagation();
-                            this.agent_rename_start(id, w, cx);
-                        }
-                    }))
-                    .on_click(cx.listener(move |this, _, _, cx| this.agent_open_chat(id, cx)))
-                    .child(
-                        div()
-                            .id(("agf-rename", i))
-                            .flex_none()
-                            .p_1()
-                            .rounded(px(6.))
-                            .invisible()
-                            .group_hover("agf-row", |s| s.visible())
-                            .text_color(c(theme::FG_DIM))
-                            .hover(|s| s.bg(c(theme::BG_ELEVATED)).text_color(c(theme::FG_STRONG)))
-                            .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Rename (or double-click)")).build(w, cx))
-                            .on_click(cx.listener(move |this, _, w, cx| {
-                                cx.stop_propagation();
-                                this.agent_rename_start(id, w, cx)
-                            }))
-                            .child(Icon::new(Ico::Pencil).size(theme::u(13.))),
-                    ),
-            );
+                            this.agent_rename_start(id, w, cx)
+                        })))
+                        .when(!working, |r| {
+                            r.child(
+                                row_action(("agf-arch", i), if archived { Ico::ArchiveRestore } else { Ico::Archive }, if archived { tr("Take out of the archive") } else { tr("Archive") }).on_click(cx.listener(move |this, _, _, cx| {
+                                    cx.stop_propagation();
+                                    this.agent_archive_chat(id, !archived, cx)
+                                })),
+                            )
+                        }),
+                );
+            }
         }
-        if a.history.is_empty() && !fresh {
-            list = list.child(div().px_2().py_2().text_xs().text_color(c(theme::FG_DIM)).child(tr("No chats yet. Each answer saves the chat here.")));
+        let empty = groups.is_empty() && !fresh;
+        if empty {
+            let text = match view {
+                ChatView::Archived => tr("Nothing archived. Chats untouched for a week move here on their own; the archive button on a chat moves it now."),
+                ChatView::Working => tr("No chat is working right now."),
+                _ if a.history.is_empty() => tr("No chats yet. Each answer saves the chat here."),
+                _ => tr("Every chat is in the archive."),
+            };
+            list = list.child(div().px_2().py_2().text_xs().text_color(c(theme::FG_DIM)).child(text));
         }
+        let weak = cx.entity().downgrade();
+        let view_menu = Button::new("agf-view")
+            .icon(Icon::new(Ico::ListFilter))
+            .label(tr(view.label()))
+            .xsmall()
+            .ghost()
+            .dropdown_menu(move |mut menu: gpui_kit::component::menu::PopupMenu, _, _| {
+                for v in ChatView::ALL {
+                    let w = weak.clone();
+                    let label: SharedString = if v == ChatView::Archived && archived_n > 0 { format!("{} ({archived_n})", tr(v.label())).into() } else { tr(v.label()).into() };
+                    if v == ChatView::Working {
+                        menu = menu.separator();
+                    }
+                    menu = menu.item(gpui_kit::component::menu::PopupMenuItem::new(label).checked(v == view).on_click(move |_, _, cx| {
+                        _ = w.update(cx, |this, cx| {
+                            this.settings.chat_view = v.id().to_string();
+                            this.settings.save();
+                            cx.notify();
+                        });
+                    }));
+                }
+                menu
+            });
         v_flex()
-            .w(theme::u(250.))
+            .w(theme::u(260.))
             .flex_none()
             .h_full()
             .glass()
@@ -240,9 +300,10 @@ impl Workbench {
                 h_flex()
                     .pl_4()
                     .pr_2()
-                    .pt_1()
                     .pb_1()
+                    .gap_1()
                     .child(div().flex_1().text_xs().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_DIM)).child(tr("Chats")))
+                    .child(view_menu)
                     .child(tool_button("agf-left-hide", IconName::PanelLeftClose, tr("Hide chats"), cx, |this, _, cx| {
                         this.agent.full.left = false;
                         cx.notify();
@@ -349,34 +410,70 @@ impl Workbench {
     }
 }
 
-/// One chat in the left column: title, when, and a pulse while it is answering.
-fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, current: bool, busy: bool) -> Stateful<Div> {
+/// One chat in the left column: title, when (and which agent), and while it
+/// answers a spinning mark and "Working". Archived chats are dimmed.
+fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, current: bool, working: bool, archived: bool) -> Stateful<Div> {
     h_flex()
         .id(id)
         .group("agf-row")
         .w_full()
         .px_2()
         .py_1p5()
-        .gap_2()
+        .gap_1()
         .rounded(px(10.))
         .cursor_pointer()
         .when(current, |d| d.bg(c(theme::BG_HOVER)).border_1().border_color(theme::glass_edge()))
         .hover(|s| s.bg(c(theme::BG_HOVER)))
+        .when(working, |d| {
+            d.child(
+                div().flex_none().pr_1().child(
+                    gpui_kit::component::spinner::Spinner::new().icon(Ico::LoaderCircle).xsmall().color(c(theme::ACCENT_TEXT)),
+                ),
+            )
+        })
         .child(
             v_flex()
                 .flex_1()
                 .min_w_0()
+                .when(archived, |d| d.opacity(0.7))
                 .child(div().text_sm().truncate().text_color(c(if current { theme::FG_STRONG } else { theme::FG })).child(if title.is_empty() { tr("Untitled chat").to_string() } else { title }))
-                .child(div().text_xs().text_color(c(theme::FG_DIM)).child(when)),
+                .child(
+                    h_flex()
+                        .gap_1()
+                        .min_w_0()
+                        .text_xs()
+                        .when(working, |h| h.child(div().flex_none().text_color(c(theme::ACCENT_TEXT)).child(tr("Working"))).child(div().flex_none().text_color(c(theme::FG_DIM)).child("·")))
+                        .child(div().min_w_0().truncate().text_color(c(theme::FG_DIM)).child(when)),
+                ),
         )
-        .when(busy, |d| {
-            d.child(
-                div()
-                    .flex_none()
-                    .size(px(7.))
-                    .rounded_full()
-                    .bg(c(theme::ACCENT))
-                    .with_animation("agf-pulse", Animation::new(std::time::Duration::from_millis(1100)).repeat(), |d, t| d.opacity(0.35 + 0.65 * (1. - (t * 2. - 1.).abs()))),
-            )
-        })
+}
+
+/// A small action on a chat row, shown while the pointer is on the row.
+fn row_action(id: impl Into<ElementId>, icon: Ico, tip: &'static str) -> Stateful<Div> {
+    div()
+        .id(id)
+        .flex_none()
+        .p_1()
+        .rounded(px(6.))
+        .invisible()
+        .group_hover("agf-row", |s| s.visible())
+        .text_color(c(theme::FG_DIM))
+        .hover(|s| s.bg(c(theme::BG_ELEVATED)).text_color(c(theme::FG_STRONG)))
+        .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(tip).build(w, cx))
+        .child(Icon::new(icon).size(theme::u(13.)))
+}
+
+/// A group heading's text, translated when it is one of the fixed ones (a folder
+/// or agent name is shown as it is).
+fn tr_dyn(s: &str) -> String {
+    match s {
+        "Working now" => tr("Working now").into(),
+        "Today" => tr("Today").into(),
+        "Yesterday" => tr("Yesterday").into(),
+        "This week" => tr("This week").into(),
+        "Earlier" => tr("Earlier").into(),
+        "No folder" => tr("No folder").into(),
+        "Unknown agent" => tr("Unknown agent").into(),
+        other => other.to_string(),
+    }
 }

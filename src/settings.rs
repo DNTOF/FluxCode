@@ -126,6 +126,8 @@ pub struct Settings {
     pub extensions: Vec<String>,
     /// Launches that showed the Ctrl+L hint in the status bar (100: shortcut used).
     pub agent_hint: u8,
+    /// How the agent's chat list is grouped (`ChatView::id`).
+    pub chat_view: String,
     /// Look for new development builds on GitHub at start and every 6 hours.
     pub update_check: bool,
     /// Read WSL folders through the helper inside the distro instead of the 9p
@@ -197,6 +199,7 @@ impl Default for Settings {
             agent_browser_headless: false,
             extensions: crate::ext::default_installed(),
             agent_hint: 0,
+            chat_view: String::new(),
             update_check: true,
             wsl_helper: false,
             #[cfg(feature = "embedded-preview")]
