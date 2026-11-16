@@ -522,7 +522,9 @@ gpui_kit::assets::icon_assets!(pub FileIcons, [
     // Agent panel: usage (and a free model's mark), the settings dialog, permission requests
     Gauge, BadgeCheck, ShieldCheck, Timer, FilePen, Wrench,
     // Agent panel: a folded group of steps, its own worktree, more than one account
-    ListCollapse, GitFork, GitMerge, UserPlus
+    ListCollapse, GitFork, GitMerge, UserPlus,
+    // Agent: token saver
+    Leaf
 ]);
 
 #[cfg(test)]

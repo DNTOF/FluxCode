@@ -75,6 +75,17 @@ pub struct Settings {
     /// OpenCode docks on the right of the editor (like a chat beside the code)
     /// instead of in the left side bar.
     pub agent_right: bool,
+    /// Views shown in the right side bar instead of the left ("search", "scm", "run",
+    /// "extensions", "explorer"); the agent's side is `agent_right`.
+    pub right_views: Vec<String>,
+    /// Liquid glass: the window takes the system's blur, panels turn translucent over it,
+    /// and floating cards get a lit edge.
+    pub glass: bool,
+    /// Token saver packs on ("caveman", "lean", "quiet") and Caveman's level.
+    pub saver_packs: Vec<String>,
+    pub saver_level: String,
+    /// Send the waiting message again by itself when a usage limit resets.
+    pub resume_at_reset: bool,
     /// When the agent edits a file, the editor opens it and shows the change being
     /// typed in, line by line, with the view following it.
     pub agent_follow_edits: bool,
@@ -160,6 +171,11 @@ impl Default for Settings {
             bg_visibility: Visibility::default(),
             ui_size: UiSize::default(),
             agent_right: true,
+            right_views: Vec::new(),
+            glass: true,
+            saver_packs: Vec::new(),
+            saver_level: "full".into(),
+            resume_at_reset: false,
             agent_follow_edits: true,
             agent_accounts: Vec::new(),
             agent_account: Default::default(),
@@ -501,6 +517,7 @@ impl Workbench {
         if self.settings.agent_right && self.view == crate::workbench::SideView::Agent {
             self.view = crate::workbench::SideView::Explorer;
             self.agent_open = true;
+            self.right_view = crate::workbench::SideView::Agent;
         }
         let (wrap, dots) = (self.settings.word_wrap, self.settings.show_whitespace);
         let opts = EditorOpts::of(&self.settings);
@@ -519,6 +536,7 @@ impl Workbench {
         self.settings.save();
         theme::set_ui_size(self.settings.ui_size);
         theme::set(&self.settings.theme, self.settings.background().map(|_| self.settings.bg_visibility));
+        theme::set_glass(self.settings.glass);
         theme::apply(cx);
         window.refresh();
         cx.notify();
@@ -791,6 +809,19 @@ impl Workbench {
                         tr("Background image"),
                         if bg_state.1 { bg_state.0.clone() } else { crate::trf!("A picture of your own behind the panels. Stays on your PC. Current: {0}"; 0 => bg_state.0).into() },
                         bg_controls,
+                    ),
+                    settings_row(
+                        tr("Liquid glass"),
+                        tr("Translucent panels over a blurred window, with floating cards. Off gives solid panels (a little lighter on the GPU).").into(),
+                        Button::new("glass")
+                            .label(if s.glass { tr("On") } else { tr("Off") })
+                            .xsmall()
+                            .when(s.glass, |b| b.primary())
+                            .on_click(cx.listener(|this, _, w, cx| {
+                                this.settings.glass = !this.settings.glass;
+                                this.apply_settings(w, cx);
+                            }))
+                            .into_any_element(),
                     ),
                 ];
                 if s.background().is_some() {

@@ -281,6 +281,8 @@ pub struct Workbench {
     pub(crate) agent_width: f32,
     /// The agent chat fills the window (the editor steps aside until it is turned off).
     pub(crate) agent_full: bool,
+    /// The view the right side bar shows (the agent, or any view moved there).
+    pub(crate) right_view: SideView,
     pub(crate) sidebar_width: f32,
     pub(crate) resizing: u8,
     pub(crate) focus: FocusHandle,
@@ -430,10 +432,10 @@ impl Workbench {
                     }
                 },
             ),
-            cx.subscribe_in(&search_input, window, |this, _, ev: &InputEvent, _, cx| {
-                if let InputEvent::PressEnter { .. } = ev {
-                    this.run_search(cx);
-                }
+            cx.subscribe_in(&search_input, window, |this, _, ev: &InputEvent, _, cx| match ev {
+                InputEvent::PressEnter { .. } => this.run_search(cx),
+                InputEvent::Change => this.search_soon(cx),
+                _ => {}
             }),
             cx.subscribe_in(&term_input, window, |this, _, ev: &InputEvent, window, cx| {
                 match ev {
@@ -519,6 +521,7 @@ impl Workbench {
             agent_open: false,
             agent_width: 380.,
             agent_full: false,
+            right_view: SideView::Agent,
             sidebar_width: 260.,
             resizing: 0,
             focus,
@@ -1445,10 +1448,7 @@ impl Workbench {
     }
 
     fn show_view(&mut self, view: SideView, cx: &mut Context<Self>) {
-        self.view = view;
-        self.sidebar_open = true;
-        self.settings_open = false;
-        cx.notify();
+        self.reveal_view(view, cx);
     }
 
     fn on_show_explorer(&mut self, _: &ShowExplorer, _: &mut Window, cx: &mut Context<Self>) {
@@ -1474,6 +1474,7 @@ impl Workbench {
     fn on_show_agent(&mut self, _: &ShowAgent, window: &mut Window, cx: &mut Context<Self>) {
         if self.settings.agent_right {
             self.agent_open = true;
+            self.right_view = SideView::Agent;
             self.settings_open = false;
             let h = self.agent_input_focus(cx);
             h.focus(window, cx);
@@ -1489,7 +1490,7 @@ impl Workbench {
             self.settings.agent_hint = AGENT_HINT_DONE;
             self.settings.save();
         }
-        let open = if self.settings.agent_right { self.agent_open } else { self.sidebar_open && self.view == SideView::Agent };
+        let open = self.view_shown(SideView::Agent);
         if !open {
             return self.on_show_agent(&ShowAgent, window, cx);
         }
@@ -1861,27 +1862,24 @@ impl Workbench {
                 .when(active, |d| d.child(div().absolute().left_0().top(px(8.)).bottom(px(8.)).w(px(2.)).bg(c(theme::ACCENT))))
                 .child(icon.size(theme::u(17.)))
         };
+        // Each view opens on its own side (sidedock.rs); right-click moves it to the other.
         let view_item = |id: &'static str, icon: Icon, view: SideView, this: &Self, cx: &mut Context<Self>| {
-            // OpenCode docked right: its icon shows and hides that dock instead.
-            if view == SideView::Agent && this.settings.agent_right {
-                let active = this.agent_open && !this.settings_open;
-                return div().id((id, 0usize)).child(item(id, icon, active, this, cx)).on_click(cx.listener(move |this, _, _, cx| {
-                    this.agent_open = !(this.agent_open && !this.settings_open);
-                    this.settings_open = false;
-                    cx.notify();
-                }));
-            }
-            let active = this.sidebar_open && this.view == view && !this.settings_open;
-            div().id((id, 0usize)).child(item(id, icon, active, this, cx)).on_click(cx.listener(move |this, _, _, cx| {
-                if this.view == view && this.sidebar_open && !this.settings_open {
-                    this.sidebar_open = false;
-                } else {
-                    this.view = view;
-                    this.sidebar_open = true;
-                    this.settings_open = false;
-                }
-                cx.notify();
-            }))
+            let active = this.view_shown(view);
+            let weak = cx.entity().downgrade();
+            div()
+                .id((id, 0usize))
+                .child(item(id, icon, active, this, cx))
+                .on_click(cx.listener(move |this, _, w, cx| {
+                    this.toggle_view(view, cx);
+                    if view == SideView::Search && this.view_shown(view) {
+                        let h = this.search_input.focus_handle(cx);
+                        h.focus(w, cx);
+                    }
+                }))
+                .context_menu(move |menu, _, cx| match weak.upgrade() {
+                    Some(wb) => wb.update(cx, |this, cx| this.view_side_menu(view, menu, cx)),
+                    None => menu,
+                })
         };
         v_flex()
             .w(theme::u(40.))
@@ -1964,8 +1962,13 @@ impl Workbench {
     }
 
     fn render_side_bar(&self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+        self.render_view_panel(self.view, false, window, cx)
+    }
+
+    /// One view with its header, for the left side bar or the right dock.
+    pub(crate) fn render_view_panel(&self, view: SideView, right: bool, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         // Small uppercase view titles follow VS Code, whose layout this workbench mirrors.
-        let title = match self.view {
+        let title = match view {
             SideView::Explorer => tr("EXPLORER"),
             SideView::Search => tr("SEARCH"),
             SideView::Run => tr("RUN"),
@@ -1974,7 +1977,7 @@ impl Workbench {
             SideView::Agent => crate::agent::agent_name(),
         };
         // With a folder open the Explorer header names it, like VS Code's root row.
-        let title: SharedString = match (self.view, self.root.as_deref().and_then(Path::file_name)) {
+        let title: SharedString = match (view, self.root.as_deref().and_then(Path::file_name)) {
             (SideView::Explorer, Some(_)) if !self.workspace.extra.is_empty() => tr("WORKSPACE").into(),
             (SideView::Explorer, Some(name)) => name.to_string_lossy().to_uppercase().into(),
             _ => title.into(),
@@ -1985,18 +1988,19 @@ impl Workbench {
             .pr_2()
             .gap_2()
             .flex_none()
-            .when(self.view != SideView::Agent, |h| {
+            .when(view != SideView::Agent, |h| {
                 h.child(div().flex_1().min_w_0().truncate().text_xs().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_MUTED)).child(title))
             })
-            .when(self.view == SideView::Agent, |h| h.child(self.render_agent_picker(cx)).child(self.render_agent_switch(cx)).child(div().flex_1()))
-            .when(self.view == SideView::Scm && self.scm.repo.is_some(), |h| h.child(self.render_scm_header(cx)))
-            .when(self.view == SideView::Agent, |h| h.child(self.render_agent_tools(cx)))
-            .when(self.view == SideView::Explorer && self.root.is_some(), |h| {
+            .when(view == SideView::Agent, |h| h.child(self.render_agent_picker(cx)).child(self.render_agent_switch(cx)).child(div().flex_1()))
+            .when(view == SideView::Scm && self.scm.repo.is_some(), |h| h.child(self.render_scm_header(cx)))
+            .when(view == SideView::Agent, |h| h.child(self.render_agent_tools(cx)))
+            .when(view == SideView::Explorer && self.root.is_some(), |h| {
                 h.child(tool_button("x-newfile", IconName::Plus, tr("New File"), cx, |this, w, cx| this.on_explorer_new_file(&ExplorerNewFile, w, cx)))
                     .child(tool_button("x-newdir", IconName::FolderClosed, tr("New Folder"), cx, |this, w, cx| this.on_explorer_new_folder(&ExplorerNewFolder, w, cx)))
                     .child(tool_button("x-refresh", IconName::RefreshCw, tr("Refresh"), cx, |this, w, cx| this.on_explorer_refresh(&ExplorerRefresh, w, cx)))
-            });
-        let body: AnyElement = match self.view {
+            })
+            .when(right, |h| h.children(self.render_right_tabs(cx)).child(self.right_close_button(cx)));
+        let body: AnyElement = match view {
             SideView::Explorer => self.render_explorer(window, cx),
             SideView::Search => self.render_search(cx),
             SideView::Run => self.render_run_view(cx),
@@ -2007,7 +2011,8 @@ impl Workbench {
         v_flex()
             .size_full()
             .bg(c(theme::BG_SIDE))
-            .border_r_1()
+            .when(right, |d| d.border_l_1())
+            .when(!right, |d| d.border_r_1())
             .border_color(c(theme::BORDER))
             .child(header)
             .child(div().flex_1().min_h_0().size_full().child(body))
@@ -2718,6 +2723,7 @@ impl Render for Workbench {
         }
         // Interface size: rem-based spacing and text follow this; fixed sizes use theme::u.
         window.set_rem_size(theme::rem());
+        apply_glass(window);
         let editor_view: AnyElement = match &self.preview {
             Some(_) => h_resizable("editor-preview-split")
                 .child(resizable_panel().child(clip(self.render_editor_area(window, cx))))
@@ -2729,7 +2735,7 @@ impl Render for Workbench {
         let (side_w, agent_w) = fit_columns(
             f32::from(window.viewport_size().width),
             self.sidebar_open.then_some(self.sidebar_width),
-            (self.settings.agent_right && self.agent_open && !self.agent_full).then_some(self.agent_width),
+            (self.right_dock_on() && !self.agent_full).then_some(self.agent_width),
         );
         let editor_and_panel: AnyElement = if self.panel_open {
             v_resizable("editor-panel-split")
@@ -2771,17 +2777,17 @@ impl Render for Workbench {
         };
         // The right dock is a fixed-width column (dragged by its left edge), so it always
         // fits in the window: the editor side gives up the space, never the dock.
-        let center: AnyElement = if self.settings.agent_right && self.agent_open && self.agent_full {
-            // Full width: the chat in a readable column in the middle of the window.
-            div().flex_1().min_w_0().h_full().overflow_hidden().child(self.render_agent_dock(window, cx)).into_any_element()
-        } else if self.settings.agent_right && self.agent_open {
+        let center: AnyElement = if self.agent_docked_visible() && self.agent_full {
+            // Full width: the agent workspace (sessions, chat, changes) fills the window.
+            div().flex_1().min_w_0().h_full().overflow_hidden().child(self.render_agent_full(window, cx)).into_any_element()
+        } else if self.right_dock_on() {
             h_flex()
                 .flex_1()
                 .min_w_0()
                 .h_full()
                 .child(div().flex_1().min_w_0().h_full().overflow_hidden().child(center))
                 .child(handle("agent-resize", 2, self, cx))
-                .child(div().w(px(agent_w)).flex_none().h_full().overflow_hidden().child(self.render_agent_dock(window, cx)))
+                .child(div().w(px(agent_w)).flex_none().h_full().overflow_hidden().child(self.render_right_dock(window, cx)))
                 .into_any_element()
         } else {
             center
@@ -2798,7 +2804,7 @@ impl Render for Workbench {
             .track_focus(&self.focus)
             .size_full()
             .relative()
-            .bg(gpui_kit::Hsla::from(rgb(theme::palette().swatches()[1])))
+            .bg(gpui_kit::Hsla::from(rgb(theme::palette().swatches()[1])).opacity(if theme::glass() && self.settings.background().is_none() { 0.42 } else { 1. }))
             .text_color(c(theme::FG))
             .children(backdrop)
             .on_action(cx.listener(Self::on_next_theme))
@@ -3262,7 +3268,7 @@ impl Workbench {
     /// "Agent  Ctrl+L" in the status bar: opens or closes the panel and teaches the
     /// shortcut. On the first launches it lights up once (one 1.6 s fade, no loop).
     fn render_agent_hint(&self, cx: &mut Context<Self>) -> AnyElement {
-        let open = if self.settings.agent_right { self.agent_open } else { self.sidebar_open && self.view == SideView::Agent };
+        let open = self.view_shown(SideView::Agent);
         let teach = self.settings.agent_hint <= AGENT_HINT_LAUNCHES && !open;
         let chip = h_flex()
             .id("sb-agent")
@@ -3320,5 +3326,16 @@ mod fit_tests {
             assert!(48. + s + a <= w, "{w}: {s} {a}");
         }
         assert_eq!(fit_columns(1200., None, None), (0., 0.));
+    }
+}
+
+/// Liquid glass asks the window for the system's blur behind it (acrylic on Windows);
+/// the call reaches the compositor, so it is made only when the setting changes.
+fn apply_glass(window: &mut Window) {
+    use std::sync::atomic::{AtomicU8, Ordering};
+    static APPLIED: AtomicU8 = AtomicU8::new(0);
+    let want = if theme::glass() { 2 } else { 1 };
+    if APPLIED.swap(want, Ordering::Relaxed) != want {
+        window.set_background_appearance(if want == 2 { WindowBackgroundAppearance::Blurred } else { WindowBackgroundAppearance::Opaque });
     }
 }

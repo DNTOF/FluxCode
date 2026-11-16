@@ -186,7 +186,9 @@ fn preview(line: &str, match_char: usize) -> String {
     s
 }
 
-pub fn search(root: &Path, query: &str, match_case: bool, whole_word: bool) -> SearchResult {
+/// Find in files, giving up as soon as `stop` says so (checked per folder): live search
+/// starts a new walk on every pause in typing, and the old one must not keep the disk busy.
+pub fn search_until(root: &Path, query: &str, match_case: bool, whole_word: bool, stop: &dyn Fn() -> bool) -> SearchResult {
     let needle = if match_case { query.to_string() } else { query.to_lowercase() };
     let mut result = SearchResult::default();
     if needle.is_empty() {
@@ -194,6 +196,9 @@ pub fn search(root: &Path, query: &str, match_case: bool, whole_word: bool) -> S
     }
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
+        if stop() {
+            return result;
+        }
         let Ok(rd) = fs::read_dir(&dir) else { continue };
         let mut entries: Vec<_> = rd.filter_map(Result::ok).collect();
         entries.sort_by_key(|e| e.file_name());

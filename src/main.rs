@@ -39,6 +39,7 @@ mod remote;
 mod scm;
 mod scm_incoming;
 mod search;
+mod sidedock;
 mod settings;
 mod term;
 mod theme;
@@ -113,6 +114,7 @@ fn main() {
         let saved = settings::Settings::load();
         theme::set_ui_size(saved.ui_size);
         theme::set(&saved.theme, saved.background().map(|_| saved.bg_visibility));
+        theme::set_glass(saved.glass);
         theme::apply(cx);
         boot::mark("settings + theme");
         workbench::bind_keys(cx);
