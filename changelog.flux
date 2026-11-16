@@ -19,6 +19,14 @@ Files open from **Windows Explorer** now: right-click a file or folder and pick 
 File sekarang bisa dibuka dari **Windows Explorer**: klik kanan file atau folder lalu pilih **Open with FluxCode**, atau klik ganda file kode. Installer menyediakannya sebagai opsi (aktif secara default) dan **Pengaturan > Windows** bisa menyalakan atau mematikannya. FluxCode ditambahkan ke Open with untuk file .js, .ts, .json, .html, .css, .py, dan file kode atau teks lainnya; jenis file yang belum punya aplikasi langsung terbuka di FluxCode, dan untuk yang lain Windows membiarkanmu memilih FluxCode sekali lalu mencentang Always. File yang dibuka begini masuk ke jendela FluxCode yang sudah terbuka, bukan membuka jendela kedua, dan kalau FluxCode belum jalan, file itu dibuka di atas sesi terakhirmu.
 
 @release 2026-11-16
+@title en: VS Code themes in FluxCode
+@title id: Tema VS Code di FluxCode
+@en
+A color theme you install from the VS Code Marketplace, such as **Dracula** or **One Dark Pro**, now shows up in the theme menu in the status bar and in Settings, and recolors the interface and the code. Text that would be hard to read on the theme's surfaces is lifted to a readable contrast. File types an extension adds (like `.svelte`) open as its language, and the extension's page lists what FluxCode applied, with buttons to switch to its themes.
+@id
+Tema warna yang kamu pasang dari Marketplace VS Code, misalnya **Dracula** atau **One Dark Pro**, sekarang muncul di menu tema di bilah status dan di Pengaturan, lalu mewarnai antarmuka dan kode. Teks yang sulit dibaca di permukaan tema dinaikkan kontrasnya supaya tetap terbaca. Jenis file yang ditambahkan ekstensi (seperti `.svelte`) dibuka sebagai bahasanya, dan halaman ekstensi menampilkan apa saja yang dipakai FluxCode, dengan tombol untuk beralih ke temanya.
+
+@release 2026-11-16
 @title en: Command Code, over ACP
 @title id: Command Code, lewat ACP
 @en

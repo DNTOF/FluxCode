@@ -44,6 +44,26 @@ pub fn decode_text(bytes: &[u8]) -> FileText {
     FileText { text: if crlf { text.replace("\r\n", "\n") } else { text }, crlf }
 }
 
+/// A line this long is past what anyone reads by scrolling sideways.
+pub const LONG_LINE: usize = 300;
+
+/// True when most of the text sits in very long lines: a minified bundle, a
+/// one-line JSON export, a data URI. Such a file opens wrapped. (VS Code's own
+/// test, `isDominatedByLongLines`, weighs the characters in lines of 10,000+
+/// against the rest; this one uses a lower bar so a 1,300-character manifest
+/// line wraps too.)
+pub fn dominated_by_long_lines(text: &str) -> bool {
+    let (mut long, mut short) = (0usize, 0usize);
+    for line in text.lines() {
+        if line.len() >= LONG_LINE {
+            long += line.len();
+        } else {
+            short += line.len();
+        }
+    }
+    long > 0 && long > short
+}
+
 /// Atomic save: write a sibling temp file, then rename over the original,
 /// so a crash mid-save never leaves a half-written file.
 pub fn write_text(path: &Path, text: &str, crlf: bool) -> Result<(), String> {
@@ -341,6 +361,17 @@ fn search_file(path: &Path, needle: &str, match_case: bool, whole_word: bool) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn minified_files_count_as_long_lines() {
+        let one_line = format!("{{\"matches\":[{}]}}", "\"https://*.example.com/*\",".repeat(40));
+        assert!(dominated_by_long_lines(&one_line));
+        let code = "fn main() {\n    println!(\"hi\");\n}\n".repeat(50);
+        assert!(!dominated_by_long_lines(&code));
+        // One long line among a lot of ordinary code stays unwrapped.
+        assert!(!dominated_by_long_lines(&format!("{code}{}\n", "x".repeat(400))));
+        assert!(!dominated_by_long_lines(""));
+    }
 
     #[test]
     fn whole_word_skips_partial_matches() {

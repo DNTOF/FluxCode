@@ -24,6 +24,23 @@ page, and installed copies offer it on their own. Newest first.
   closing it no longer saves a one-file session over the real one.
   `--new-window` still opens a window of its own.
 
+## VS Code themes and languages work natively (16 November 2026)
+
+- A color theme installed from the VS Code Marketplace (Dracula, One Dark Pro,
+  ...) now appears in the theme menu, in Settings and in Ctrl+K Ctrl+T, and
+  recolors both the interface and the code. FluxCode reads the theme's JSON
+  (following `include`), takes the closest VS Code key for each of its own
+  colors, uses the theme's signature color as the accent, and lifts text colors
+  that would fall below 4.5:1 contrast. Code colors come from the theme's
+  `tokenColors`, matched the way VS Code matches TextMate scopes.
+- File types an extension adds in `contributes.languages` (`.svelte`,
+  `.blade.php`, ...) open as that language when FluxCode doesn't already know
+  them.
+- The extension's page says what FluxCode applied, and its theme names are
+  buttons that switch to the theme. Grammars, snippets and icon themes are not
+  applied yet; `docs/vscode-extensions.md` explains why and sketches how
+  language-server extensions could run.
+
 ## Command Code over ACP (16 November 2026)
 
 - The agent panel lists **Command Code**, the coding agent for open models.

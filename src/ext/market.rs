@@ -5,8 +5,9 @@
 //! extension is the VSIX's `extension/` folder unpacked into
 //! `~/.fluxcode/vscode-extensions/<publisher>.<name>-<version>/`, and the installed
 //! list is those folders' package.json files, read again when it may have changed.
-//! There is no JavaScript extension host: FluxCode reads what an extension declares
-//! (themes, languages, snippets); code meant to run inside VS Code does not run.
+//! There is no JavaScript extension host: FluxCode applies what an extension declares
+//! as data (color themes, languages; see `native`); code meant to run inside VS Code
+//! does not run.
 
 use crate::i18n::tr;
 use serde_json::{json, Value};
@@ -555,6 +556,97 @@ pub fn readme(item: &Item, installed: Option<&Path>) -> Result<String, String> {
     Ok(text)
 }
 
+/// The pictures a README shows: `![alt](url)` and `<img src="url">`, in order,
+/// without repeats.
+pub fn readme_image_urls(md: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut add = |u: &str| {
+        let u = u.trim().trim_matches(['<', '>']).split_whitespace().next().unwrap_or("").to_string();
+        if !u.is_empty() && !u.starts_with("data:") && !out.contains(&u) {
+            out.push(u);
+        }
+    };
+    let mut rest = md;
+    while let Some(i) = rest.find("](") {
+        let before = &rest[..i];
+        let after = &rest[i + 2..];
+        let end = after.find(')').unwrap_or(after.len());
+        // Only an image: the `[` that opens this link text follows a `!`.
+        if before.rfind('[').is_some_and(|o| o > 0 && before.as_bytes()[o - 1] == b'!') {
+            add(&after[..end]);
+        }
+        rest = &after[end.min(after.len())..];
+    }
+    let lower = md.to_ascii_lowercase();
+    let mut from = 0;
+    while let Some(i) = lower[from..].find("<img") {
+        let tag_start = from + i;
+        let tag_end = lower[tag_start..].find('>').map(|e| tag_start + e).unwrap_or(lower.len());
+        let tag = &md[tag_start..tag_end];
+        let tl = &lower[tag_start..tag_end];
+        if let Some(p) = tl.find("src=") {
+            let v = &tag[p + 4..];
+            let q = v.chars().next().unwrap_or(' ');
+            let val = if q == '"' || q == '\'' { v[1..].split(q).next().unwrap_or("") } else { v.split_whitespace().next().unwrap_or("") };
+            add(val);
+        }
+        from = tag_end.max(tag_start + 4);
+    }
+    out
+}
+
+/// What kind of picture `bytes` are, as a file extension gpui can read.
+fn sniff_image(bytes: &[u8]) -> Option<&'static str> {
+    let head = String::from_utf8_lossy(&bytes[..bytes.len().min(256)]).to_ascii_lowercase();
+    Some(match bytes {
+        [0x89, b'P', b'N', b'G', ..] => "png",
+        [0xFF, 0xD8, ..] => "jpg",
+        [b'G', b'I', b'F', ..] => "gif",
+        [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => "webp",
+        [b'B', b'M', ..] => "bmp",
+        _ if head.contains("<svg") => "svg",
+        _ => return None,
+    })
+}
+
+/// Fetch a README's pictures into the cache, so the page can show them (gpui has
+/// no HTTP client here; curl fetches, as for the rest of the Marketplace). Returns
+/// each picture's URL as written and the local file. Relative paths resolve
+/// inside the installed extension's folder. Blocking: call it off the UI thread.
+pub fn fetch_readme_images(md: &str, installed: Option<&Path>) -> HashMap<String, PathBuf> {
+    let cache = dir().join(".readme-images");
+    let _ = std::fs::create_dir_all(&cache);
+    let mut out = HashMap::new();
+    for url in readme_image_urls(md).into_iter().take(30) {
+        if url.starts_with("http://") || url.starts_with("https://") {
+            let key = sha1_smol::Sha1::from(url.as_bytes()).digest().to_string();
+            let known = ["png", "jpg", "gif", "webp", "bmp", "svg"].iter().map(|e| cache.join(format!("{key}.{e}"))).find(|p| p.is_file());
+            if let Some(p) = known {
+                out.insert(url, p);
+                continue;
+            }
+            let part = cache.join(format!("{key}.part"));
+            if download(&url, &part, 15, 6_000_000).is_ok() {
+                if let Some(ext) = std::fs::read(&part).ok().as_deref().and_then(sniff_image) {
+                    let to = cache.join(format!("{key}.{ext}"));
+                    if std::fs::rename(&part, &to).is_ok() {
+                        out.insert(url, to);
+                        continue;
+                    }
+                }
+            }
+            let _ = std::fs::remove_file(&part);
+        } else if let Some(folder) = installed {
+            let rel = url.trim_start_matches("./").split(['?', '#']).next().unwrap_or("");
+            let p = folder.join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+            if p.is_file() && p.starts_with(folder) {
+                out.insert(url, p);
+            }
+        }
+    }
+    out
+}
+
 // ------------------------------------------------------------------ installed
 
 /// `~/.fluxcode/vscode-extensions`.
@@ -626,7 +718,7 @@ pub fn contributes(pkg: &Value) -> Vec<String> {
 }
 
 /// `%key%` names come from package.nls.json.
-fn localized(folder: &Path, s: &str, nls: &mut Option<Value>) -> String {
+pub(crate) fn localized(folder: &Path, s: &str, nls: &mut Option<Value>) -> String {
     let Some(key) = s.strip_prefix('%').and_then(|k| k.strip_suffix('%')) else {
         return s.to_string();
     };
@@ -863,6 +955,8 @@ pub struct Market {
     pub open: Option<Item>,
     /// README per id; missing while it loads.
     pub readme: HashMap<String, Result<String, String>>,
+    /// Each README's pictures, fetched into the cache (URL as written → file).
+    pub readme_images: HashMap<String, std::sync::Arc<HashMap<String, PathBuf>>>,
 }
 
 impl Market {
@@ -993,6 +1087,15 @@ mod tests {
             Sort::Installs
         );
         assert_eq!(Query::new("", Some(Sort::Rating), None).sort, Sort::Rating);
+    }
+
+    #[test]
+    fn readme_pictures_are_found() {
+        let md = "# X\n![logo](images/logo.png)\n[a link](https://x.dev)\n<p><img src=\"https://img.shields.io/badge/a-b-green\" width=\"80\"></p>\n![again](images/logo.png \"title\")\n";
+        assert_eq!(readme_image_urls(md), vec!["images/logo.png".to_string(), "https://img.shields.io/badge/a-b-green".to_string()]);
+        assert_eq!(sniff_image(b"\x89PNG\r\n"), Some("png"));
+        assert_eq!(sniff_image(b"<?xml version=\"1.0\"?><svg xmlns=\"\">"), Some("svg"));
+        assert_eq!(sniff_image(b"hello"), None);
     }
 
     #[test]

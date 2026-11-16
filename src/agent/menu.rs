@@ -326,6 +326,9 @@ impl Workbench {
         };
         let mut rows = Vec::new();
         let here: SharedString = tr("On this PC").into();
+        // The recommended agents first, in each group.
+        let mut installed = installed;
+        installed.sort_by_key(|id| !crate::acp::recommended(id));
         for id in &installed {
             let on = *id == current;
             let trail = if on {
@@ -346,7 +349,9 @@ impl Workbench {
             Row { group: group.clone(), lead: Lead::Agent(id.clone()), title: name.into(), sub, wrap: false, checked: false, trail, act: Act::Install(id) }
         };
         let avail: SharedString = tr("Available to download").into();
-        for k in crate::acp::KNOWN.iter().filter(|k| !installed.iter().any(|i| i == k.id)) {
+        let mut known: Vec<_> = crate::acp::KNOWN.iter().filter(|k| !installed.iter().any(|i| i == k.id)).collect();
+        known.sort_by_key(|k| !crate::acp::recommended(k.id));
+        for k in known {
             rows.push(get(k.id.to_string(), k.name.to_string(), k.by.into(), &avail));
         }
         let more: SharedString = tr("More in the ACP registry").into();
@@ -529,12 +534,14 @@ impl Workbench {
                 } else {
                     // One line: the name, then who makes it, cut to fit.
                     let exp = matches!(&r.lead, Lead::Agent(id) if crate::acp::experimental(id));
+                    let rec = matches!(&r.lead, Lead::Agent(id) if crate::acp::recommended(id));
                     h_flex()
                         .flex_1()
                         .min_w_0()
                         .gap_2()
                         .child(name.flex_shrink_0().max_w(relative(0.62)).truncate())
                         .when(exp, |h| h.child(experimental_badge()))
+                        .when(rec, |h| h.child(recommended_badge()))
                         .when(!r.sub.is_empty(), |h| h.child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(r.sub.clone())))
                 }
             })
@@ -918,6 +925,22 @@ fn claude_rows(o: &super::ConfigOpt) -> Option<Vec<Row>> {
 }
 
 /// The first sentence of a description, for a row's one line (the row cuts it to fit).
+/// A small accent pill beside the agents FluxCode recommends.
+pub(crate) fn recommended_badge() -> Div {
+    h_flex()
+        .flex_none()
+        .gap_0p5()
+        .px_1p5()
+        .rounded(px(4.))
+        .border_1()
+        .border_color(c(theme::ACCENT_TEXT).opacity(0.45))
+        .bg(c(theme::ACCENT_TEXT).opacity(0.12))
+        .text_size(theme::u(10.5))
+        .text_color(c(theme::ACCENT_TEXT))
+        .child(Icon::new(gpui_kit::assets::IconName::Star).size(theme::u(9.)))
+        .child(tr("Recommended"))
+}
+
 /// A small amber pill beside an agent that is still being built.
 pub(crate) fn experimental_badge() -> Div {
     div()
