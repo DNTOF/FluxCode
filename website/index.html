@@ -460,6 +460,11 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
     <div class="wrap">
       <div class="viewer-tabs" role="tablist" data-i18n-attr="aria-label:viewer.tabs" aria-label="Pick a screenshot">
         <button type="button" role="tab" id="tab-agent" aria-controls="shot" aria-selected="true" data-shot="agent" data-i18n="shot.agent.tab">AI agent</button>
+        <button type="button" role="tab" id="tab-token-saver" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="token-saver" data-i18n="shot.token-saver.tab">Token saver</button>
+        <button type="button" role="tab" id="tab-usage-limit" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="usage-limit" data-i18n="shot.usage-limit.tab">Usage limits</button>
+        <button type="button" role="tab" id="tab-side-bars" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="side-bars" data-i18n="shot.side-bars.tab">Side bars &amp; search</button>
+        <button type="button" role="tab" id="tab-extensions" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="extensions" data-i18n="shot.extensions.tab">Extensions</button>
+        <button type="button" role="tab" id="tab-backgrounds" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="backgrounds" data-i18n="shot.backgrounds.tab">Backgrounds</button>
         <button type="button" role="tab" id="tab-source-control" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="source-control">Source Control</button>
         <button type="button" role="tab" id="tab-sqlite" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="sqlite">SQLite</button>
         <button type="button" role="tab" id="tab-python-error" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="python-error" data-i18n="shot.python-error.tab">Python errors</button>
@@ -469,9 +474,9 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
       </div>
       <figure class="shot" id="shot" role="tabpanel" aria-labelledby="tab-agent">
         <img id="shot-img" src="img/agent.webp" srcset="img/agent-800.webp 800w, img/agent.webp 1600w" sizes="(max-width: 1168px) 100vw, 1072px" width="1600" height="938" fetchpriority="high" decoding="async"
-          alt="FluxCode with main.py open. In the agent panel, OpenCode added a docstring to greet(), the Changes card lists main.py, and the agent asks before running a Python command.">
+          alt="The agent filling the window: saved chats on the left, the conversation in the middle, the files it changed on the right, as glass columns over an animated ocean background.">
         <figcaption>
-          <span id="shot-caption">The agent asks before it runs a command. Every change can be undone.</span>
+          <span id="shot-caption">Full screen, the agent gets chats, the conversation and its changes side by side.</span>
           <span class="k" id="shot-key"><kbd>Ctrl+L</kbd> opens the agent</span>
         </figcaption>
       </figure>
@@ -525,6 +530,8 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
             <li data-i18n="flag.c2">Undo per turn</li>
             <li data-i18n="flag.c3">Pick model, effort and mode</li>
             <li data-i18n="flag.c4">Its own browser, apart from yours</li>
+            <li data-i18n="flag.c5">A full-screen workspace</li>
+            <li data-i18n="flag.c6">Token saver and limit resume</li>
           </ul>
         </article>
         <ul class="feature-list">
@@ -533,11 +540,13 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
           <li class="feature"><h3 data-i18n="f3t">Non-text files</h3><p data-i18n="f3">SQLite, PDF, Office, ZIP and hex, read-only.</p></li>
           <li class="feature"><h3 data-i18n="f4t">Python errors</h3><p data-i18n="f4">A card with the line and a Fix button.</p></li>
           <li class="feature"><h3>Copilot inline</h3><p data-i18n-html="f5">Ghost text. <kbd>Tab</kbd> accepts.</p></li>
-          <li class="feature"><h3 data-i18n="f6t">11 build extensions</h3><p data-i18n="f6">Gradle, Rust, Python, Go, Node, .NET and more.</p></li>
+          <li class="feature"><h3 data-i18n="f6t">VS Code Marketplace</h3><p data-i18n="f6">Search and install it all; 11 build kits built in.</p></li>
           <li class="feature"><h3 data-i18n="f7t">VS Code keys</h3><p data-i18n-html="f7"><kbd>Ctrl+P</kbd>, <kbd>Ctrl+Shift+P</kbd> and the rest.</p></li>
-          <li class="feature"><h3 data-i18n="f8t">Six themes</h3><p data-i18n="f8">Three UI sizes, English or Indonesian.</p></li>
+          <li class="feature"><h3 data-i18n="f8t">Six themes</h3><p data-i18n="f8">Glass panels, animated pixel backgrounds, three UI sizes.</p></li>
           <li class="feature"><h3 data-i18n="f9t">One-click updates</h3><p data-i18n="f9">Every merge to main is a new build.</p></li>
           <li class="feature"><h3 data-i18n="f10t">No telemetry</h3><p data-i18n="f10">The only automatic request is the update check.</p></li>
+          <li class="feature"><h3 data-i18n="f11t">Side bars, both sides</h3><p data-i18n="f11">Search, Git, Run or the agent, left or right.</p></li>
+          <li class="feature"><h3 data-i18n="f12t">Live search</h3><p data-i18n="f12">Results as you type, skipping what git ignores.</p></li>
         </ul>
       </div>
     </div>
@@ -561,6 +570,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
             <tr><th scope="row" data-i18n="cmp.r4">AI agents</th><td class="me" data-i18n="cmp.r4a">Any ACP agent, undo per turn</td><td data-i18n="cmp.r4b">Own agent and ACP</td><td data-i18n="cmp.r4c">Copilot, extensions</td></tr>
             <tr><th scope="row" data-i18n="cmp.r5">Collaboration</th><td class="me" data-i18n="cmp.r5a">Through your PC, no account</td><td data-i18n="cmp.r5b">Through Zed's servers</td><td data-i18n="cmp.r5c">Live Share, Microsoft's servers</td></tr>
             <tr><th scope="row" data-i18n="cmp.r6">Language servers</th><td class="me" data-i18n="cmp.notyet">Not yet</td><td data-i18n="cmp.builtin">Built in</td><td data-i18n="cmp.ext">Extensions</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r9">Extensions</th><td class="me" data-i18n="cmp.r9a">VS Code Marketplace; their code doesn't run yet</td><td data-i18n="cmp.r9b">Its own catalog</td><td data-i18n="cmp.r9c">The largest catalog</td></tr>
             <tr><th scope="row">Debugger</th><td class="me" data-i18n="cmp.notyet">Not yet</td><td data-i18n="cmp.yes">Yes</td><td data-i18n="cmp.yes">Yes</td></tr>
             <tr><th scope="row" data-i18n="cmp.r8">Maturity</th><td class="me" data-i18n="cmp.r8a">Dev builds</td><td data-i18n="cmp.stable">Stable</td><td data-i18n="cmp.stable">Stable</td></tr>
           </tbody>
@@ -733,6 +743,11 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
     "viewer.label": "Tangkapan layar FluxCode",
     "viewer.tabs": "Pilih tangkapan layar",
     "shot.agent.tab": "Agen AI",
+    "shot.token-saver.tab": "Hemat token",
+    "shot.usage-limit.tab": "Limit pemakaian",
+    "shot.side-bars.tab": "Side bar & pencarian",
+    "shot.extensions.tab": "Ekstensi",
+    "shot.backgrounds.tab": "Latar",
     "shot.python-error.tab": "Error Python",
     "shot.themes.tab": "Tema",
     "shot.update-indonesian.tab": "Bahasa Indonesia",
@@ -757,6 +772,8 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
     "flag.c2": "Undo per giliran",
     "flag.c3": "Pilih model, effort, dan mode",
     "flag.c4": "Browser sendiri, terpisah dari punyamu",
+    "flag.c5": "Workspace layar penuh",
+    "flag.c6": "Hemat token dan lanjut setelah limit",
     "f1": "Ngoding bareng lewat PC sendiri, terenkripsi.",
     "f2": "Commit, push, PR, dan Actions bawaan.",
     "f3t": "Berkas non-teks",
@@ -764,16 +781,20 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
     "f4t": "Error Python",
     "f4": "Kartu berisi baris dan tombol Fix.",
     "f5": "Saran abu-abu. <kbd>Tab</kbd> untuk terima.",
-    "f6t": "11 ekstensi build",
-    "f6": "Gradle, Rust, Python, Go, Node, .NET, dan lainnya.",
+    "f6t": "VS Code Marketplace",
+    "f6": "Cari dan pasang semuanya; 11 kit build bawaan.",
     "f7t": "Pintasan VS Code",
     "f7": "<kbd>Ctrl+P</kbd>, <kbd>Ctrl+Shift+P</kbd>, dan lainnya.",
     "f8t": "Enam tema",
-    "f8": "Tiga ukuran UI, Inggris atau Indonesia.",
+    "f8": "Panel kaca, latar pixel beranimasi, tiga ukuran UI.",
     "f9t": "Update sekali klik",
     "f9": "Setiap merge ke main jadi build baru.",
     "f10t": "Tanpa telemetri",
     "f10": "Satu-satunya request otomatis: cek update.",
+    "f11t": "Side bar di dua sisi",
+    "f11": "Search, Git, Run, atau agen, di kiri atau kanan.",
+    "f12t": "Pencarian langsung",
+    "f12": "Hasil muncul sambil mengetik, tanpa yang diabaikan git.",
     "cmp.title": "FluxCode, Zed, dan VS Code",
     "cmp.sub": "Termasuk yang belum dimiliki FluxCode.",
     "cmp.label": "Tabel perbandingan, bisa digeser ke samping",
@@ -797,6 +818,10 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
     "cmp.builtin": "Bawaan",
     "cmp.ext": "Ekstensi",
     "cmp.yes": "Ada",
+    "cmp.r9": "Ekstensi",
+    "cmp.r9a": "VS Code Marketplace; kodenya belum berjalan",
+    "cmp.r9b": "Katalog sendiri",
+    "cmp.r9c": "Katalog terbesar",
     "cmp.r8": "Kematangan",
     "cmp.r8a": "Build pengembangan",
     "cmp.stable": "Stabil",
@@ -1316,8 +1341,33 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--m
   var SHOTS = {
     "agent": {
       key: "Ctrl+L",
-      en: { cap: "The agent asks before it runs a command. Every change can be undone.", k: " opens the agent", alt: "FluxCode with main.py open. In the agent panel, OpenCode added a docstring to greet(), the Changes card lists main.py, and the agent asks before running a Python command." },
-      id: { cap: "Agen minta izin sebelum menjalankan perintah. Setiap perubahan bisa di-undo.", k: " membuka agen", alt: "FluxCode dengan main.py terbuka. Di panel agen, OpenCode menambahkan docstring ke greet(), kartu Changes mencatat main.py, dan agen minta izin sebelum menjalankan perintah Python." }
+      en: { cap: "Full screen, the agent gets chats, the conversation and its changes side by side.", k: " opens the agent", alt: "The agent filling the window: saved chats on the left, the conversation in the middle, the files it changed on the right, as glass columns over an animated ocean background." },
+      id: { cap: "Dalam layar penuh, agen menampilkan daftar chat, percakapan, dan perubahannya berdampingan.", k: " membuka agen", alt: "Agen memenuhi jendela: daftar chat di kiri, percakapan di tengah, berkas yang diubahnya di kanan, sebagai kolom kaca di atas latar laut beranimasi." }
+    },
+    "token-saver": {
+      key: null,
+      en: { cap: "The token saver asks for shorter answers, diffs and quieter tools.", alt: "The token saver panel over the chat: Caveman on at the Full level, Lean code off, Quiet tools on, about 36 percent fewer output tokens." },
+      id: { cap: "Hemat token meminta jawaban lebih pendek, diff, dan tool seperlunya.", alt: "Panel hemat token di atas chat: Caveman aktif di level Full, Lean code mati, Quiet tools aktif, sekitar 36 persen lebih sedikit token keluaran." }
+    },
+    "usage-limit": {
+      key: null,
+      en: { cap: "A limit shows when it resets, and the message can resume by itself.", alt: "A banner above the message box: Usage limit reached, resets in about 2 hours, with a Resume at reset checkbox and a Continue now button." },
+      id: { cap: "Limit memberi tahu kapan reset, dan pesannya bisa lanjut sendiri.", alt: "Banner di atas kotak pesan: Usage limit reached, reset sekitar 2 jam lagi, dengan centang Resume at reset dan tombol Continue now." }
+    },
+    "side-bars": {
+      key: "Ctrl+Shift+F",
+      en: { cap: "Any view in either side bar. Find in files searches as you type.", k: " finds in files", alt: "Search in the right side bar with the Explorer on the left: typing right_view lists 23 results in 4 files, each match tinted." },
+      id: { cap: "View mana pun di side bar kiri atau kanan. Find in files mencari sambil mengetik.", k: " mencari di berkas", alt: "Search di side bar kanan dengan Explorer di kiri: mengetik right_view menampilkan 23 hasil di 4 berkas, tiap kecocokan diberi warna." }
+    },
+    "extensions": {
+      key: "Ctrl+Shift+X",
+      en: { cap: "The whole VS Code Marketplace, searched as you type, installed from the list.", k: " opens Extensions", alt: "The Extensions view searching the VS Code Marketplace for prettier: 256 results with installs, ratings and Install buttons, and Prettier's page with its details." },
+      id: { cap: "Seluruh VS Code Marketplace, dicari sambil mengetik, dipasang dari daftarnya.", k: " membuka Extensions", alt: "Tampilan Extensions mencari prettier di VS Code Marketplace: 256 hasil dengan jumlah pasang, rating, dan tombol Install, serta halaman Prettier beserta detailnya." }
+    },
+    "backgrounds": {
+      key: null,
+      en: { cap: "Five looping pixel backgrounds behind glass panels, or none.", alt: "The five animated backgrounds as pixel art: a moonlit ocean, a river between hills, a beach at sunset, mountain ridges with fog, and an anime dusk over a city." },
+      id: { cap: "Lima latar pixel berulang di balik panel kaca, atau tanpa latar.", alt: "Lima latar beranimasi bergaya pixel: laut bercahaya bulan, sungai di antara bukit, pantai saat senja, punggung gunung berkabut, dan senja anime di atas kota." }
     },
     "source-control": {
       key: "Ctrl+Shift+G",
