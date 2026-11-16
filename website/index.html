@@ -194,7 +194,9 @@ section { scroll-margin-top: calc(var(--header-h) + 16px); }
     linear-gradient(90deg, var(--bg) 0%, var(--bg) 44%, rgba(14, 14, 16, 0.6) 62%, rgba(14, 14, 16, 0.15) 100%),
     linear-gradient(0deg, var(--bg) 0%, rgba(14, 14, 16, 0) 30%);
 }
-.hero-copy { will-change: transform, opacity; }
+/* The hero is a flex row, so its .wrap would shrink to the copy's width and be centred by
+   its auto margins, leaving the title far right of the logo. Full width keeps them aligned. */
+.hero-copy { width: 100%; will-change: transform, opacity; }
 .hero-copy > * { max-width: min(540px, 100%); }
 .hero-copy > .release-line { max-width: min(520px, 100%); }
 .hero h1 {
