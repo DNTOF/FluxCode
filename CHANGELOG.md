@@ -10,8 +10,8 @@ page, and installed copies offer it on their own. Newest first.
 - The Copilot ghost text is built in, but until now setting it up meant running
   `npm install -g @github/copilot-language-server` by hand in a terminal. When
   the server is missing and Node.js is present, Settings shows an
-  **Install server** button that runs that install in the background; the server
-  starts with the next suggestion request. Without Node.js, a **Get Node.js** button
+  **Install server** button that runs that install in the background, then
+  starts the server so the sign-in step shows right away. Without Node.js, a **Get Node.js** button
   opens the download page instead.
 - While suggestions cannot work yet, the status bar shows a small **Copilot**
   chip that says what is missing (the server or the sign-in) and opens
