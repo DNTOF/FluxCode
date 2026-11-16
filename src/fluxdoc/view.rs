@@ -961,7 +961,9 @@ pub fn ui_lang() -> &'static str {
 }
 
 impl crate::workbench::Workbench {
-    /// Above a Flux document: Preview or Source, what it holds, and Markdown export.
+    /// A drawn document's actions, small enough to sit at the right end of the
+    /// breadcrumb row instead of taking a row of their own: Preview / Source, and
+    /// (Flux only) Markdown export. What the document holds is in the tooltip.
     pub(crate) fn render_flux_bar(&self, ix: usize, cx: &mut Context<Self>) -> AnyElement {
         use crate::i18n::tr;
         let d = &self.docs[ix];
@@ -970,55 +972,53 @@ impl crate::workbench::Workbench {
         let tab = |id: &'static str, icon: IconName, label: &'static str, on: bool, want_source: bool, cx: &mut Context<Self>| {
             h_flex()
                 .id(id)
-                .gap_1p5()
-                .px_2p5()
-                .py_1()
-                .rounded(px(5.))
+                .h(theme::u(20.))
+                .gap_1()
+                .px_2()
+                .rounded(px(4.))
                 .cursor_pointer()
                 .text_xs()
                 .when(on, |d| d.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
                 .when(!on, |d| d.text_color(c(theme::FG_MUTED)).hover(|s| s.text_color(c(theme::FG))))
-                .child(Icon::new(icon).size(theme::u(13.)))
+                .child(Icon::new(icon).size(theme::u(12.)))
                 .child(label)
                 .on_click(cx.listener(move |this, _, w, cx| this.flux_show(ix, want_source, w, cx)))
+        };
+        let info: SharedString = if v.pending {
+            crate::i18n::tr("Reading the rest…").into()
+        } else {
+            crate::trf!("{n} blocks · read in {ms} ms · text in {size}"; n => thousands(v.blocks()), ms => format!("{:.1}", v.parsed_ms), size => crate::viewer::human_size(v.kept_bytes() as u64)).into()
         };
         let md_name = d.path.with_extension("md").file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         h_flex()
             .flex_none()
-            .mx_3()
-            .mb_1()
-            .gap_2()
+            .gap_1()
             .child(
                 h_flex()
-                    .p_0p5()
-                    .gap_0p5()
-                    .rounded(px(6.))
-                    .border_1()
-                    .border_color(c(theme::BORDER))
+                    .id("fx-tabs")
+                    .p(px(1.))
+                    .gap(px(1.))
+                    .rounded(px(5.))
+                    .bg(c(theme::BG_SIDE))
+                    .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(info.clone()).build(w, cx))
                     .child(tab("fx-tab-view", IconName::Eye, tr("Preview"), !source, false, cx))
                     .child(tab("fx-tab-src", IconName::FileCode, tr("Source"), source, true, cx)),
             )
-            .child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(if v.pending {
-                crate::i18n::tr("Reading the rest…").to_string()
-            } else {
-                crate::trf!("{n} blocks · read in {ms} ms · text in {size}"; n => thousands(v.blocks()), ms => format!("{:.1}", v.parsed_ms), size => crate::viewer::human_size(v.kept_bytes() as u64))
-            }))
             // The export belongs to Flux documents only: a Markdown file already is one.
             .when(shows_md_export(&d.path), |h| {
                 h.child(
-                    h_flex()
+                    div()
                         .id("fx-to-md")
-                        .gap_1p5()
-                        .px_2()
-                        .py_1()
-                        .rounded(px(5.))
+                        .size(theme::u(22.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(4.))
                         .cursor_pointer()
-                        .text_xs()
                         .text_color(c(theme::FG_MUTED))
                         .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
-                        .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(crate::trf!("Write {name} next to it, as GitHub Markdown (flowcharts become Mermaid)"; name => md_name)).build(w, cx))
-                        .child(Icon::new(IconName::Download).size(theme::u(13.)))
-                        .child(tr("Save as Markdown"))
+                        .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(crate::trf!("Save as Markdown: writes {name} next to it, as GitHub Markdown (flowcharts become Mermaid)"; name => md_name)).build(w, cx))
+                        .child(Icon::new(IconName::Download).size(theme::u(14.)))
                         .on_click(cx.listener(move |this, _, _, cx| this.flux_save_markdown(ix, cx))),
                 )
             })

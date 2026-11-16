@@ -417,12 +417,12 @@ impl Workbench {
     pub(crate) fn pending_file_icon(
         &self,
         cx: &App,
-    ) -> Option<(gpui_kit::assets::IconName, Option<u32>)> {
+    ) -> Option<(crate::fluxicon::FluxIcon, Option<u32>)> {
         match &self.pending {
             Some(PendingOp::NewFile(_)) => {
                 let typed = self.name_input.read(cx).value();
                 Some(if typed.is_empty() {
-                    (gpui_kit::assets::IconName::File, None)
+                    (crate::fluxicon::FILE, None)
                 } else {
                     files::icon_for(&typed)
                 })

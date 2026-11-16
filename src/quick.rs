@@ -497,10 +497,10 @@ impl Workbench {
                     for (row, item) in q.wsl_rows.iter().enumerate() {
                         let selected = row == q.sel;
                         let (label, icon) = match item {
-                            WslRow::Up => ("..".to_string(), gpui_kit::assets::IconName::ArrowUp),
-                            WslRow::Open => (tr("Open this folder").to_string(), crate::files::folder_icon("", true)),
-                            WslRow::OpenPath(path) => (crate::trf!("Open {path}"; path => path), crate::files::folder_icon("", true)),
-                            WslRow::Dir(name) => (name.clone(), crate::files::folder_icon(name, false)),
+                            WslRow::Up => ("..".to_string(), Icon::new(gpui_kit::assets::IconName::ArrowUp)),
+                            WslRow::Open => (tr("Open this folder").to_string(), Icon::new(crate::files::folder_icon("", true))),
+                            WslRow::OpenPath(path) => (crate::trf!("Open {path}"; path => path), Icon::new(crate::files::folder_icon("", true))),
+                            WslRow::Dir(name) => (name.clone(), Icon::new(crate::files::folder_icon(name, false))),
                         };
                         list = list.child(
                             h_flex()
@@ -513,7 +513,7 @@ impl Workbench {
                                 .cursor_pointer()
                                 .when(selected, |d| d.bg(c(theme::SELECT)))
                                 .hover(|s| s.bg(c(theme::BG_HOVER)))
-                                .child(Icon::new(icon).size(theme::u(14.)).text_color(c(theme::FOLDER)))
+                                .child(icon.size(theme::u(14.)).text_color(c(theme::FOLDER)))
                                 .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(theme::FG_STRONG)).child(label))
                                 .on_click(cx.listener(move |this, _, w, cx| {
                                     this.quick.sel = row;

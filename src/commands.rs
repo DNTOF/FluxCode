@@ -119,10 +119,20 @@ impl Workbench {
         self.edit_active(w, cx, |t, sel, _| Some(editor_cmds::insert_line(t, sel, true)));
     }
 
+    /// Alt+Z: wrap this file's lines or not, for this file only (as in VS Code; the
+    /// default for every file is the setting in Settings > Editor).
     pub(crate) fn on_toggle_word_wrap(&mut self, _: &ToggleWordWrap, w: &mut Window, cx: &mut Context<Self>) {
-        self.settings.word_wrap = !self.settings.word_wrap;
-        self.status = if self.settings.word_wrap { crate::i18n::tr("Word wrap on") } else { crate::i18n::tr("Word wrap off") }.into();
-        self.apply_settings(w, cx);
+        self.toggle_wrap(w, cx);
+    }
+
+    pub(crate) fn toggle_wrap(&mut self, w: &mut Window, cx: &mut Context<Self>) {
+        let setting = self.settings.word_wrap;
+        let Some(d) = self.active.and_then(|a| self.docs.get_mut(a)) else { return };
+        let on = !d.wraps(setting);
+        d.wrap_override = Some(on);
+        d.editor.update(cx, |s, cx| s.set_soft_wrap(on, w, cx));
+        self.status = if on { crate::i18n::tr("Word wrap on") } else { crate::i18n::tr("Word wrap off") }.into();
+        cx.notify();
     }
 
     fn zoom(&mut self, size: f32, cx: &mut Context<Self>) {

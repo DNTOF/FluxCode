@@ -262,13 +262,19 @@ impl Workbench {
         cx.spawn(async move |this, cx| {
             let res = cx
                 .background_spawn(async move {
-                    market::install(&item).map(|_| market::installed_list())
+                    market::install(&item).map(|_| {
+                        super::native::load();
+                        market::installed_list()
+                    })
                 })
                 .await;
             _ = this.update(cx, |this, cx| {
                 this.ext.market.busy.remove(&id);
                 match res {
-                    Ok(list) => this.ext.market.installed = list,
+                    Ok(list) => {
+                        this.ext.market.installed = list;
+                        this.vsx_applied_changed(&id, cx);
+                    }
                     Err(e) => {
                         this.ext.note =
                             Some(crate::trf!("Couldn't install {name}: {e}"; name => name, e => e))
@@ -298,7 +304,10 @@ impl Workbench {
             };
             let res = cx
                 .background_spawn(async move {
-                    market::install_file(&p).map(|name| (name, market::installed_list()))
+                    market::install_file(&p).map(|name| {
+                        super::native::load();
+                        (name, market::installed_list())
+                    })
                 })
                 .await;
             _ = this.update(cx, |this, cx| {
@@ -306,6 +315,7 @@ impl Workbench {
                     Ok((name, list)) => {
                         this.ext.market.installed = list;
                         this.ext.note = Some(crate::trf!("Installed {name}"; name => name));
+                        this.vsx_applied_changed("", cx);
                     }
                     Err(e) => this.ext.note = Some(crate::trf!("Couldn't install it: {e}"; e => e)),
                 }
@@ -327,13 +337,19 @@ impl Workbench {
         cx.spawn(async move |this, cx| {
             let res = cx
                 .background_spawn(async move {
-                    market::uninstall(&folder).map(|_| market::installed_list())
+                    market::uninstall(&folder).map(|_| {
+                        super::native::load();
+                        market::installed_list()
+                    })
                 })
                 .await;
             _ = this.update(cx, |this, cx| {
                 this.ext.market.busy.remove(&id);
                 match res {
-                    Ok(list) => this.ext.market.installed = list,
+                    Ok(list) => {
+                        this.ext.market.installed = list;
+                        this.vsx_applied_changed("", cx);
+                    }
                     Err(e) => {
                         this.ext.note = Some(crate::trf!("Couldn't uninstall it: {e}"; e => e))
                     }
@@ -343,6 +359,21 @@ impl Workbench {
         })
         .detach();
         cx.notify();
+    }
+
+    /// After `native::load`: the theme list may have changed (and the active theme with
+    /// it, if its extension was removed or updated), so the palette is applied again.
+    /// `installed` names an extension just installed: if it brings color themes, the
+    /// note says where they are.
+    fn vsx_applied_changed(&mut self, installed: &str, cx: &mut Context<Self>) {
+        self.settings.apply_backdrop();
+        theme::apply(cx);
+        cx.refresh_windows();
+        let themes = super::native::applied(installed).themes;
+        if !installed.is_empty() && !themes.is_empty() {
+            let names: Vec<&str> = themes.iter().map(|(_, n)| n.as_str()).collect();
+            self.ext.note = Some(crate::trf!("Added to the color themes: {list}. Pick one below or from the theme menu in the status bar."; list => names.join(", ")));
+        }
     }
 
     /// Show an extension's page in the editor area and fetch its README once.
@@ -357,13 +388,25 @@ impl Workbench {
             let folder = self.ext.market.installed(&id).map(|i| i.folder.clone());
             let it = item.clone();
             cx.spawn(async move |this, cx| {
+                let f2 = folder.clone();
                 let text = cx
-                    .background_spawn(async move { market::readme(&it, folder.as_deref()) })
+                    .background_spawn(async move { market::readme(&it, f2.as_deref()) })
                     .await;
+                let md = text.as_ref().ok().cloned();
                 _ = this.update(cx, |this, cx| {
-                    this.ext.market.readme.insert(id, text);
+                    this.ext.market.readme.insert(id.clone(), text);
                     cx.notify();
                 });
+                // Then its pictures: the text shows at once, the pictures as they arrive.
+                if let Some(md) = md {
+                    let images = cx
+                        .background_spawn(async move { market::fetch_readme_images(&md, folder.as_deref()) })
+                        .await;
+                    _ = this.update(cx, |this, cx| {
+                        this.ext.market.readme_images.insert(id, std::sync::Arc::new(images));
+                        cx.notify();
+                    });
+                }
             })
             .detach();
         }
@@ -443,18 +486,6 @@ impl Workbench {
                         .gap_0p5()
                         .child(Icon::new(Ico::Download).size(theme::u(11.)))
                         .child(market::format_count(it.installs)),
-                )
-            })
-            .when_some(it.rating, |h, r| {
-                h.child(
-                    h_flex()
-                        .gap_0p5()
-                        .child(
-                            Icon::new(Ico::Star)
-                                .size(theme::u(11.))
-                                .text_color(c(theme::WARN)),
-                        )
-                        .child(format!("{r:.1}")),
                 )
             });
         let open = it.clone();
@@ -571,53 +602,50 @@ impl Workbench {
         }
     }
 
-    /// The sort orders and the category menu.
-    fn market_filters(&self, cx: &mut Context<Self>) -> Div {
+    /// Sort and category in one small menu at the end of the tabs row: the label
+    /// says what is applied, the menu changes it.
+    fn market_filters(&self, cx: &mut Context<Self>) -> AnyElement {
         let q = self.market_query(cx);
-        let mut chips = h_flex().px_2().gap_0p5().flex_wrap();
-        for (k, s) in Sort::ALL.into_iter().enumerate() {
-            if s == Sort::Relevance && q.text.is_empty() {
-                continue;
-            }
-            chips = chips.child(
-                chip(("vsx-sort", k), s.label().into(), q.sort == s).on_click(cx.listener(
-                    move |this, _, _, cx| {
-                        this.ext.market.sort = Some(s);
-                        this.market_search(0, cx);
-                    },
-                )),
-            );
-        }
-        let weak = cx.entity().downgrade();
         let current = q.category;
-        let label: SharedString = current.map(tr).unwrap_or(tr("All categories")).into();
-        let menu = Button::new("vsx-cat")
+        let sort = q.sort;
+        let label: SharedString = match current {
+            Some(cat) => format!("{} · {}", tr(sort.label()), tr(cat)).into(),
+            None => tr(sort.label()).into(),
+        };
+        let has_text = !q.text.is_empty();
+        let weak = cx.entity().downgrade();
+        Button::new("vsx-filter")
+            .icon(Icon::new(Ico::ListFilter))
             .label(label)
-            .icon(Icon::new(Ico::ChevronDown))
             .xsmall()
             .ghost()
             .dropdown_menu(move |mut menu: PopupMenu, _, _| {
-                menu = menu.min_w(px(200.)).max_h(px(420.)).scrollable(true);
-                for cat in std::iter::once(None).chain(market::CATEGORIES.iter().copied().map(Some))
-                {
+                menu = menu.min_w(px(210.)).max_h(px(460.)).scrollable(true).label(tr("Sort by"));
+                for s in Sort::ALL {
+                    if s == Sort::Relevance && !has_text {
+                        continue;
+                    }
                     let w = weak.clone();
-                    menu = menu.item(
-                        PopupMenuItem::new(cat.map(tr).unwrap_or(tr("All categories")))
-                            .checked(cat == current)
-                            .on_click(move |_, _, cx| {
-                                _ = w.update(cx, |this, cx| {
-                                    this.ext.market.category = cat;
-                                    this.market_search(0, cx);
-                                });
-                            }),
-                    );
+                    menu = menu.item(PopupMenuItem::new(tr(s.label())).checked(s == sort).on_click(move |_, _, cx| {
+                        _ = w.update(cx, |this, cx| {
+                            this.ext.market.sort = Some(s);
+                            this.market_search(0, cx);
+                        });
+                    }));
+                }
+                menu = menu.separator().label(tr("Category"));
+                for cat in std::iter::once(None).chain(market::CATEGORIES.iter().copied().map(Some)) {
+                    let w = weak.clone();
+                    menu = menu.item(PopupMenuItem::new(cat.map(tr).unwrap_or(tr("All categories"))).checked(cat == current).on_click(move |_, _, cx| {
+                        _ = w.update(cx, |this, cx| {
+                            this.ext.market.category = cat;
+                            this.market_search(0, cx);
+                        });
+                    }));
                 }
                 menu
-            });
-        v_flex()
-            .gap_1()
-            .child(chips)
-            .child(h_flex().px_1().child(menu))
+            })
+            .into_any_element()
     }
 
     /// The Extensions side bar: search, the Marketplace / Installed tabs, the sort and
@@ -644,6 +672,7 @@ impl Workbench {
         let tabs = h_flex()
             .px_2()
             .gap_0p5()
+            .min_w_0()
             .child(tab(
                 "ext-f-market",
                 tr("Marketplace").into(),
@@ -807,10 +836,16 @@ impl Workbench {
                             .on_click(cx.listener(|this, _, _, cx| this.market_install_file(cx))),
                     ),
             )
-            .child(tabs)
-            .when(on_market, |v| {
-                v.child(div().pt_1().child(self.market_filters(cx)))
-            })
+            // The tabs and, on the Marketplace, the sort / category menu: one row.
+            .child(
+                h_flex()
+                    .w_full()
+                    .pr_2()
+                    .gap_1()
+                    .child(tabs)
+                    .child(div().flex_1())
+                    .when(on_market, |h| h.child(self.market_filters(cx))),
+            )
             .child(status_line)
             .when_some(self.ext.note.clone(), |v, n| {
                 v.child(
@@ -1005,67 +1040,7 @@ impl Workbench {
                     }),
             );
 
-        // Facts, as label and value rows.
-        let mut facts: Vec<(&'static str, String)> =
-            vec![("Identifier", format!("{}.{}", it.publisher, it.name))];
-        facts.push((
-            "Version",
-            inst.as_ref()
-                .filter(|i| i.version != it.version && gallery)
-                .map(|i| format!("{} ({} {})", it.version, tr("installed"), i.version))
-                .unwrap_or_else(|| it.version.clone()),
-        ));
-        if !it.updated.is_empty() {
-            facts.push(("Last updated", it.updated.clone()));
-        }
-        if !it.categories.is_empty() {
-            facts.push(("Categories", it.categories.join(", ")));
-        }
-        if it.installs > 0 {
-            facts.push(("Installs", market::format_thousands(it.installs)));
-        }
-        if let Some(r) = it.rating {
-            facts.push((
-                "Rating",
-                format!(
-                    "{r:.1} / 5 · {}",
-                    crate::trf!("{n} ratings"; n => it.rating_count)
-                ),
-            ));
-        }
-        let mut table = v_flex()
-            .rounded(px(6.))
-            .border_1()
-            .border_color(c(theme::BORDER))
-            .overflow_hidden();
-        for (k, (label, value)) in facts.into_iter().enumerate() {
-            table = table.child(
-                h_flex()
-                    .px_3()
-                    .py_1p5()
-                    .gap_3()
-                    .items_start()
-                    .when(k > 0, |h| h.border_t_1().border_color(c(theme::BORDER)))
-                    .child(
-                        div()
-                            .flex_none()
-                            .w(theme::u(110.))
-                            .text_xs()
-                            .text_color(c(theme::FG_DIM))
-                            .child(tr(label)),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .text_xs()
-                            .text_color(c(theme::FG))
-                            .child(value),
-                    ),
-            );
-        }
-
-        // What FluxCode does with it: the declared parts, and the honest limit.
+        // What FluxCode does with it: the declared parts, what is applied, and the honest limit.
         let declared: SharedString = match &inst {
             Some(i) if !i.contributes.is_empty() => {
                 crate::trf!("It declares {list}."; list => i.contributes.join(", ")).into()
@@ -1073,9 +1048,39 @@ impl Workbench {
             Some(_) => tr("It declares no themes, languages or snippets.").into(),
             None => tr("Install it to see what it declares (themes, languages, snippets).").into(),
         };
+        let applied = inst.as_ref().map(|_| super::native::applied(&id)).unwrap_or_default();
+        let current = theme::palette().id;
+        let theme_chips = h_flex().flex_wrap().gap_1().children(applied.themes.iter().enumerate().map(|(i, (tid, name))| {
+            let tid = tid.clone();
+            let on = tid == current;
+            chip(("vsx-theme", i), name.clone().into(), on)
+                .border_1()
+                .border_color(c(if on { theme::ACCENT } else { theme::BORDER }))
+                .on_click(cx.listener(move |this, _, w, cx| this.set_theme(&tid, w, cx)))
+        }));
+        let applied_line: Option<SharedString> = match (&inst, applied.themes.is_empty(), applied.languages.is_empty()) {
+            (None, ..) => None,
+            (Some(_), true, true) => Some(tr("Nothing it declares is applied: FluxCode applies color themes and the file types of languages.").into()),
+            (Some(_), _, false) => Some(crate::trf!("Files open as {list}."; list => applied.languages.join(", ")).into()),
+            (Some(_), false, true) => None,
+        };
         let here = v_flex()
             .gap_1()
             .child(div().text_sm().text_color(c(theme::FG)).child(declared))
+            .when(!applied.themes.is_empty(), |v| {
+                v.child(
+                    v_flex()
+                        .gap_1()
+                        .pt_1()
+                        .child(div().text_sm().text_color(c(theme::FG)).child(tr("Its color themes are in the theme menu; click one to use it:")))
+                        .child(theme_chips),
+                )
+            })
+            .when_some(applied_line, |v, t| v.child(div().text_sm().text_color(c(theme::FG)).child(t)))
+            .when(!applied.failed.is_empty(), |v| {
+                v.child(div().text_xs().text_color(c(theme::WARN)).child(crate::trf!("Couldn't read: {list}"; list => applied.failed.join("; "))))
+            })
+            .child(div().text_xs().text_color(c(theme::FG_DIM)).child(tr("Grammars, snippets and icon themes aren't applied yet.")))
             .child(div().text_xs().text_color(c(theme::FG_DIM)).child(tr(
                 "VS Code's JavaScript extension host isn't available in FluxCode, so code that runs inside VS Code (commands, debuggers, language servers started by the extension) doesn't run here.",
             )))
@@ -1094,14 +1099,22 @@ impl Workbench {
                 )
                 .child(tr("Loading the README…"))
                 .into_any_element(),
-            Some(Ok(t)) => div()
-                .text_sm()
-                .text_color(c(theme::FG))
-                .child(TextView::markdown(
-                    SharedString::from(format!("vsx-readme-{id}")),
-                    t.clone(),
-                ))
-                .into_any_element(),
+            Some(Ok(t)) => {
+                // Pictures come from the cache once fetched; until then (or when one
+                // can't be fetched) they stay out rather than showing a broken frame.
+                let images = m.readme_images.get(&id).cloned().unwrap_or_default();
+                let gen = images.len();
+                div()
+                    .text_sm()
+                    .text_color(c(theme::FG))
+                    .child(
+                        TextView::markdown(SharedString::from(format!("vsx-readme-{id}-{gen}")), t.clone()).image_source(move |uri| match images.get(uri.as_ref()) {
+                            Some(p) => ImageSource::from(p.clone()),
+                            None => ImageSource::from(uri.clone()),
+                        }),
+                    )
+                    .into_any_element()
+            }
             Some(Err(e)) => div()
                 .text_xs()
                 .text_color(c(theme::FG_DIM))
@@ -1116,16 +1129,37 @@ impl Workbench {
                 .text_color(c(theme::FG_STRONG))
                 .child(tr(t))
         };
+        // Facts as small chips under the title, instead of a table of their own.
+        let chip = |t: String| div().px_2().py(px(2.)).rounded(px(4.)).bg(c(theme::BG_ELEVATED)).text_xs().text_color(c(theme::FG_MUTED)).child(t);
+        let mut chips = h_flex().w_full().flex_wrap().gap_1p5();
+        chips = chips.child(chip(format!("v{}", it.version)));
+        if !it.updated.is_empty() {
+            chips = chips.child(chip(crate::trf!("Updated {d}"; d => it.updated)));
+        }
+        for cat in &it.categories {
+            chips = chips.child(chip(cat.clone()));
+        }
+        chips = chips.child(chip(format!("{}.{}", it.publisher, it.name)));
         let body = v_flex()
             .w_full()
-            .max_w(theme::u(760.))
-            .gap(theme::u(28.))
+            .max_w(theme::u(820.))
+            .gap(theme::u(22.))
             .child(head)
+            .child(chips)
             .when_some(self.ext.note.clone(), |v, n| {
                 v.child(div().text_xs().text_color(c(theme::FG_MUTED)).child(n))
             })
-            .child(v_flex().gap_2().child(section("Details")).child(table))
-            .child(v_flex().gap_2().child(section("In FluxCode")).child(here))
+            .child(
+                div()
+                    .w_full()
+                    .px_3()
+                    .py_2()
+                    .rounded(px(6.))
+                    .border_1()
+                    .border_color(c(theme::BORDER))
+                    .child(here),
+            )
+            .child(div().h(px(1.)).bg(c(theme::BORDER)))
             .child(v_flex().gap_2().child(section("README")).child(readme));
         v_flex()
             .id("vsx-page")

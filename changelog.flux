@@ -11,6 +11,14 @@
 // Lines starting with // before the first @release are comments.
 
 @release 2026-11-16
+@title en: VS Code themes in FluxCode
+@title id: Tema VS Code di FluxCode
+@en
+A color theme you install from the VS Code Marketplace, such as **Dracula** or **One Dark Pro**, now shows up in the theme menu in the status bar and in Settings, and recolors the interface and the code. Text that would be hard to read on the theme's surfaces is lifted to a readable contrast. File types an extension adds (like `.svelte`) open as its language, and the extension's page lists what FluxCode applied, with buttons to switch to its themes.
+@id
+Tema warna yang kamu pasang dari Marketplace VS Code, misalnya **Dracula** atau **One Dark Pro**, sekarang muncul di menu tema di bilah status dan di Pengaturan, lalu mewarnai antarmuka dan kode. Teks yang sulit dibaca di permukaan tema dinaikkan kontrasnya supaya tetap terbaca. Jenis file yang ditambahkan ekstensi (seperti `.svelte`) dibuka sebagai bahasanya, dan halaman ekstensi menampilkan apa saja yang dipakai FluxCode, dengan tombol untuk beralih ke temanya.
+
+@release 2026-11-16
 @title en: Command Code, over ACP
 @title id: Command Code, lewat ACP
 @en

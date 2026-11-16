@@ -96,6 +96,10 @@ struct State {
     not_installed: bool,
     start_error: Option<String>,
     last_attempt: Option<Instant>,
+    user: Option<String>,
+    /// Which server process is current: a reader thread of an older one that
+    /// exits late must not clear the newer one's state.
+    gen: u64,
 }
 
 struct Shared {
@@ -107,6 +111,16 @@ struct Shared {
     /// Serializes starting the server, so two editors never spawn two.
     start_lock: Mutex<()>,
     enabled: AtomicBool,
+    /// Who wants to hear that the status changed (Settings, the status bar): each
+    /// gets a ping, so the window redraws without polling.
+    watchers: Mutex<Vec<futures::channel::mpsc::UnboundedSender<()>>>,
+}
+
+impl Shared {
+    /// Tell every watcher the status may have changed; forget the ones that left.
+    fn ping(&self) {
+        self.watchers.lock().unwrap().retain(|w| w.unbounded_send(()).is_ok());
+    }
 }
 
 /// A handle to the Copilot server. Cheap to clone; all state lives behind
@@ -139,16 +153,39 @@ impl Copilot {
                     not_installed: false,
                     start_error: None,
                     last_attempt: None,
+                    user: None,
+                    gen: 0,
                 }),
                 io: Mutex::new(()),
                 start_lock: Mutex::new(()),
                 enabled: AtomicBool::new(enabled),
+                watchers: Mutex::new(Vec::new()),
             }),
         }
     }
 
     pub fn enabled(&self) -> bool {
         self.shared.enabled.load(Ordering::SeqCst)
+    }
+
+    /// A stream that gets one message each time the status, sign-in code or notice
+    /// changes. The window listens to it and redraws.
+    pub fn watch(&self) -> futures::channel::mpsc::UnboundedReceiver<()> {
+        let (tx, rx) = futures::channel::mpsc::unbounded();
+        self.shared.watchers.lock().unwrap().push(tx);
+        rx
+    }
+
+    /// True before the first start attempt (nothing is known yet), so the caller
+    /// starts the server in the background instead of showing "Starting" forever.
+    pub fn untried(&self) -> bool {
+        let st = self.shared.state.lock().unwrap();
+        self.enabled() && !st.started && !st.starting && st.start_error.is_none() && !st.not_installed
+    }
+
+    /// The signed-in GitHub account, once the server has said.
+    pub fn user(&self) -> Option<String> {
+        self.shared.state.lock().unwrap().user.clone()
     }
 
     /// Turn Copilot on or off. Off stops the server, so its memory is freed;
@@ -210,8 +247,23 @@ impl Copilot {
         self.ensure_started(None)
     }
 
+    /// `start`, with the workspace folder the server should know about.
+    pub fn start_in(&self, folder: Option<PathBuf>) -> Result<(), String> {
+        self.ensure_started(folder)
+    }
+
     /// Stop the server, if it is running. Safe to call when it is not.
     pub fn stop(&self) {
+        self.stop_inner(false);
+    }
+
+    /// `stop`, waiting until the server is gone: for quitting, when a thread
+    /// left running would be cut off before it ends the server.
+    pub fn stop_and_wait(&self) {
+        self.stop_inner(true);
+    }
+
+    fn stop_inner(&self, wait: bool) {
         let child;
         {
             let mut st = self.shared.state.lock().unwrap();
@@ -225,13 +277,23 @@ impl Copilot {
                 let _ = tx.send(Err("Copilot server stopped".to_string()));
             }
         }
+        self.shared.ping();
         if let Some(mut child) = child {
-            let _ = child.kill();
-            // Reap off the calling thread; the reader thread also exits
-            // when the server's stdout closes.
-            std::thread::spawn(move || {
+            // Off the calling thread (the UI thread when Copilot is switched off).
+            // On Windows the server may run under cmd.exe (an npm .cmd shim): end
+            // the whole tree, or Node keeps running after cmd.exe is gone. The
+            // reader thread also exits when the server's stdout closes.
+            let mut end = move || {
+                #[cfg(windows)]
+                let _ = crate::proc::command("taskkill").args(["/T", "/F", "/PID", &child.id().to_string()]).status();
+                let _ = child.kill();
                 let _ = child.wait();
-            });
+            };
+            if wait {
+                end();
+            } else {
+                std::thread::spawn(end);
+            }
         }
     }
 
@@ -271,22 +333,61 @@ impl Copilot {
             st.last_attempt = Some(Instant::now());
             st.starting = true;
         }
+        self.shared.ping();
         let started = self.start_inner(folder);
-        let mut st = self.shared.state.lock().unwrap();
-        st.starting = false;
-        match started {
-            Ok(()) => {
-                st.started = true;
-                st.start_error = None;
-                st.not_installed = false;
-                Ok(())
+        let result = {
+            let mut st = self.shared.state.lock().unwrap();
+            st.starting = false;
+            match started {
+                Ok(()) => {
+                    st.started = true;
+                    st.start_error = None;
+                    st.not_installed = false;
+                    Ok(())
+                }
+                Err(e) => {
+                    st.start_error = Some(e.clone());
+                    st.not_installed = e.starts_with("not installed");
+                    Err(e)
+                }
             }
-            Err(e) => {
-                st.start_error = Some(e.clone());
-                st.not_installed = e.starts_with("not installed");
-                Err(e)
-            }
+        };
+        if result.is_ok() {
+            // The server reports its sign-in state with didChangeStatus some time
+            // after initialize; ask at once, so Settings never sits on "Starting".
+            self.check_status();
         }
+        self.shared.ping();
+        result
+    }
+
+    /// `checkStatus`: the server's sign-in state now (OK, NotSignedIn,
+    /// NotAuthorized when the account has no Copilot plan, ...). Kept unless a
+    /// didChangeStatus already said something newer.
+    fn check_status(&self) {
+        let Ok(v) = self.request("checkStatus", Some(serde_json::json!({})), Duration::from_secs(15)) else {
+            return;
+        };
+        let status = v.get("status").and_then(|s| s.as_str()).unwrap_or("");
+        let user = v.get("user").and_then(|s| s.as_str()).unwrap_or("").to_string();
+        let (kind, message) = match status {
+            "OK" | "MaybeOK" | "AlreadySignedIn" => ("Normal", String::new()),
+            "NotSignedIn" => ("Error", String::new()),
+            "NotAuthorized" => (
+                "Error",
+                crate::trf!("{user} has no Copilot plan yet (a free plan exists at github.com/features/copilot)."; user => if user.is_empty() { "This account" } else { user.as_str() }),
+            ),
+            "" => return,
+            other => ("Warning", other.to_string()),
+        };
+        {
+            let mut st = self.shared.state.lock().unwrap();
+            if st.status.kind.is_empty() || kind == "Normal" || status == "NotSignedIn" {
+                st.status = ServerStatus { kind: kind.to_string(), message };
+            }
+            st.user = (!user.is_empty()).then_some(user);
+        }
+        self.shared.ping();
     }
 
     /// Spawn the process and run `initialize`. Runs under `start_lock`.
@@ -306,12 +407,14 @@ impl Copilot {
             .stdin
             .take()
             .ok_or("Copilot server has no stdin".to_string())?;
-        {
+        let gen = {
             let mut st = self.shared.state.lock().unwrap();
             st.child = Some(child);
             st.stdin = Some(stdin);
-        }
-        self.spawn_reader(stdout);
+            st.gen += 1;
+            st.gen
+        };
+        self.spawn_reader(stdout, gen);
         let folders: Vec<Value> = folder
             .as_ref()
             .map(|f| vec![serde_json::json!({"uri": uri_for_path(f), "name": folder_name(f)})])
@@ -354,7 +457,7 @@ impl Copilot {
         Ok(())
     }
 
-    fn spawn_reader(&self, stdout: ChildStdout) {
+    fn spawn_reader(&self, stdout: ChildStdout, gen: u64) {
         let shared = Arc::clone(&self.shared);
         std::thread::spawn(move || {
             let mut reader = BufReader::new(stdout);
@@ -362,10 +465,15 @@ impl Copilot {
             while let Some(msg) = read_message(&mut reader) {
                 handle_server_message(&shared, msg);
             }
-            // The server exited: fail what is still waiting, and reap it.
+            // The server exited: fail what is still waiting, and reap it. A server
+            // that was stopped on purpose (stop() took its child already), or that a
+            // newer start has replaced, leaves the current state alone.
             let child;
             {
                 let mut st = shared.state.lock().unwrap();
+                if st.gen != gen || st.child.is_none() {
+                    return;
+                }
                 st.started = false;
                 st.stdin = None;
                 child = st.child.take();
@@ -379,6 +487,7 @@ impl Copilot {
             for tx in pending_fail {
                 let _ = tx.send(Err("Copilot server exited".to_string()));
             }
+            shared.ping();
             if let Some(mut child) = child {
                 let _ = child.wait();
             }
@@ -492,6 +601,7 @@ impl Copilot {
             let mut st = self.shared.state.lock().unwrap();
             st.user_code = Some(code.clone());
         }
+        self.shared.ping();
         if let Some(cmd) = result.get("command") {
             let command = cmd
                 .get("command")
@@ -516,10 +626,16 @@ impl Copilot {
     }
 
     pub fn sign_out(&self) {
-        self.shared.state.lock().unwrap().user_code = None;
+        {
+            let mut st = self.shared.state.lock().unwrap();
+            st.user_code = None;
+            st.user = None;
+        }
         if self.shared.state.lock().unwrap().started {
             let _ = self.request("signOut", None, SIGNIN_TIMEOUT);
+            self.check_status();
         }
+        self.shared.ping();
     }
 }
 
@@ -702,6 +818,7 @@ fn handle_server_message(shared: &Arc<Shared>, msg: Value) {
                         .and_then(|m| m.as_str())
                     {
                         shared.state.lock().unwrap().notice = Some(text.to_string());
+                        shared.ping();
                     }
                     Value::Null
                 }
@@ -741,8 +858,15 @@ fn handle_server_message(shared: &Arc<Shared>, msg: Value) {
                     .and_then(|m| m.as_str())
                     .unwrap_or("")
                     .to_string();
-                let mut st = shared.state.lock().unwrap();
-                st.status = ServerStatus { kind, message };
+                {
+                    let mut st = shared.state.lock().unwrap();
+                    // Signed in: the device code has done its job.
+                    if kind == "Normal" {
+                        st.user_code = None;
+                    }
+                    st.status = ServerStatus { kind, message };
+                }
+                shared.ping();
             }
             // window/logMessage and anything else: no action needed.
         }

@@ -26,6 +26,7 @@ mod docs;
 mod explorer;
 mod ext;
 mod files;
+mod fluxicon;
 mod flux_anim;
 mod fluxdoc;
 mod github;
@@ -113,6 +114,10 @@ fn main() {
         boot::mark("gpui-kit init");
         // The saved theme is active before the first frame, so the window never flashes another one.
         let saved = settings::Settings::load();
+        // Installed VS Code themes and languages, so a saved extension theme is
+        // there for the first frame too (a few small files when any are installed).
+        ext::native::load();
+        boot::mark("vscode extensions");
         theme::set_ui_size(saved.ui_size);
         saved.apply_backdrop();
         theme::apply(cx);
@@ -147,6 +152,9 @@ struct AppAssets;
 
 impl AssetSource for AppAssets {
     fn load(&self, path: &str) -> Result<Option<std::borrow::Cow<'static, [u8]>>> {
+        if let Some(bytes) = fluxicon::load(path) {
+            return Ok(Some(std::borrow::Cow::Borrowed(bytes)));
+        }
         if let Some(bytes) = files::FileIcons.load(path)? {
             return Ok(Some(bytes));
         }
@@ -160,6 +168,7 @@ impl AssetSource for AppAssets {
     fn list(&self, path: &str) -> Result<Vec<SharedString>> {
         let mut paths = gpui_kit::assets::Assets.list(path)?;
         paths.extend(files::FileIcons.list(path)?);
+        paths.extend(fluxicon::paths().filter(|p| p.starts_with(path)).map(SharedString::from));
         paths.sort();
         paths.dedup();
         Ok(paths)

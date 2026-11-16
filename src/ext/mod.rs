@@ -18,7 +18,9 @@ pub mod compile;
 pub mod java;
 pub mod market;
 mod market_view;
+pub mod native;
 pub mod view;
+pub mod vsx_theme;
 pub mod zip;
 
 use serde::Deserialize;

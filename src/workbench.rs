@@ -184,7 +184,7 @@ pub(crate) struct Doc {
     pub name: SharedString,
     /// The tab icon for `name`, worked out once when the tab opens:
     /// calling `files::icon_for` per tab per frame redid it on every render.
-    pub icon: (gpui_kit::assets::IconName, Option<u32>),
+    pub icon: (crate::fluxicon::FluxIcon, Option<u32>),
     /// Highlighter token ("python", "kt", "Dockerfile"); "image" for an image tab.
     #[allow(dead_code)]
     pub lang: &'static str,
@@ -210,9 +210,19 @@ pub(crate) struct Doc {
     pub flux_lazy: bool,
     /// A `.diff` / `.patch` file: drawn with colored lines (diff_view.rs).
     pub diff: Option<crate::diff_view::DiffDoc>,
+    /// Most of the text sits in very long lines (minified JS/JSON/CSS, a one-line
+    /// export): this file wraps even when word wrap is off in Settings.
+    pub long_lines: bool,
+    /// Alt+Z on this file: on/off for this file only, as in VS Code (not saved).
+    pub wrap_override: Option<bool>,
 }
 
 impl Doc {
+    /// Whether this file's lines wrap: its own Alt+Z choice, else long lines, else
+    /// the setting.
+    pub fn wraps(&self, setting: bool) -> bool {
+        self.wrap_override.unwrap_or(setting || self.long_lines)
+    }
     /// The document's text: the editor's, or a large Flux document's not yet in it.
     pub fn text(&self, cx: &App) -> String {
         match (&self.flux, self.flux_lazy) {
@@ -226,9 +236,15 @@ pub(crate) struct ImageDoc {
     /// Pixel size from the file header (None for SVG and unreadable headers).
     pub size: Option<(u32, u32)>,
     pub bytes: u64,
-    /// Fit the view (default) or show at 100% with scrolling.
-    pub actual: bool,
+    /// `None`: fitted to the editor (the default; small pictures are scaled up
+    /// too). `Some(z)`: z image pixels per screen pixel, scrolling when larger.
+    pub zoom: Option<f32>,
 }
+
+/// An image tab's zoom steps (as in VS Code's image preview).
+const ZOOM_STEPS: &[f32] = &[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2., 3., 5., 7., 10., 15., 20., 30., 50., 75., 100.];
+const ZOOM_MIN: f32 = 0.1;
+const ZOOM_MAX: f32 = 100.;
 
 /// What the explorer's inline name box is for.
 #[derive(Clone)]
@@ -312,7 +328,7 @@ pub struct Workbench {
     pub(crate) name_input: Entity<InputState>,
     /// The icon the pending row last showed: the name input's Change
     /// handler redraws the workbench only when it changes.
-    pub(crate) pending_icon: Option<(gpui_kit::assets::IconName, Option<u32>)>,
+    pub(crate) pending_icon: Option<(crate::fluxicon::FluxIcon, Option<u32>)>,
     // search
     pub(crate) search_input: Entity<InputState>,
     pub(crate) match_case: bool,
@@ -351,6 +367,8 @@ pub struct Workbench {
     pub(crate) panel_sel: Option<crate::panel::PanelSel>,
     /// Size of the image viewer area (measured last frame), to fit pictures exactly.
     pub(crate) image_box: Rc<std::cell::Cell<(f32, f32)>>,
+    /// The tab strip's scroll position, so the active tab is scrolled into view.
+    pub(crate) tabs_scroll: ScrollHandle,
     pub(crate) out_run: Option<crate::panel::RunInfo>,
     /// Position while walking the history with Up/Down.
     pub(crate) term_hist_ix: Option<usize>,
@@ -475,7 +493,7 @@ impl Workbench {
 
         cx.on_app_quit(|this, _| {
             this.procs.kill_all();
-            this.copilot.stop();
+            this.copilot.stop_and_wait();
             async {}
         })
         .detach();
@@ -494,7 +512,8 @@ impl Workbench {
         crate::agent::set_choice(&settings.agent_cli);
         let term_cwd = root.clone().or_else(|| std::env::current_dir().ok()).unwrap_or_default();
         crate::boot::mark("  settings");
-        let agent = crate::agent::AgentState::new(window, cx);
+        let mut agent = crate::agent::AgentState::new(window, cx);
+        agent.run.agent = settings.agent_cli.clone();
         crate::boot::mark("  agent state");
         let (scm, scm_sub) = crate::scm::Scm::new(window, cx);
         let ext = crate::ext::Ext::new(window, cx);
@@ -582,6 +601,7 @@ impl Workbench {
             panel_left: Rc::default(),
             panel_sel: None,
             image_box: Rc::default(),
+            tabs_scroll: ScrollHandle::new(),
             out_run: None,
             term_hist_ix: None,
             problems: Vec::new(),
@@ -636,8 +656,43 @@ impl Workbench {
         crate::boot::mark("  folder + session");
         this.start_update_checks(cx);
         crate::boot::mark("  update check scheduled");
+        this.start_copilot(cx);
         crate::memtrim::watch(window, cx);
         this
+    }
+
+    /// Copilot: redraw whenever its status changes, and start its server a moment
+    /// after launch (in the background), so suggestions are ready at the first
+    /// keystroke and Settings shows the real state (not installed, sign in, ready)
+    /// instead of waiting for a first request.
+    fn start_copilot(&mut self, cx: &mut Context<Self>) {
+        let mut changes = self.copilot.watch();
+        cx.spawn(async move |this, cx| {
+            use futures::StreamExt as _;
+            while changes.next().await.is_some() {
+                if this.update(cx, |_, cx| cx.notify()).is_err() {
+                    break;
+                }
+            }
+        })
+        .detach();
+        self.kick_copilot(cx);
+    }
+
+    /// Start the Copilot server off the UI thread if nothing was tried yet.
+    pub(crate) fn kick_copilot(&mut self, cx: &mut Context<Self>) {
+        if !self.copilot.untried() {
+            return;
+        }
+        let copilot = self.copilot.clone();
+        let folder = self.root.clone();
+        cx.spawn(async move |_, cx| {
+            cx.background_executor().timer(std::time::Duration::from_millis(1500)).await;
+            if copilot.untried() {
+                cx.background_spawn(async move { copilot.start_in(folder) }).await.ok();
+            }
+        })
+        .detach();
     }
 
     pub(crate) fn open_folder(&mut self, root: PathBuf, cx: &mut Context<Self>) {
@@ -912,9 +967,10 @@ impl Workbench {
             _ => (String::new(), text),
         };
         let diff = (crate::diff_view::is_diff(lang) && !large).then(|| crate::diff_view::parse(&text));
+        let long_lines = !read_only && core::dominated_by_long_lines(&text);
         let file = core::FileText { text, crlf };
         let s = &self.settings;
-        let (tab, wrap, dots) = (s.tab_size, s.word_wrap, s.show_whitespace);
+        let (tab, wrap, dots) = (s.tab_size, s.word_wrap || long_lines, s.show_whitespace);
         let opts = crate::settings::EditorOpts::of(s);
         let editor = cx.new(|cx| {
             EditorState::new(window, cx)
@@ -927,20 +983,11 @@ impl Workbench {
                 .soft_wrap(wrap)
                 .default_value(file.text)
         });
-        let file_name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         editor.update(cx, |e, cx| opts.apply(e, window, cx));
         if read_only {
             editor.update(cx, |e, cx| e.set_readonly(true, cx));
         } else {
-            crate::complete::attach(
-                &editor,
-                lang,
-                &file_name,
-                &path,
-                tab,
-                self.copilot.clone(),
-                cx,
-            );
+            crate::complete::attach(&editor, lang, &path, tab, self.copilot.clone(), cx);
         }
         let sub = cx.subscribe(&editor, |this, editor, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Change) {
@@ -1022,6 +1069,8 @@ impl Workbench {
             flux_source: is_markdown,
             flux_lazy,
             diff,
+            long_lines,
+            wrap_override: None,
         });
         self.activate(self.docs.len() - 1, window, cx);
         self.save_session(cx);
@@ -1052,14 +1101,101 @@ impl Workbench {
             dirty: false,
             gen: 0,
             _sub: sub,
-            image: Some(ImageDoc { size, bytes, actual: false }),
+            image: Some(ImageDoc { size, bytes, zoom: None }),
             flux: None,
             flux_source: false,
             flux_lazy: false,
             diff: None,
+            long_lines: false,
+            wrap_override: None,
         });
         self.activate(self.docs.len() - 1, window, cx);
         self.save_session(cx);
+    }
+
+    /// The picture's scale while it is fitted: as large as the area allows, small
+    /// images scaled up too, aspect kept. 1.0 means one image pixel per screen pixel.
+    fn image_fit_scale(&self, im: &ImageDoc, scale: f32) -> Option<f32> {
+        let (w, h) = im.size?;
+        let (bw, bh) = self.image_box.get();
+        let (aw, ah) = ((bw - 48.).max(16.), (bh - 48.).max(16.));
+        let (lw, lh) = (w.max(1) as f32 / scale, h.max(1) as f32 / scale);
+        Some((aw / lw).min(ah / lh))
+    }
+
+    /// Zoom an image tab one step in (`dir` 1) or out (-1), from what shows now.
+    pub(crate) fn image_zoom_step(&mut self, ix: usize, dir: i32, window: &Window, cx: &mut Context<Self>) {
+        let scale = window.scale_factor().max(0.5);
+        let Some(im) = self.docs.get(ix).and_then(|d| d.image.as_ref()) else { return };
+        let Some(now) = im.zoom.or_else(|| self.image_fit_scale(im, scale)) else { return };
+        let next = if dir > 0 {
+            ZOOM_STEPS.iter().copied().find(|z| *z > now * 1.001).unwrap_or(ZOOM_MAX)
+        } else {
+            ZOOM_STEPS.iter().rev().copied().find(|z| *z < now * 0.999).unwrap_or(ZOOM_MIN)
+        };
+        if let Some(im) = self.docs.get_mut(ix).and_then(|d| d.image.as_mut()) {
+            im.zoom = Some(next);
+        }
+        cx.notify();
+    }
+
+    /// Set an image tab's zoom: `None` fits it to the area.
+    pub(crate) fn image_set_zoom(&mut self, ix: usize, zoom: Option<f32>, cx: &mut Context<Self>) {
+        if let Some(im) = self.docs.get_mut(ix).and_then(|d| d.image.as_mut()) {
+            im.zoom = zoom.map(|z| z.clamp(ZOOM_MIN, ZOOM_MAX));
+        }
+        cx.notify();
+    }
+
+    /// The image tab's actions at the right of the header: its size, then
+    /// zoom out, the zoom (click: Fit or 100%), zoom in.
+    fn render_image_tools(&self, ix: usize, cx: &mut Context<Self>) -> AnyElement {
+        let Some(im) = self.docs[ix].image.as_ref() else { return div().into_any_element() };
+        let info = match im.size {
+            Some((w, h)) => format!("{w} × {h} · {}", human_size(im.bytes)),
+            None => human_size(im.bytes),
+        };
+        let can_zoom = im.size.is_some();
+        let label: SharedString = match im.zoom {
+            None => tr("Fit").into(),
+            Some(z) => format!("{}%", (z * 100.).round()).into(),
+        };
+        let fitted = im.zoom.is_none();
+        h_flex()
+            .flex_none()
+            .gap_0p5()
+            .child(div().pr_2().text_xs().text_color(c(theme::FG_DIM)).child(info))
+            .when(can_zoom, |h| {
+                h.child(
+                    ui::tool_button("img-zoom-out", gpui_kit::assets::IconName::ZoomOut, false)
+                        .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Zoom out (Ctrl+click, Ctrl+scroll)")).build(w, cx))
+                        .on_click(cx.listener(move |this, _, w, cx| this.image_zoom_step(ix, -1, w, cx))),
+                )
+                .child(
+                    div()
+                        .id("img-zoom-label")
+                        .h(theme::u(22.))
+                        .min_w(theme::u(46.))
+                        .px_1p5()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(4.))
+                        .cursor_pointer()
+                        .text_xs()
+                        .text_color(c(theme::FG))
+                        .hover(|s| s.bg(c(theme::BG_HOVER)))
+                        .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(if fitted { tr("Fitted to the editor. Click for 100%") } else { tr("Click to fit the image to the editor") }).build(w, cx))
+                        .child(label)
+                        .on_click(cx.listener(move |this, _, _, cx| this.image_set_zoom(ix, if fitted { Some(1.) } else { None }, cx))),
+                )
+                .child(
+                    ui::tool_button("img-zoom-in", gpui_kit::assets::IconName::ZoomIn, false)
+                        .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Zoom in (click the image, Ctrl+scroll)")).build(w, cx))
+                        .on_click(cx.listener(move |this, _, w, cx| this.image_zoom_step(ix, 1, w, cx))),
+                )
+            })
+            .into_any_element()
     }
 
     fn render_image(&self, ix: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
@@ -1068,37 +1204,34 @@ impl Workbench {
         let path = d.path.clone();
         // 100% means one image pixel per screen pixel.
         let scale = window.scale_factor().max(0.5);
-        let picture = img(path).id(("image", ix));
-        // Fit: never larger than 100%, never larger than the area (measured by the probe
-        // below), aspect kept. Sizes are explicit so the picture sits exactly centered.
+        let picture = img(path).id(("image", ix)).object_fit(ObjectFit::Contain);
         let (bw, bh) = self.image_box.get();
-        let (aw, ah) = ((bw - 32.).max(16.), (bh - 32.).max(16.));
-        let view: AnyElement = match (im.actual, im.size) {
-            (true, Some((w, h))) => div()
-                .id(("image-scroll", ix))
-                .size_full()
-                .overflow_scroll()
-                .child(div().p_4().child(picture.w(px(w as f32 / scale)).h(px(h as f32 / scale)).object_fit(ObjectFit::Fill)))
-                .into_any_element(),
-            (_, Some((w, h))) => {
-                let (lw, lh) = (w as f32 / scale, h as f32 / scale);
-                let k = (aw / lw).min(ah / lh).min(1.);
+        let view: AnyElement = match (im.size, im.zoom.or_else(|| self.image_fit_scale(im, scale))) {
+            (Some((w, h)), Some(k)) => {
+                let (pw, ph) = ((w as f32 / scale * k).round().max(1.), (h as f32 / scale * k).round().max(1.));
+                // Larger than the area: it scrolls, with a margin; smaller: centered.
                 div()
+                    .id(("image-scroll", ix))
                     .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .child(picture.w(px((lw * k).floor())).h(px((lh * k).floor())).object_fit(ObjectFit::Contain))
+                    .overflow_scroll()
+                    .child(
+                        div()
+                            .min_w(px(bw))
+                            .min_h(px(bh))
+                            .w(px(pw + 48.))
+                            .h(px(ph + 48.))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child(picture.w(px(pw)).h(px(ph))),
+                    )
                     .into_any_element()
             }
-            // SVG or an unreadable header: give it the whole area, keep its shape.
-            _ => div()
-                .size_full()
-                .flex()
-                .items_center()
-                .justify_center()
-                .child(picture.w(px(aw)).h(px(ah)).object_fit(ObjectFit::Contain))
-                .into_any_element(),
+            // SVG or an unreadable header: the whole area, its shape kept.
+            _ => {
+                let (aw, ah) = ((bw - 48.).max(16.), (bh - 48.).max(16.));
+                div().size_full().flex().items_center().justify_center().child(picture.w(px(aw)).h(px(ah))).into_any_element()
+            }
         };
         let probe = {
             let cell = self.image_box.clone();
@@ -1119,48 +1252,40 @@ impl Workbench {
             .left_0()
             .size_full()
         };
-        let kind = d.path.extension().map(|e| e.to_string_lossy().to_uppercase()).unwrap_or_default();
-        let size = im.size.map(|(w, h)| format!("{w} × {h}  ·  ")).unwrap_or_default();
-        let info = format!("{size}{}  ·  {kind}", human_size(im.bytes));
         let can_zoom = im.size.is_some();
-        v_flex()
+        div()
+            .id(("image-view", ix))
             .size_full()
-            .child(
-                div()
-                    .id(("image-view", ix))
-                    .flex_1()
-                    .min_h_0()
-                    .relative()
-                    .overflow_hidden()
-                    .child(probe)
-                    .when(can_zoom, |d| d.cursor_pointer())
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        if let Some(im) = this.docs.get_mut(ix).and_then(|d| d.image.as_mut()) {
-                            if im.size.is_some() {
-                                im.actual = !im.actual;
-                                cx.notify();
-                            }
-                        }
-                    }))
-                    .child(view),
-            )
-            .child(
-                h_flex()
-                    .h(theme::u(26.))
-                    .flex_none()
-                    .justify_center()
-                    .gap_3()
-                    .text_xs()
-                    .text_color(c(theme::FG_DIM))
-                    .border_t_1()
-                    .border_color(c(theme::BORDER))
-                    .child(info)
-                    .when(can_zoom, |h| h.child(if im.actual { "Click to fit" } else { "Click for 100%" })),
-            )
+            .relative()
+            .overflow_hidden()
+            .child(probe)
+            .when(can_zoom, |d| d.cursor(CursorStyle::PointingHand))
+            // As in VS Code: click zooms in, Ctrl+click (or Alt+click) zooms out,
+            // Ctrl+scroll zooms either way.
+            .on_click(cx.listener(move |this, e: &ClickEvent, w, cx| {
+                let m = e.modifiers();
+                this.image_zoom_step(ix, if m.control || m.alt { -1 } else { 1 }, w, cx);
+            }))
+            .on_scroll(cx.listener(move |this, e: &ScrollEvent, w, cx| {
+                if !e.modifiers.control {
+                    return;
+                }
+                cx.stop_propagation();
+                let dy = f32::from(e.delta.pixel_delta(px(20.)).y);
+                if dy.abs() < 0.5 {
+                    return;
+                }
+                let scale = w.scale_factor().max(0.5);
+                let Some(now) = this.docs.get(ix).and_then(|d| d.image.as_ref()).and_then(|im| im.zoom.or_else(|| this.image_fit_scale(im, scale))) else { return };
+                let k = if dy > 0. { 1.08 } else { 1. / 1.08 };
+                this.image_set_zoom(ix, Some(now * k), cx);
+            }))
+            .child(view)
             .into_any_element()
     }
 
     pub(crate) fn activate(&mut self, ix: usize, window: &mut Window, cx: &mut Context<Self>) {
+        self.tabs_scroll.scroll_to_item(ix);
         // A switch less than 300 ms after the last one is part of a burst
         // (rapid Ctrl+W, fast tab cycling): the fade in `render_editor_area`
         // is skipped for it, so the burst costs one render per switch
@@ -1524,8 +1649,9 @@ impl Workbench {
 
     /// Ctrl+K Ctrl+T: the next color theme, FluxDark → FluxCream → FluxMono → FluxRed.
     fn on_next_theme(&mut self, _: &NextTheme, window: &mut Window, cx: &mut Context<Self>) {
-        let ix = theme::PALETTES.iter().position(|p| p.id == theme::palette().id).unwrap_or(0);
-        let next = theme::PALETTES[(ix + 1) % theme::PALETTES.len()].id;
+        let all = theme::all();
+        let ix = all.iter().position(|p| p.id == theme::palette().id).unwrap_or(0);
+        let next = all[(ix + 1) % all.len()].id;
         self.set_theme(next, window, cx);
     }
 
@@ -1575,6 +1701,9 @@ impl Workbench {
                     self.out_scroll.scroll_to_bottom();
                 } else if self.agent.owns(id) {
                     self.agent_on_output(&text, err, cx);
+                } else if let Some(key) = self.agent.run_of(id) {
+                    // A chat working in the background.
+                    self.agent_with_run(key, cx, |this, cx| this.agent_on_output(&text, err, cx));
                 }
             }
             ProcEvent::Exit { id, code } => {
@@ -1587,6 +1716,8 @@ impl Workbench {
                     self.finish_run(false, code, cx);
                 } else if self.agent.owns(id) {
                     self.agent_on_exit(cx);
+                } else if let Some(key) = self.agent.run_of(id) {
+                    self.agent_with_run(key, cx, |this, cx| this.agent_on_exit(cx));
                 }
             }
         }
@@ -2131,15 +2262,17 @@ impl Workbench {
             .border_b_1()
             .border_color(c(theme::BORDER))
             .overflow_x_scroll()
+            .track_scroll(&self.tabs_scroll)
             .children(self.docs.iter().enumerate().map(|(ix, d)| {
                 let active = self.active == Some(ix);
                 let (icon, tint) = d.icon;
                 h_flex()
                     .id(("tab", ix))
                     .h_full()
-                    .pl_3()
-                    .pr_1()
-                    .gap_2()
+                    .min_w(theme::u(96.))
+                    .pl(theme::u(14.))
+                    .pr(theme::u(6.))
+                    .gap(theme::u(8.))
                     .flex_none()
                     .text_sm()
                     .border_r_1()
@@ -2147,13 +2280,20 @@ impl Workbench {
                     .relative()
                     .cursor_pointer()
                     .when(active, |s| {
-                        s.bg(c(theme::BG_EDITOR))
-                            .child(div().absolute().top_0().left_0().right_0().h(px(1.)).bg(c(theme::ACCENT)))
+                        // The accent line grows out from the middle when a tab becomes
+                        // the active one, so the eye follows the switch.
+                        s.bg(c(theme::BG_EDITOR)).child(
+                            div().absolute().top_0().left_0().right_0().h(px(2.)).bg(c(theme::ACCENT)).with_animation(
+                                SharedString::from(format!("tab-line-{}", d.path.display())),
+                                Animation::new(std::time::Duration::from_millis(180)).with_easing(gpui_kit::ease_out_quint()),
+                                |el, t| el.left(relative(0.5 * (1. - t))).right(relative(0.5 * (1. - t))),
+                            ),
+                        )
                     })
-                    .when(!active, |s| s.hover(|s| s.bg(c(theme::BG_HOVER))))
+                    .when(!active, |s| s.hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG))))
                     .text_color(if active { c(theme::FG_STRONG) } else { c(theme::FG_MUTED) })
-                    .child(Icon::new(icon).size(theme::u(16.)).text_color(theme::tint(tint)))
-                    .child(d.name.clone())
+                    .child(Icon::new(icon).flex_none().size(theme::u(16.)).text_color(theme::tint(tint)))
+                    .child(div().flex_1().whitespace_nowrap().child(d.name.clone()))
                     .child(
                         div()
                             .id(("tab-close", ix))
@@ -2233,6 +2373,44 @@ impl Workbench {
         self.save_session(cx);
     }
 
+    /// The row below the tabs: the file's path on the left, its few actions on the
+    /// right (Preview / Source, word wrap, image zoom). One slim row, so nothing
+    /// sits between the tabs and the text.
+    fn render_editor_header(&self, ix: usize, cx: &mut Context<Self>) -> impl IntoElement {
+        let d = &self.docs[ix];
+        let tools: AnyElement = if d.image.is_some() {
+            self.render_image_tools(ix, cx)
+        } else if d.flux.is_some() {
+            h_flex()
+                .gap_1()
+                .when(d.flux_source, |h| h.child(self.wrap_button(ix, cx)))
+                .child(self.render_flux_bar(ix, cx))
+                .into_any_element()
+        } else if d.diff.as_ref().is_some_and(|x| !x.source) {
+            div().into_any_element()
+        } else {
+            self.wrap_button(ix, cx)
+        };
+        h_flex()
+            .h(theme::u(28.))
+            .flex_none()
+            .pr_2()
+            .gap_2()
+            .child(div().flex_1().min_w_0().overflow_hidden().child(self.render_breadcrumbs(ix)))
+            .child(tools)
+    }
+
+    /// Word wrap for this file (Alt+Z), lit while its lines wrap.
+    fn wrap_button(&self, ix: usize, cx: &mut Context<Self>) -> AnyElement {
+        let on = self.docs[ix].wraps(self.settings.word_wrap);
+        ui::tool_button("hdr-wrap", gpui_kit::assets::IconName::TextWrap, on)
+            .tooltip(move |w, cx| {
+                gpui_kit::component::tooltip::Tooltip::new(if on { tr("Word wrap is on for this file (Alt+Z)") } else { tr("Wrap long lines in this file (Alt+Z)") }).build(w, cx)
+            })
+            .on_click(cx.listener(|this, _, w, cx| this.toggle_wrap(w, cx)))
+            .into_any_element()
+    }
+
     /// The active file's path below the tabs: folder › folder › file.
     fn render_breadcrumbs(&self, ix: usize) -> impl IntoElement {
         let d = &self.docs[ix];
@@ -2273,7 +2451,7 @@ impl Workbench {
                 .size_full()
                 .bg(theme::editor_wash())
                 .child(self.render_tabs(cx))
-                .child(self.render_breadcrumbs(ix))
+                .child(self.render_editor_header(ix, cx))
                 .when(self.docs[ix].image.is_some(), |v| v.child(div().flex_1().min_h_0().child(self.render_image(ix, window, cx))))
                 .when(self.docs[ix].diff.as_ref().is_some_and(|d| !d.source), |v| v.child(div().flex_1().min_h_0().child(self.render_diff_doc(ix, cx))))
                 .when_some(self.docs[ix].banner.clone(), |v, b| {
@@ -2292,9 +2470,6 @@ impl Workbench {
                             .child(Icon::new(if self.docs[ix].read_only { IconName::Eye } else { IconName::Info }).small().text_color(c(theme::FG_DIM)))
                             .child(div().min_w_0().truncate().child(b)),
                     )
-                })
-                .when(self.docs[ix].flux.is_some(), |v| {
-                    v.child(self.render_flux_bar(ix, cx))
                 })
                 .when(
                     self.docs[ix].flux.is_some() && !self.docs[ix].flux_source,
@@ -2344,9 +2519,9 @@ impl Workbench {
                                         "doc-in-{}",
                                         self.docs[ix].path.display()
                                     )),
-                                    Animation::new(std::time::Duration::from_millis(120))
+                                    Animation::new(std::time::Duration::from_millis(160))
                                         .with_easing(gpui_kit::ease_out_quint()),
-                                    |el, t| el.opacity(0.4 + 0.6 * t),
+                                    |el, t| el.opacity(0.55 + 0.45 * t),
                                 ),
                             )
                         }
@@ -2725,6 +2900,10 @@ impl Render for Workbench {
                 })
                 .detach();
             }
+        }
+        if std::mem::take(&mut self.agent.placeholder_dirty) {
+            let name = crate::agent::agent_name();
+            self.agent.input.update(cx, |s, cx| s.set_placeholder(crate::trf!("Ask {name}…"; name => name), window, cx));
         }
         if !self.agent.follow_q.is_empty() {
             self.apply_agent_follow(window, cx);
