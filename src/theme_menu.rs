@@ -3,7 +3,7 @@
 //! text, the accent), so you pick by looking. Escape or a click outside closes it.
 
 use crate::i18n::tr;
-use crate::theme::{self, c, PALETTES};
+use crate::theme::{self, c};
 use crate::workbench::*;
 use gpui_kit::component::{h_flex, v_flex, Icon, IconName};
 use gpui_kit::{prelude::FluentBuilder, *};
@@ -70,8 +70,9 @@ impl Workbench {
             return None;
         }
         let current = theme::palette().id;
-        let mut list = v_flex().p_1().gap_0p5();
-        for (i, p) in PALETTES.iter().enumerate() {
+        // Installed VS Code themes can make the list long: it scrolls past about ten rows.
+        let mut list = v_flex().id("theme-list").p_1().gap_0p5().max_h(theme::u(460.)).overflow_y_scroll();
+        for (i, p) in theme::all().into_iter().enumerate() {
             let on = p.id == current;
             let id = p.id;
             list = list.child(

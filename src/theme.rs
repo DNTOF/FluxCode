@@ -10,10 +10,16 @@
 //! of the editor than on the code side (see `editor_wash`). The secondary text
 //! colors were chosen so they still reach WCAG AA (4.5:1) over a bright image at
 //! the default strength; see `Visibility`.
+//!
+//! Installed VS Code color themes add palettes at run time (`set_extra`, built by
+//! `ext::vsx_theme`); they carry their own code colors, where the built-in palettes
+//! use gpui-kit's default syntax theme.
 
+use gpui_kit::component::highlighter::HighlightThemeStyle;
 use gpui_kit::component::{Theme, ThemeMode};
 use gpui_kit::{linear_color_stop, linear_gradient, rgb, App, Background, Hsla};
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicPtr, AtomicU8, Ordering};
+use std::sync::RwLock;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tok {
@@ -67,33 +73,37 @@ pub const DANGER: Tok = Tok::Danger;
 pub const FOLDER: Tok = Tok::Folder;
 pub const SELECT: Tok = Tok::Select;
 
+#[derive(Clone, Copy)]
 pub struct Palette {
     pub id: &'static str,
     pub name: &'static str,
     /// One line for the Settings card.
     pub note: &'static str,
     pub dark: bool,
-    title: u32,
-    side: u32,
-    editor: u32,
-    elevated: u32,
-    hover: u32,
-    border: u32,
-    border_strong: u32,
-    fg: u32,
-    strong: u32,
-    muted: u32,
-    dim: u32,
-    accent: u32,
-    on_accent: u32,
-    accent_text: u32,
-    blue: u32,
-    green: u32,
-    warn: u32,
-    danger: u32,
-    folder: u32,
-    select: u32,
-    selection: u32,
+    pub(crate) title: u32,
+    pub(crate) side: u32,
+    pub(crate) editor: u32,
+    pub(crate) elevated: u32,
+    pub(crate) hover: u32,
+    pub(crate) border: u32,
+    pub(crate) border_strong: u32,
+    pub(crate) fg: u32,
+    pub(crate) strong: u32,
+    pub(crate) muted: u32,
+    pub(crate) dim: u32,
+    pub(crate) accent: u32,
+    pub(crate) on_accent: u32,
+    pub(crate) accent_text: u32,
+    pub(crate) blue: u32,
+    pub(crate) green: u32,
+    pub(crate) warn: u32,
+    pub(crate) danger: u32,
+    pub(crate) folder: u32,
+    pub(crate) select: u32,
+    pub(crate) selection: u32,
+    /// Code colors of its own (a VS Code theme's `tokenColors`); `None` keeps
+    /// gpui-kit's default syntax theme for dark or light.
+    pub(crate) syntax: Option<&'static HighlightThemeStyle>,
 }
 
 impl Palette {
@@ -137,7 +147,7 @@ impl Palette {
 // state colors are >= 4.5:1 on every surface, and still >= 4.5:1 over a white (dark
 // themes) or black (FluxCream) image pixel at the Balanced strength. Text on accent
 // fills >= 5.1:1.
-pub const PALETTES: [Palette; 6] = [
+pub static PALETTES: [Palette; 6] = [
     Palette {
         id: "flux-dark",
         name: "FluxDark",
@@ -164,6 +174,7 @@ pub const PALETTES: [Palette; 6] = [
         folder: 0xc4a47a,
         select: 0x26282d,
         selection: 0x3d3426,
+        syntax: None,
     },
     Palette {
         id: "flux-cream",
@@ -191,6 +202,7 @@ pub const PALETTES: [Palette; 6] = [
         folder: 0x7d5a30,
         select: 0xe6dccb,
         selection: 0xe5d5bb,
+        syntax: None,
     },
     Palette {
         id: "flux-mono",
@@ -218,6 +230,7 @@ pub const PALETTES: [Palette; 6] = [
         folder: 0xbdbdbd,
         select: 0x2c2c2c,
         selection: 0x3d3d3d,
+        syntax: None,
     },
     Palette {
         id: "flux-red",
@@ -245,6 +258,7 @@ pub const PALETTES: [Palette; 6] = [
         folder: 0xd0a37f,
         select: 0x3a2a2b,
         selection: 0x55393a,
+        syntax: None,
     },
 
     Palette {
@@ -275,6 +289,7 @@ pub const PALETTES: [Palette; 6] = [
         folder: 0x075985,
         select: 0xeaf3f9,
         selection: 0xdcebf5,
+        syntax: None,
     },
 
     Palette {
@@ -305,6 +320,7 @@ pub const PALETTES: [Palette; 6] = [
         folder: 0x8fb9d9,
         select: 0x1a2836,
         selection: 0x28496b,
+        syntax: None,
     },
 ];
 
@@ -371,7 +387,10 @@ impl UiSize {
     }
 }
 
-static ACTIVE: AtomicU8 = AtomicU8::new(0);
+/// The active palette; null until `set` runs, which reads as FluxDark.
+static ACTIVE: AtomicPtr<Palette> = AtomicPtr::new(std::ptr::null_mut());
+/// Palettes from installed VS Code themes, after the built-in ones.
+static EXTRA: RwLock<Vec<&'static Palette>> = RwLock::new(Vec::new());
 static UI_SIZE: AtomicU8 = AtomicU8::new(1);
 
 pub fn set_ui_size(size: UiSize) {
@@ -417,7 +436,34 @@ pub fn glass() -> bool {
 }
 
 pub fn palette() -> &'static Palette {
-    &PALETTES[ACTIVE.load(Ordering::Relaxed) as usize % PALETTES.len()]
+    let p = ACTIVE.load(Ordering::Relaxed);
+    if p.is_null() {
+        &PALETTES[0]
+    } else {
+        // SAFETY: `ACTIVE` only ever holds a pointer made from a `&'static Palette`
+        // (an element of `PALETTES` or a leaked extension palette), never freed.
+        unsafe { &*p }
+    }
+}
+
+/// Every palette to choose from: the built-in ones, then the installed VS Code themes.
+pub fn all() -> Vec<&'static Palette> {
+    let extra = EXTRA.read().unwrap_or_else(|e| e.into_inner());
+    PALETTES.iter().chain(extra.iter().copied()).collect()
+}
+
+/// A palette by id (built-in or from an installed theme).
+pub fn find(id: &str) -> Option<&'static Palette> {
+    if let Some(p) = PALETTES.iter().find(|p| p.id == id) {
+        return Some(p);
+    }
+    EXTRA.read().unwrap_or_else(|e| e.into_inner()).iter().copied().find(|p| p.id == id)
+}
+
+/// Replace the palettes from installed VS Code themes. The active one stays as it
+/// is until the next `set` (which falls back to FluxDark if its theme is gone).
+pub fn set_extra(list: Vec<&'static Palette>) {
+    *EXTRA.write().unwrap_or_else(|e| e.into_inner()) = list;
 }
 
 fn image() -> Option<Visibility> {
@@ -429,8 +475,8 @@ fn image() -> Option<Visibility> {
 
 /// Select the theme (by id, falling back to FluxDark) and whether a background image shows.
 pub fn set(id: &str, image: Option<Visibility>) {
-    let ix = PALETTES.iter().position(|p| p.id == id).unwrap_or(0);
-    ACTIVE.store(ix as u8, Ordering::Relaxed);
+    let p: &'static Palette = find(id).unwrap_or(&PALETTES[0]);
+    ACTIVE.store(p as *const Palette as *mut Palette, Ordering::Relaxed);
     let v = image.map_or(0, |v| Visibility::ALL.iter().position(|x| *x == v).unwrap_or(1) as u8 + 1);
     IMAGE.store(v, Ordering::Relaxed);
 }
@@ -570,6 +616,11 @@ pub fn apply(cx: &mut App) {
         // The code editor paints its own background and gutter from the syntax theme's
         // style block, not from the colors above: point those at the palette too.
         let mut hl = (*t.highlight_theme).clone();
+        // A VS Code theme brings its own code and diagnostic colors.
+        if let Some(own) = p.syntax {
+            hl.style.syntax = own.syntax.clone();
+            hl.style.status = own.status.clone();
+        }
         let st = &mut hl.style;
         st.editor_background = Some(if image().is_some() { gpui_kit::transparent_black() } else { c(BG_EDITOR) });
         // The line numbers sit on the same surface as the code (the syntax theme's own
@@ -621,6 +672,22 @@ mod tests {
             let r = contrast(p.hex(Tok::OnAccent), p.hex(Tok::Accent));
             assert!(r >= 5.1, "{}: OnAccent on Accent is only {r:.2}:1", p.id);
         }
+    }
+
+    #[test]
+    fn extension_palettes_join_the_list_and_can_be_selected() {
+        let mut p = Palette { ..PALETTES[1] };
+        p.id = "vsx:test.theme/one";
+        p.name = "One";
+        let leaked: &'static Palette = Box::leak(Box::new(p));
+        set_extra(vec![leaked]);
+        assert!(all().iter().any(|p| p.id == "vsx:test.theme/one"));
+        assert_eq!(find("vsx:test.theme/one").map(|p| p.name), Some("One"));
+        set("vsx:test.theme/one", None);
+        assert_eq!(palette().id, "vsx:test.theme/one");
+        set_extra(Vec::new());
+        set("vsx:test.theme/one", None);
+        assert_eq!(palette().id, PALETTES[0].id);
     }
 
     #[test]

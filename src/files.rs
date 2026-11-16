@@ -397,6 +397,11 @@ pub fn language_for(path: &Path, first_line: &str) -> (&'static str, &'static st
     if let Some(l) = LANGS.iter().find(|l| l.3.contains(&name.as_str())) {
         return (l.0, l.1);
     }
+    // Endings like `.blade.php` from an installed VS Code extension are more
+    // specific than FluxCode's own `.php`.
+    if let Some(l) = crate::ext::native::language(&name, true) {
+        return l;
+    }
     if name.starts_with(".env") {
         return (".env", "Environment");
     }
@@ -411,6 +416,10 @@ pub fn language_for(path: &Path, first_line: &str) -> (&'static str, &'static st
         if let Some(l) = LANGS.iter().find(|l| l.2.contains(&ext)) {
             return (l.0, l.1);
         }
+    }
+    // File types FluxCode doesn't know, added by an installed VS Code extension.
+    if let Some(l) = crate::ext::native::language(&name, false) {
+        return l;
     }
     shebang(first_line).unwrap_or(("text", "Plain Text"))
 }

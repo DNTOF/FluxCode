@@ -64,7 +64,7 @@ pub struct Settings {
     pub show_whitespace: bool,
     pub auto_save: bool,
     pub agent_auto_approve: bool,
-    /// Palette id, see `theme::PALETTES`.
+    /// Palette id, see `theme::PALETTES` and `theme::all` (installed VS Code themes).
     pub theme: String,
     /// A picture of the user's choice behind the panels. Only the path is stored;
     /// the file stays where it is and is never copied.
@@ -489,7 +489,7 @@ fn settings_card(rows: Vec<AnyElement>) -> AnyElement {
 fn theme_cards(cx: &mut Context<Workbench>) -> Div {
     // Theme cards: a strip of the palette's own colors, its name and one line.
     let active_theme = theme::palette().id;
-    h_flex().w_full().max_w(theme::u(760.)).flex_wrap().gap_3().py_3().children(PALETTES.iter().map(|p| {
+    h_flex().w_full().max_w(theme::u(760.)).flex_wrap().gap_3().py_3().children(theme::all().into_iter().map(|p| {
         let on = p.id == active_theme;
         let id = p.id;
         let [surface, side, accent, text] = p.swatches();
@@ -572,7 +572,7 @@ impl Workbench {
     pub(crate) fn set_theme(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
         self.settings.theme = id.into();
         self.apply_appearance(window, cx);
-        let name = PALETTES.iter().find(|p| p.id == id).map_or("", |p| p.name);
+        let name = theme::find(id).map_or("", |p| p.name);
         self.status = crate::trf!("Color theme: {name}"; name => name).into();
     }
 
