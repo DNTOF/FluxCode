@@ -14,9 +14,9 @@
 @title en: Command Code, over ACP
 @title id: Command Code, lewat ACP
 @en
-The agent panel now lists **Command Code**, the coding agent for open models. FluxCode doesn't download it: install it once with `npm i -g command-code`, run `cmd login` in a terminal, and FluxCode finds it on PATH and starts it over the Agent Client Protocol when you pick it.
+The agent panel now lists **Command Code**, the coding agent for open models. FluxCode doesn't download it: install it once with `npm i -g command-code`, run `cmd login` in a terminal, and FluxCode finds it on PATH and starts it over the Agent Client Protocol when you pick it. Its logo ships with the app, so the panel shows the mark even though the registry lists no icon.
 @id
-Panel agent sekarang menampilkan **Command Code**, coding agent untuk model terbuka. FluxCode tidak mengunduhnya: pasang sekali dengan `npm i -g command-code`, jalankan `cmd login` di terminal, dan FluxCode menemukannya di PATH lalu menjalankannya lewat Agent Client Protocol saat kamu memilihnya.
+Panel agent sekarang menampilkan **Command Code**, coding agent untuk model terbuka. FluxCode tidak mengunduhnya: pasang sekali dengan `npm i -g command-code`, jalankan `cmd login` di terminal, dan FluxCode menemukannya di PATH lalu menjalankannya lewat Agent Client Protocol saat kamu memilihnya. Logo-nya dibawa bareng aplikasi, jadi panel menampilkan mark-nya meskipun registry tidak menyediakan ikonnya.
 
 @release 2026-11-15
 @title en: One-click Copilot setup

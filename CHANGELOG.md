@@ -12,6 +12,10 @@ page, and installed copies offer it on their own. Newest first.
   log in with `cmd login`, and FluxCode finds `commandcode` on PATH and starts
   it over the Agent Client Protocol when you pick it. Its Get button opens
   Command Code's quickstart instead of a download.
+
+- Command Code's logo ships with the app, so the panel shows the mark even
+  though the ACP registry lists no icon for it.
+
 ## One-click Copilot setup (15 November 2026)
 
 - The Copilot ghost text is built in, but until now setting it up meant running
