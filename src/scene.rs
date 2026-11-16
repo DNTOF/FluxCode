@@ -182,7 +182,12 @@ impl Shell {
 }
 
 impl Render for Shell {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+        // gpui-component's Root sets the rem to its 13 px text size on every render; the
+        // workbench resets it when it renders, but as a cached view it often doesn't (a
+        // popup opening re-renders only Root), and the whole interface would be laid out
+        // at 13 px. Shell renders whenever Root does, before the workbench is laid out.
+        window.set_rem_size(crate::theme::rem());
         let mut style = StyleRefinement::default();
         style.size.width = Some(relative(1.).into());
         style.size.height = Some(relative(1.).into());
