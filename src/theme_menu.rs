@@ -57,7 +57,8 @@ impl Workbench {
             // No tooltip while the list is open: it would cover the list's last row.
             .when(!open, |d| d.tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Color theme (Ctrl+K Ctrl+T for the next one)")).build(w, cx)))
             .on_click(cx.listener(|this, _, _, cx| {
-                this.theme_menu = !this.theme_menu;
+                let may = this.pop_may_open("theme");
+                this.theme_menu = !this.theme_menu && may;
                 cx.notify();
             }))
             .into_any_element()
@@ -115,6 +116,7 @@ impl Workbench {
                 .shadow_md()
                 .occlude()
                 .on_mouse_down_out(cx.listener(|this, _, _, cx| {
+                    this.pop_closed_outside("theme");
                     this.theme_menu = false;
                     cx.notify();
                 }))

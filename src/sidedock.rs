@@ -60,6 +60,17 @@ impl Workbench {
         }
     }
 
+    /// A popover closed by a click outside it: remember which, for `pop_reopens`.
+    pub(crate) fn pop_closed_outside(&mut self, key: &'static str) {
+        self.pop_shut = Some((key, std::time::Instant::now()));
+    }
+
+    /// The popover's button was clicked: false when that same press just closed it from
+    /// outside (mouse down closes it, the click would open it again).
+    pub(crate) fn pop_may_open(&mut self, key: &'static str) -> bool {
+        !matches!(self.pop_shut.take(), Some((k, at)) if k == key && at.elapsed().as_millis() < 400)
+    }
+
     /// The right dock is on screen (whatever view it shows).
     pub(crate) fn right_dock_on(&self) -> bool {
         self.agent_open && self.on_right(self.right_view)

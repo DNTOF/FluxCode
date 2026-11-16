@@ -159,7 +159,8 @@ impl Workbench {
             .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Token saver")).build(w, cx))
             .on_click(cx.listener(|this, _, _, cx| {
                 cx.stop_propagation();
-                this.agent.saver.open = !this.agent.saver.open;
+                let may = this.pop_may_open("saver");
+                this.agent.saver.open = !this.agent.saver.open && may;
                 cx.notify();
             }))
             .child(Icon::new(gpui_kit::assets::IconName::Leaf).size(theme::u(13.)))
@@ -235,6 +236,7 @@ impl Workbench {
                 .gap_3()
                 .glass_pop()
                 .on_mouse_down_out(cx.listener(|this, _, _, cx| {
+                    this.pop_closed_outside("saver");
                     this.agent.saver.open = false;
                     cx.notify();
                 }))

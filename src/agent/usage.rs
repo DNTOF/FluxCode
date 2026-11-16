@@ -244,6 +244,45 @@ pub struct UsageState {
 }
 
 impl UsageState {
+    /// Every limit known: (name, % used, when it resets). The `/usage` report names them
+    /// all; without it, the live windows the agent sends with each step.
+    pub fn limit_rows(&self, now: i64) -> Vec<(String, f32, Option<String>)> {
+        let window_of = |name: &str| -> Option<&Window> {
+            let l = self.live.as_ref()?;
+            let key = if name.starts_with("5-hour") { "five_hour" } else if name.starts_with("Weekly · all") || name == "Weekly" { "seven_day" } else { return None };
+            l.windows.iter().find(|w| w.key == key)
+        };
+        if let Some(r) = self.report.as_ref().filter(|r| !r.limits.is_empty()) {
+            return r
+                .limits
+                .iter()
+                .map(|l| {
+                    // The live window gives the exact reset time; the report says it in words.
+                    let when = window_of(&l.name).and_then(|w| until(w.resets, now)).map(|t| crate::trf!("Resets in {t}"; t => t));
+                    let text = match (when, l.resets.is_empty()) {
+                        (Some(w), false) => Some(format!("{w} · {}", l.resets.trim_start_matches("Resets ").trim())),
+                        (Some(w), true) => Some(w),
+                        (None, false) => Some(l.resets.clone()),
+                        (None, true) => None,
+                    };
+                    (l.name.clone(), l.pct as f32, text)
+                })
+                .collect();
+        }
+        let Some(l) = &self.live else { return Vec::new() };
+        l.windows
+            .iter()
+            .map(|w| {
+                let name = match w.key.as_str() {
+                    "five_hour" => tr("5-hour limit").to_string(),
+                    "seven_day" => tr("Weekly limit").to_string(),
+                    k => k.replace('_', " "),
+                };
+                (name, w.used * 100., until(w.resets, now).map(|t| crate::trf!("Resets in {t}"; t => t)))
+            })
+            .collect()
+    }
+
     /// Context used, 0.0 - 1.0, when known.
     pub fn context_share(&self) -> Option<f32> {
         let l = self.live.as_ref()?;
@@ -335,6 +374,20 @@ impl Workbench {
         self.agent.usage.live.is_some() || self.agent.commands.iter().any(|c| c.name == "usage")
     }
 
+    /// A usage button was clicked: close the panel when it is open, else open it (unless
+    /// this same press just closed it from outside).
+    pub(crate) fn agent_usage_toggle(&mut self, cx: &mut Context<Self>) {
+        let may = self.pop_may_open("usage");
+        if self.agent.usage.open {
+            self.agent.usage.open = false;
+            cx.notify();
+        } else if may {
+            self.agent_usage_open(cx);
+        } else {
+            cx.notify();
+        }
+    }
+
     pub(crate) fn agent_usage_open(&mut self, cx: &mut Context<Self>) {
         let u = &mut self.agent.usage;
         u.open = true;
@@ -421,10 +474,98 @@ impl Workbench {
                 .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(tip.clone()).build(w, cx))
                 .on_click(cx.listener(|this, _, _, cx| {
                     cx.stop_propagation();
-                    this.agent_usage_open(cx)
+                    this.agent_usage_toggle(cx)
                 }))
                 .into_any_element(),
         )
+    }
+
+    /// The limits at the foot of the full-screen changes column: always in view (the
+    /// list of changes above it scrolls), with the context window under them.
+    pub(crate) fn render_limits_card(&self, cx: &mut Context<Self>) -> AnyElement {
+        let u = &self.agent.usage;
+        let now = unix_now();
+        let rows = u.limit_rows(now);
+        let busy = u.probe.is_some() || !u.queue.is_empty();
+        let can_read = self.agent.commands.iter().any(|c| c.name == "usage");
+        let mut body = v_flex().gap_2();
+        for (name, pct, resets) in &rows {
+            body = body.child(
+                v_flex()
+                    .gap_1()
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .text_xs()
+                            .child(div().flex_1().min_w_0().truncate().text_color(c(theme::FG)).child(name.clone()))
+                            .child(div().flex_none().font_weight(FontWeight::SEMIBOLD).text_color(c(if *pct >= 75. { level(*pct) } else { theme::FG_STRONG })).child(format!("{}%", pct.round()))),
+                    )
+                    .child(h_flex().child(bar(SharedString::from(format!("agf-lim-{name}")), *pct)))
+                    .when_some(resets.clone(), |v, r| v.child(div().truncate().text_xs().text_color(c(theme::FG_DIM)).child(r))),
+            );
+        }
+        if rows.is_empty() {
+            let note = if self.agent_model_free().is_some() {
+                tr("Free model: no plan limits to count.")
+            } else if busy {
+                tr("Reading your limits from the agent…")
+            } else if self.agent.session.is_none() {
+                tr("Turn the agent on to read your limits.")
+            } else {
+                tr("Limits show here once the agent reports them.")
+            };
+            body = body.child(div().text_xs().text_color(c(theme::FG_DIM)).child(note));
+        }
+        let context = match (&u.context, &u.live) {
+            (Some((used, total, pct)), _) => Some((format!("{used} / {total}"), *pct as f32)),
+            (None, Some(l)) if l.size > 0 => Some((format!("{} / {}", tokens(l.used), tokens(l.size)), l.used as f32 * 100. / l.size as f32)),
+            _ => None,
+        };
+        if let Some((text, pct)) = context {
+            body = body.child(
+                v_flex()
+                    .gap_1()
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .text_xs()
+                            .child(div().flex_1().min_w_0().truncate().text_color(c(theme::FG)).child(tr("Context")))
+                            .child(div().flex_none().text_color(c(theme::FG_MUTED)).child(text)),
+                    )
+                    .child(h_flex().child(bar("agf-lim-ctx".into(), pct))),
+            );
+        }
+        v_flex()
+            .id("agf-limits")
+            .flex_none()
+            .max_h(theme::u(240.))
+            .overflow_y_scroll()
+            .px_3()
+            .py_2p5()
+            .gap_2()
+            .border_t_1()
+            .border_color(theme::glass_edge())
+            .child(
+                h_flex()
+                    .gap_2()
+                    .child(Icon::new(IconName::Gauge).size(theme::u(13.)).text_color(c(theme::FG_MUTED)))
+                    .child(div().flex_1().text_xs().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_MUTED)).child(tr("Limits")))
+                    .when(can_read, |h| {
+                        h.child(
+                            Button::new("agf-lim-read")
+                                .icon(Icon::new(if busy { IconName::LoaderCircle } else { IconName::RefreshCcw }))
+                                .ghost()
+                                .xsmall()
+                                .tooltip(tr("Read it again"))
+                                .on_click(cx.listener(|this, _, _, cx| this.agent_probe_queue(&[Probe::Usage, Probe::Context], cx))),
+                        )
+                    })
+                    .when(self.agent_has_usage(), |h| {
+                        h.child(Button::new("agf-lim-more").icon(Icon::new(IconName::Maximize2)).ghost().xsmall().tooltip(tr("Usage: limits, context and cost")).on_click(cx.listener(|this, _, _, cx| this.agent_usage_toggle(cx))))
+                    }),
+            )
+            .child(body)
+            .into_any_element()
     }
 
     /// The usage panel over the chat.
@@ -475,34 +616,9 @@ impl Workbench {
         };
         let mut limits = v_flex().gap_3();
         let mut any = false;
-        let window_of = |name: &str| -> Option<&Window> {
-            let l = u.live.as_ref()?;
-            let key = if name.starts_with("5-hour") { "five_hour" } else if name.starts_with("Weekly · all") || name == "Weekly" { "seven_day" } else { return None };
-            l.windows.iter().find(|w| w.key == key)
-        };
-        if let Some(r) = &u.report {
-            for (i, l) in r.limits.iter().enumerate() {
-                any = true;
-                // The live window gives the exact reset time; the report says it in words.
-                let when = window_of(&l.name).and_then(|w| until(w.resets, now)).map(|t| crate::trf!("Resets in {t}"; t => t));
-                let text = match (when, l.resets.is_empty()) {
-                    (Some(w), false) => Some(format!("{w} · {}", l.resets.trim_start_matches("Resets ").trim())),
-                    (Some(w), true) => Some(w),
-                    (None, false) => Some(l.resets.clone()),
-                    (None, true) => None,
-                };
-                limits = limits.child(row(i, l.name.clone(), l.pct as f32, text));
-            }
-        } else if let Some(l) = &u.live {
-            for (i, w) in l.windows.iter().enumerate() {
-                any = true;
-                let name = match w.key.as_str() {
-                    "five_hour" => tr("5-hour limit").to_string(),
-                    "seven_day" => tr("Weekly limit").to_string(),
-                    k => k.replace('_', " "),
-                };
-                limits = limits.child(row(i, name, w.used * 100., until(w.resets, now).map(|t| crate::trf!("Resets in {t}"; t => t))));
-            }
+        for (i, (name, pct, resets)) in u.limit_rows(now).into_iter().enumerate() {
+            any = true;
+            limits = limits.child(row(i, name, pct, resets));
         }
         let free = self.agent_model_free();
         if !any && free.is_some() {
@@ -668,6 +784,7 @@ impl Workbench {
             .overflow_hidden()
             .on_mouse_down_out(cx.listener(|this, _, _, cx| {
                 if !this.agent.usage.confirm_credits {
+                    this.pop_closed_outside("usage");
                     this.agent.usage.open = false;
                     cx.notify();
                 }

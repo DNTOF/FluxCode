@@ -528,11 +528,13 @@ impl Workbench {
                     h_flex().flex_1().min_w_0().child(name.flex_1().min_w_0().truncate())
                 } else {
                     // One line: the name, then who makes it, cut to fit.
+                    let exp = matches!(&r.lead, Lead::Agent(id) if crate::acp::experimental(id));
                     h_flex()
                         .flex_1()
                         .min_w_0()
                         .gap_2()
                         .child(name.flex_shrink_0().max_w(relative(0.62)).truncate())
+                        .when(exp, |h| h.child(experimental_badge()))
                         .when(!r.sub.is_empty(), |h| h.child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(r.sub.clone())))
                 }
             })
@@ -916,6 +918,20 @@ fn claude_rows(o: &super::ConfigOpt) -> Option<Vec<Row>> {
 }
 
 /// The first sentence of a description, for a row's one line (the row cuts it to fit).
+/// A small amber pill beside an agent that is still being built.
+pub(crate) fn experimental_badge() -> Div {
+    div()
+        .flex_none()
+        .px_1p5()
+        .rounded(px(4.))
+        .border_1()
+        .border_color(c(theme::WARN).opacity(0.45))
+        .bg(c(theme::WARN).opacity(0.12))
+        .text_size(theme::u(10.5))
+        .text_color(c(theme::WARN))
+        .child(tr("Experimental"))
+}
+
 fn first_sentence(s: &str) -> String {
     let s = s.trim();
     s.split(". ").next().unwrap_or(s).trim_end_matches('.').to_string()
