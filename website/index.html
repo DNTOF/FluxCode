@@ -420,9 +420,12 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 /* Wordmark: FLUXCODE as large outlined letters. On hover each letter fills with yellow
    from the left, one after another; JS moves the letters at staggered depths until the
    page reaches its end, where they line up. */
+/* Links and the wordmark stack in the right column, under the links, so the wordmark
+   fills the space beside the about text instead of taking a row of its own. */
+.foot-side { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
 .wordmark {
-  display: flex; margin: 48px 0 18px; font-family: var(--display); font-weight: 400;
-  font-size: clamp(2.6rem, 11.5vw, 8.4rem); line-height: 0.86; letter-spacing: 0.01em;
+  display: flex; font-family: var(--display); font-weight: 400;
+  font-size: clamp(2.2rem, 5vw, 4.2rem); line-height: 0.86; letter-spacing: 0.01em;
   user-select: none; cursor: default;
 }
 .wordmark span {
@@ -437,7 +440,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 /* Meander frieze: the logo's line, repeated and mirrored so it runs the whole width as
    one line that never crosses itself. It draws itself as the page reaches its end, then a
    short yellow "flux" runs along it. */
-.frieze { margin: 0 0 28px; color: var(--clay); }
+.frieze { margin: 36px 0 26px; color: var(--clay); }
 .frieze svg { display: block; width: 100%; height: auto; overflow: visible; }
 .frieze path { fill: none; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
 .frieze .line { stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 1; opacity: 0.75; }
@@ -500,8 +503,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   footer { padding-top: 36px; }
   .foot { flex-direction: column; gap: 12px; }
   .foot nav { gap: 0 18px; }
-  .wordmark { margin: 32px 0 14px; }
-  .frieze { margin-bottom: 22px; }
+  .foot-side { align-items: flex-start; gap: 18px; }
+  .frieze { margin: 24px 0 20px; }
   .foot-bar { flex-direction: column; gap: 4px; padding-bottom: 20px; }
   .feature-list, .checks, .charts { grid-template-columns: 1fr; }
   .charts { gap: 32px; }
@@ -866,16 +869,18 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         <a class="brand" href="#top"><img src="img/icon.svg" width="30" height="30" alt=""><span>FluxCode</span></a>
         <p data-i18n-html="foot.about">A <a class="text-link" href="https://github.com/MuaraAI" target="_blank" rel="noopener">MuaraAI</a> project. Open source under GPL-3.0-or-later, still in development.</p>
       </div>
-      <nav data-i18n-attr="aria-label:foot.label" aria-label="Project links">
-        <a href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://github.com/MuaraAI/FluxCode/blob/main/README.md" target="_blank" rel="noopener" data-i18n-attr="href:foot.readme">README</a>
-        <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener" data-i18n="foot.flux">Flux format</a>
-        <a href="https://github.com/MuaraAI/FluxCode/blob/main/changelog.flux" target="_blank" rel="noopener" data-i18n="foot.changelog">Changelog</a>
-        <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Issues</a>
-        <a href="https://github.com/MuaraAI/FluxCode/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n="foot.license">License</a>
-      </nav>
+      <div class="foot-side">
+        <nav data-i18n-attr="aria-label:foot.label" aria-label="Project links">
+          <a href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/MuaraAI/FluxCode/blob/main/README.md" target="_blank" rel="noopener" data-i18n-attr="href:foot.readme">README</a>
+          <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener" data-i18n="foot.flux">Flux format</a>
+          <a href="https://github.com/MuaraAI/FluxCode/blob/main/changelog.flux" target="_blank" rel="noopener" data-i18n="foot.changelog">Changelog</a>
+          <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="https://github.com/MuaraAI/FluxCode/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n="foot.license">License</a>
+        </nav>
+        <div class="wordmark" aria-hidden="true"><span>F</span><span>L</span><span>U</span><span>X</span><span>C</span><span>O</span><span>D</span><span>E</span></div>
+      </div>
     </div>
-    <div class="wordmark" aria-hidden="true"><span>F</span><span>L</span><span>U</span><span>X</span><span>C</span><span>O</span><span>D</span><span>E</span></div>
     <div class="frieze" aria-hidden="true"></div>
     <div class="foot-bar">
       <span>&copy; 2026 MuaraAI &middot; GPL-3.0-or-later</span>
@@ -2052,7 +2057,6 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         frieze.appendChild(svg);
       }
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-      svg.style.maxWidth = width + "px";
       line.setAttribute("d", d);
       flux.setAttribute("d", d);
     }
