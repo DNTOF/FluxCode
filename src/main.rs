@@ -29,6 +29,7 @@ mod files;
 mod flux_anim;
 mod fluxdoc;
 mod github;
+mod instance;
 mod panel;
 mod memtrim;
 mod preview;
@@ -42,6 +43,7 @@ mod search;
 mod scene;
 mod sidedock;
 mod settings;
+mod shell;
 mod term;
 mod theme;
 mod theme_menu;
@@ -75,9 +77,16 @@ fn main() {
     if argv.get(1).map(String::as_str) == Some("--flux-to-md") {
         std::process::exit(fluxdoc::md::cli(&argv[2..]));
     }
+    // `fluxcode --register-shell` / `--unregister-shell`: "Open with FluxCode" in
+    // Explorer, run by the installer and the uninstaller. No window.
+    match argv.get(1).map(String::as_str) {
+        Some("--register-shell") => std::process::exit(shell::cli(true)),
+        Some("--unregister-shell") => std::process::exit(shell::cli(false)),
+        _ => {}
+    }
     boot::start();
-    // `fluxcode [folder] [files...]`; with no
-    // arguments the last session is restored (or the welcome screen shown).
+    // `fluxcode [folder] [files...]`; with no folder the last session is restored
+    // (or the welcome screen shown), with the files opened on top of it.
     let paths: Vec<PathBuf> = std::env::args_os()
         .skip(1)
         .filter(|a| !a.to_string_lossy().starts_with('-'))
@@ -95,6 +104,12 @@ fn main() {
         .collect();
     let files: Vec<PathBuf> = paths.iter().filter(|p| p.is_file()).cloned().collect();
     let root = paths.iter().find(|p| p.is_dir()).cloned();
+    // Files alone (a double-click in Explorer, "Open with FluxCode") open in the
+    // FluxCode window that is already open; a folder gets a window of its own.
+    // `--new-window` always opens one.
+    if root.is_none() && !files.is_empty() && !argv.iter().any(|a| a == "--new-window") && instance::forward(&files) {
+        return;
+    }
 
     // Which agents are installed (PATH and ~/.fluxcode/agents), worked out while
     // GPUI sets up the window system, so the agent panel never waits for it.

@@ -104,6 +104,10 @@ jobs:
           $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\FluxCode"
           $ver = (Get-ItemProperty $key).DisplayVersion
           if ($ver -ne $env:FLUXCODE_BUILD) { throw "Settings > Apps would show $ver" }
+          # "Open with FluxCode" (on by default): the right-click entry and a file type.
+          $menu = "HKCU:\Software\Classes\*\shell\FluxCode\command"
+          if (-not (Test-Path -LiteralPath $menu)) { throw "no Open with FluxCode entry after install" }
+          if ((Get-Item "HKCU:\Software\Classes\.ts\OpenWithProgids").GetValueNames() -notcontains "FluxCode.File") { throw ".ts has no FluxCode in Open with" }
           # The installed exe runs: a command-line mode that writes a file and exits.
           $md = Join-Path $env:RUNNER_TEMP "readme.md"
           Start-Process "$app\FluxCode.exe" -ArgumentList "--flux-to-md", "README.flux", "`"$md`"" -Wait
@@ -113,6 +117,7 @@ jobs:
           if (Test-Path "$app\FluxCode.exe") { throw "uninstall left FluxCode.exe" }
           if (Test-Path $lnk) { throw "uninstall left the Start Menu shortcut" }
           if (Test-Path $key) { throw "uninstall left the Settings > Apps entry" }
+          if (Test-Path -LiteralPath $menu) { throw "uninstall left the Open with FluxCode entry" }
           "installer: install, run and uninstall all worked"
       - uses: actions/upload-artifact@v4
         if: env.FAST != 'true'
