@@ -262,13 +262,19 @@ impl Workbench {
         cx.spawn(async move |this, cx| {
             let res = cx
                 .background_spawn(async move {
-                    market::install(&item).map(|_| market::installed_list())
+                    market::install(&item).map(|_| {
+                        super::native::load();
+                        market::installed_list()
+                    })
                 })
                 .await;
             _ = this.update(cx, |this, cx| {
                 this.ext.market.busy.remove(&id);
                 match res {
-                    Ok(list) => this.ext.market.installed = list,
+                    Ok(list) => {
+                        this.ext.market.installed = list;
+                        this.vsx_applied_changed(&id, cx);
+                    }
                     Err(e) => {
                         this.ext.note =
                             Some(crate::trf!("Couldn't install {name}: {e}"; name => name, e => e))
@@ -298,7 +304,10 @@ impl Workbench {
             };
             let res = cx
                 .background_spawn(async move {
-                    market::install_file(&p).map(|name| (name, market::installed_list()))
+                    market::install_file(&p).map(|name| {
+                        super::native::load();
+                        (name, market::installed_list())
+                    })
                 })
                 .await;
             _ = this.update(cx, |this, cx| {
@@ -306,6 +315,7 @@ impl Workbench {
                     Ok((name, list)) => {
                         this.ext.market.installed = list;
                         this.ext.note = Some(crate::trf!("Installed {name}"; name => name));
+                        this.vsx_applied_changed("", cx);
                     }
                     Err(e) => this.ext.note = Some(crate::trf!("Couldn't install it: {e}"; e => e)),
                 }
@@ -327,13 +337,19 @@ impl Workbench {
         cx.spawn(async move |this, cx| {
             let res = cx
                 .background_spawn(async move {
-                    market::uninstall(&folder).map(|_| market::installed_list())
+                    market::uninstall(&folder).map(|_| {
+                        super::native::load();
+                        market::installed_list()
+                    })
                 })
                 .await;
             _ = this.update(cx, |this, cx| {
                 this.ext.market.busy.remove(&id);
                 match res {
-                    Ok(list) => this.ext.market.installed = list,
+                    Ok(list) => {
+                        this.ext.market.installed = list;
+                        this.vsx_applied_changed("", cx);
+                    }
                     Err(e) => {
                         this.ext.note = Some(crate::trf!("Couldn't uninstall it: {e}"; e => e))
                     }
@@ -343,6 +359,21 @@ impl Workbench {
         })
         .detach();
         cx.notify();
+    }
+
+    /// After `native::load`: the theme list may have changed (and the active theme with
+    /// it, if its extension was removed or updated), so the palette is applied again.
+    /// `installed` names an extension just installed: if it brings color themes, the
+    /// note says where they are.
+    fn vsx_applied_changed(&mut self, installed: &str, cx: &mut Context<Self>) {
+        self.settings.apply_backdrop();
+        theme::apply(cx);
+        cx.refresh_windows();
+        let themes = super::native::applied(installed).themes;
+        if !installed.is_empty() && !themes.is_empty() {
+            let names: Vec<&str> = themes.iter().map(|(_, n)| n.as_str()).collect();
+            self.ext.note = Some(crate::trf!("Added to the color themes: {list}. Pick one below or from the theme menu in the status bar."; list => names.join(", ")));
+        }
     }
 
     /// Show an extension's page in the editor area and fetch its README once.
@@ -1009,7 +1040,7 @@ impl Workbench {
                     }),
             );
 
-        // What FluxCode does with it: the declared parts, and the honest limit.
+        // What FluxCode does with it: the declared parts, what is applied, and the honest limit.
         let declared: SharedString = match &inst {
             Some(i) if !i.contributes.is_empty() => {
                 crate::trf!("It declares {list}."; list => i.contributes.join(", ")).into()
@@ -1017,9 +1048,39 @@ impl Workbench {
             Some(_) => tr("It declares no themes, languages or snippets.").into(),
             None => tr("Install it to see what it declares (themes, languages, snippets).").into(),
         };
+        let applied = inst.as_ref().map(|_| super::native::applied(&id)).unwrap_or_default();
+        let current = theme::palette().id;
+        let theme_chips = h_flex().flex_wrap().gap_1().children(applied.themes.iter().enumerate().map(|(i, (tid, name))| {
+            let tid = tid.clone();
+            let on = tid == current;
+            chip(("vsx-theme", i), name.clone().into(), on)
+                .border_1()
+                .border_color(c(if on { theme::ACCENT } else { theme::BORDER }))
+                .on_click(cx.listener(move |this, _, w, cx| this.set_theme(&tid, w, cx)))
+        }));
+        let applied_line: Option<SharedString> = match (&inst, applied.themes.is_empty(), applied.languages.is_empty()) {
+            (None, ..) => None,
+            (Some(_), true, true) => Some(tr("Nothing it declares is applied: FluxCode applies color themes and the file types of languages.").into()),
+            (Some(_), _, false) => Some(crate::trf!("Files open as {list}."; list => applied.languages.join(", ")).into()),
+            (Some(_), false, true) => None,
+        };
         let here = v_flex()
             .gap_1()
             .child(div().text_sm().text_color(c(theme::FG)).child(declared))
+            .when(!applied.themes.is_empty(), |v| {
+                v.child(
+                    v_flex()
+                        .gap_1()
+                        .pt_1()
+                        .child(div().text_sm().text_color(c(theme::FG)).child(tr("Its color themes are in the theme menu; click one to use it:")))
+                        .child(theme_chips),
+                )
+            })
+            .when_some(applied_line, |v, t| v.child(div().text_sm().text_color(c(theme::FG)).child(t)))
+            .when(!applied.failed.is_empty(), |v| {
+                v.child(div().text_xs().text_color(c(theme::WARN)).child(crate::trf!("Couldn't read: {list}"; list => applied.failed.join("; "))))
+            })
+            .child(div().text_xs().text_color(c(theme::FG_DIM)).child(tr("Grammars, snippets and icon themes aren't applied yet.")))
             .child(div().text_xs().text_color(c(theme::FG_DIM)).child(tr(
                 "VS Code's JavaScript extension host isn't available in FluxCode, so code that runs inside VS Code (commands, debuggers, language servers started by the extension) doesn't run here.",
             )))

@@ -114,6 +114,10 @@ fn main() {
         boot::mark("gpui-kit init");
         // The saved theme is active before the first frame, so the window never flashes another one.
         let saved = settings::Settings::load();
+        // Installed VS Code themes and languages, so a saved extension theme is
+        // there for the first frame too (a few small files when any are installed).
+        ext::native::load();
+        boot::mark("vscode extensions");
         theme::set_ui_size(saved.ui_size);
         saved.apply_backdrop();
         theme::apply(cx);

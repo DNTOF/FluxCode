@@ -1649,8 +1649,9 @@ impl Workbench {
 
     /// Ctrl+K Ctrl+T: the next color theme, FluxDark → FluxCream → FluxMono → FluxRed.
     fn on_next_theme(&mut self, _: &NextTheme, window: &mut Window, cx: &mut Context<Self>) {
-        let ix = theme::PALETTES.iter().position(|p| p.id == theme::palette().id).unwrap_or(0);
-        let next = theme::PALETTES[(ix + 1) % theme::PALETTES.len()].id;
+        let all = theme::all();
+        let ix = all.iter().position(|p| p.id == theme::palette().id).unwrap_or(0);
+        let next = all[(ix + 1) % all.len()].id;
         self.set_theme(next, window, cx);
     }
 

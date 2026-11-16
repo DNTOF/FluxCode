@@ -5,8 +5,9 @@
 //! extension is the VSIX's `extension/` folder unpacked into
 //! `~/.fluxcode/vscode-extensions/<publisher>.<name>-<version>/`, and the installed
 //! list is those folders' package.json files, read again when it may have changed.
-//! There is no JavaScript extension host: FluxCode reads what an extension declares
-//! (themes, languages, snippets); code meant to run inside VS Code does not run.
+//! There is no JavaScript extension host: FluxCode applies what an extension declares
+//! as data (color themes, languages; see `native`); code meant to run inside VS Code
+//! does not run.
 
 use crate::i18n::tr;
 use serde_json::{json, Value};
@@ -717,7 +718,7 @@ pub fn contributes(pkg: &Value) -> Vec<String> {
 }
 
 /// `%key%` names come from package.nls.json.
-fn localized(folder: &Path, s: &str, nls: &mut Option<Value>) -> String {
+pub(crate) fn localized(folder: &Path, s: &str, nls: &mut Option<Value>) -> String {
     let Some(key) = s.strip_prefix('%').and_then(|k| k.strip_suffix('%')) else {
         return s.to_string();
     };
