@@ -116,38 +116,86 @@ impl Zip {
     }
 }
 
-/// One file out of a ZIP (a jar): found in the central directory, stored or deflated.
-pub fn read_entry(zip: &[u8], name: &str) -> Option<Vec<u8>> {
-    let u16at = |i: usize| zip.get(i..i + 2).map(|b| u16::from_le_bytes([b[0], b[1]]));
-    let u32at = |i: usize| zip.get(i..i + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]));
+/// A file the central directory of a ZIP lists.
+pub struct Listed {
+    pub name: String,
+    pub size: usize,
+    method: u16,
+    packed: usize,
+    offset: usize,
+}
+
+fn u16at(zip: &[u8], i: usize) -> Option<u16> {
+    zip.get(i..i + 2).map(|b| u16::from_le_bytes([b[0], b[1]]))
+}
+fn u32at(zip: &[u8], i: usize) -> Option<u32> {
+    zip.get(i..i + 4)
+        .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+}
+
+/// Every entry of a ZIP (a jar, a VSIX), in the central directory's order.
+pub fn list(zip: &[u8]) -> Option<Vec<Listed>> {
     // The end record is in the last 64 KB (after an optional comment).
     let from = zip.len().saturating_sub(22 + 65_535);
-    let end = (from..zip.len().saturating_sub(21)).rev().find(|&i| u32at(i) == Some(0x0605_4b50))?;
-    let count = u16at(end + 10)? as usize;
-    let mut at = u32at(end + 16)? as usize;
+    let end = (from..zip.len().saturating_sub(21))
+        .rev()
+        .find(|&i| u32at(zip, i) == Some(0x0605_4b50))?;
+    let count = u16at(zip, end + 10)? as usize;
+    let mut at = u32at(zip, end + 16)? as usize;
+    let mut out = Vec::with_capacity(count);
     for _ in 0..count {
-        if u32at(at)? != 0x0201_4b50 {
+        if u32at(zip, at)? != 0x0201_4b50 {
             return None;
         }
-        let method = u16at(at + 10)?;
-        let packed = u32at(at + 20)? as usize;
-        let size = u32at(at + 24)? as usize;
-        let (nlen, xlen, clen) = (u16at(at + 28)? as usize, u16at(at + 30)? as usize, u16at(at + 32)? as usize);
-        let offset = u32at(at + 42)? as usize;
-        let entry = zip.get(at + 46..at + 46 + nlen)?;
+        let method = u16at(zip, at + 10)?;
+        let packed = u32at(zip, at + 20)? as usize;
+        let size = u32at(zip, at + 24)? as usize;
+        let (nlen, xlen, clen) = (
+            u16at(zip, at + 28)? as usize,
+            u16at(zip, at + 30)? as usize,
+            u16at(zip, at + 32)? as usize,
+        );
+        let offset = u32at(zip, at + 42)? as usize;
+        let name = String::from_utf8_lossy(zip.get(at + 46..at + 46 + nlen)?).into_owned();
         at += 46 + nlen + xlen + clen;
-        if entry != name.as_bytes() {
-            continue;
-        }
-        let (ln, lx) = (u16at(offset + 26)? as usize, u16at(offset + 28)? as usize);
-        let body = zip.get(offset + 30 + ln + lx..offset + 30 + ln + lx + packed)?;
-        return match method {
-            0 => Some(body.to_vec()),
-            8 => miniz_oxide::inflate::decompress_to_vec_with_limit(body, size.max(1) * 2 + 1024).ok(),
-            _ => None,
-        };
+        out.push(Listed {
+            name,
+            size,
+            method,
+            packed,
+            offset,
+        });
     }
-    None
+    Some(out)
+}
+
+/// A listed entry's bytes, stored or deflated. None past `max` bytes: the inflater
+/// stops there, whatever size the entry claims.
+pub fn read(zip: &[u8], e: &Listed, max: usize) -> Option<Vec<u8>> {
+    if e.size > max {
+        return None;
+    }
+    let (ln, lx) = (
+        u16at(zip, e.offset + 26)? as usize,
+        u16at(zip, e.offset + 28)? as usize,
+    );
+    let start = e.offset + 30 + ln + lx;
+    let body = zip.get(start..start + e.packed)?;
+    match e.method {
+        0 => Some(body.to_vec()),
+        8 => miniz_oxide::inflate::decompress_to_vec_with_limit(
+            body,
+            (e.size.max(1) * 2 + 1024).min(max),
+        )
+        .ok(),
+        _ => None,
+    }
+}
+
+/// One file out of a ZIP (a jar): found in the central directory, stored or deflated.
+pub fn read_entry(zip: &[u8], name: &str) -> Option<Vec<u8>> {
+    let e = list(zip)?.into_iter().find(|e| e.name == name)?;
+    read(zip, &e, usize::MAX)
 }
 
 #[cfg(test)]

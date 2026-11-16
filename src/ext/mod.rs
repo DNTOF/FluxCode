@@ -10,11 +10,14 @@
 //!
 //! The catalog ships inside FluxCode (`extensions/*.json`, compiled in). More can be
 //! installed from a file into `~/.fluxcode/extensions/<id>/extension.json`. Installed
-//! ids are kept in the settings.
+//! ids are kept in the settings. VS Code extensions come from its Marketplace
+//! (`market`) and live apart from these, in `~/.fluxcode/vscode-extensions`.
 
 pub mod bedrock;
 pub mod compile;
 pub mod java;
+pub mod market;
+mod market_view;
 pub mod view;
 pub mod zip;
 
@@ -592,6 +595,10 @@ pub struct Ext {
     pub fold_scan: usize,
     pub fold_count: usize,
     pub fold_line: Option<usize>,
+    /// The VS Code Marketplace list and the extensions installed from it.
+    pub market: market::Market,
+    /// Searches the Marketplace as the query changes.
+    pub _query_sub: gpui_kit::Subscription,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -599,6 +606,7 @@ pub enum Filter {
     Installed,
     Here,
     All,
+    Market,
 }
 
 #[cfg(test)]

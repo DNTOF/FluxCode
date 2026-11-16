@@ -8,6 +8,8 @@
 //! the details open in the editor area, since the sidebar is too narrow for them (VS
 //! Code's extension editor); the page lists what the extension adds and needs (Zed's
 //! "provides", Raycast's command list), with the folder's own projects first.
+//! VS Code Marketplace extensions get their own tab and a section under All
+//! (market_view.rs).
 
 use super::{Filter, Manifest, Project, Task, Tool};
 use crate::i18n::tr;
@@ -18,7 +20,7 @@ use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
     h_flex,
-    input::{Input, InputState},
+    input::{Input, InputEvent, InputState},
     menu::{DropdownMenu, PopupMenu, PopupMenuItem},
     spinner::Spinner,
     text::TextView,
@@ -58,7 +60,7 @@ pub fn icon(name: &str) -> Ico {
 }
 
 /// The square tile an extension's icon sits on.
-fn tile(name: &str, size: f32) -> Div {
+pub(super) fn tile(name: &str, size: f32) -> Div {
     div()
         .flex_none()
         .size(theme::u(size))
@@ -176,11 +178,31 @@ pub(crate) fn run_row(id: ElementId, ic: Ico, label: SharedString, running: bool
 
 impl super::Ext {
     pub fn new(window: &mut Window, cx: &mut Context<Workbench>) -> Self {
+        let query = cx.new(|cx| InputState::new(window, cx).placeholder(tr("Search extensions")));
+        let query_sub = cx.subscribe_in(
+            &query,
+            window,
+            |this: &mut Workbench, _, ev: &InputEvent, _, cx| {
+                if matches!(ev, InputEvent::Change) {
+                    this.market_query_changed(cx);
+                }
+            },
+        );
+        cx.spawn(async move |this, cx| {
+            let list = cx
+                .background_spawn(async move { super::market::installed_list() })
+                .await;
+            _ = this.update(cx, |this, cx| {
+                this.ext.market.installed = list;
+                cx.notify();
+            });
+        })
+        .detach();
         Self {
             catalog: super::catalog(),
             found: Vec::new(),
             tasks: Vec::new(),
-            query: cx.new(|cx| InputState::new(window, cx).placeholder(tr("Search extensions"))),
+            query,
             new_name: cx.new(|cx| InputState::new(window, cx).placeholder(tr("Name"))),
             filter: Filter::All,
             page: None,
@@ -193,6 +215,8 @@ impl super::Ext {
             fold_scan: 0,
             fold_count: 0,
             fold_line: None,
+            market: Default::default(),
+            _query_sub: query_sub,
         }
     }
 }
@@ -639,12 +663,16 @@ impl Workbench {
         let q = self.ext.query.read(cx).value().to_lowercase();
         let here = |m: &Manifest| self.ext.found.iter().any(|p| p.ext == m.id);
         let count = |f: Filter| {
-            self.ext.catalog.iter().filter(|m| match f {
-                Filter::Installed => self.ext_installed(&m.id),
-                Filter::Here => here(m),
-                Filter::All => true,
-            })
-            .count()
+            self.ext
+                .catalog
+                .iter()
+                .filter(|m| match f {
+                    Filter::Installed => self.ext_installed(&m.id),
+                    Filter::Here => here(m),
+                    Filter::All => true,
+                    Filter::Market => false,
+                })
+                .count()
         };
         let tab = |id: &'static str, label: SharedString, f: Filter, cx: &mut Context<Self>| {
             let on = self.ext.filter == f;
@@ -663,17 +691,46 @@ impl Workbench {
                 .child(label)
                 .on_click(cx.listener(move |this, _, _, cx| {
                     this.ext.filter = f;
+                    this.market_tab_shown(cx);
                     cx.notify();
                 }))
         };
+        let installed_count = count(Filter::Installed) + self.ext.market.installed.len();
         let tabs = h_flex()
             .px_2()
             .gap_0p5()
             .flex_wrap()
-            .child(tab("ext-f-all", format!("{} {}", tr("All"), count(Filter::All)).into(), Filter::All, cx))
-            .child(tab("ext-f-inst", format!("{} {}", tr("Installed"), count(Filter::Installed)).into(), Filter::Installed, cx))
-            .child(tab("ext-f-here", format!("{} {}", tr("This folder"), count(Filter::Here)).into(), Filter::Here, cx));
-        let mut list = v_flex().id("ext-list").w_full().flex_1().min_h_0().overflow_y_scroll().pb_2();
+            .child(tab(
+                "ext-f-all",
+                format!("{} {}", tr("All"), count(Filter::All)).into(),
+                Filter::All,
+                cx,
+            ))
+            .child(tab(
+                "ext-f-inst",
+                format!("{} {}", tr("Installed"), installed_count).into(),
+                Filter::Installed,
+                cx,
+            ))
+            .child(tab(
+                "ext-f-here",
+                format!("{} {}", tr("This folder"), count(Filter::Here)).into(),
+                Filter::Here,
+                cx,
+            ))
+            .child(tab(
+                "ext-f-market",
+                tr("Marketplace").into(),
+                Filter::Market,
+                cx,
+            ));
+        let mut list = v_flex()
+            .id("ext-list")
+            .w_full()
+            .flex_1()
+            .min_h_0()
+            .overflow_y_scroll()
+            .pb_2();
         let mut shown = 0;
         for (i, m) in self.ext.catalog.iter().enumerate() {
             let installed = self.ext_installed(&m.id);
@@ -681,6 +738,7 @@ impl Workbench {
                 Filter::Installed => installed,
                 Filter::Here => here(m),
                 Filter::All => true,
+                Filter::Market => false,
             };
             let hay = format!("{} {} {} {}", m.name, m.summary, m.category, m.id).to_lowercase();
             if !ok || (!q.is_empty() && !q.split_whitespace().all(|w| hay.contains(w))) {
@@ -734,13 +792,50 @@ impl Workbench {
                     .on_click(cx.listener(move |this, _, _, cx| this.ext_open_page(&id_open, cx))),
             );
         }
-        if shown == 0 {
-            list = list.child(div().px_3().py_4().text_xs().text_color(c(theme::FG_DIM)).child(match self.ext.filter {
-                Filter::Here if self.root.is_none() => tr("Open a folder to see which extensions it uses."),
-                Filter::Here => tr("No extension is for a project in this folder."),
-                Filter::Installed => tr("Nothing installed yet: pick one under All."),
-                Filter::All => tr("No extension matches."),
-            }));
+        if self.ext.filter == Filter::Installed {
+            let (rows, n) = self.market_installed_rows(&q, cx);
+            if n > 0 {
+                shown += n;
+                list = list
+                    .child(
+                        div()
+                            .px_3()
+                            .pt_3()
+                            .pb_1()
+                            .text_xs()
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(c(theme::FG_MUTED))
+                            .child(tr("From the VS Code Marketplace")),
+                    )
+                    .child(rows);
+            }
+        }
+        let market = matches!(self.ext.filter, Filter::All | Filter::Market);
+        if shown == 0 && !market {
+            list = list.child(
+                div()
+                    .px_3()
+                    .py_4()
+                    .text_xs()
+                    .text_color(c(theme::FG_DIM))
+                    .child(match self.ext.filter {
+                        Filter::Here if self.root.is_none() => {
+                            tr("Open a folder to see which extensions it uses.")
+                        }
+                        Filter::Here => tr("No extension is for a project in this folder."),
+                        _ => tr("Nothing installed yet: pick one under All."),
+                    }),
+            );
+        }
+        if market {
+            // The first time the list shows the Marketplace: most installed, or the query.
+            if !self.ext.market.kicked.replace(true) {
+                cx.spawn(async move |this, cx| {
+                    _ = this.update(cx, |this, cx| this.market_search(0, cx));
+                })
+                .detach();
+            }
+            list = list.child(self.market_section(cx));
         }
         v_flex()
             .size_full()
@@ -770,6 +865,9 @@ impl Workbench {
     // ------------------------------------------------------------ the page
 
     pub(crate) fn render_ext_page(&self, id: &str, cx: &mut Context<Self>) -> AnyElement {
+        if id.starts_with(super::market_view::PAGE) {
+            return self.render_market_page(cx);
+        }
         let Some(m) = self.ext_manifest(id).cloned() else { return div().into_any_element() };
         let installed = self.ext_installed(&m.id);
 
