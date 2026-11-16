@@ -1730,6 +1730,11 @@ impl Workbench {
             cx.open_url("https://github.com/MuaraAI/Mura-Harness");
             return;
         }
+        if id == "commandcode" {
+            // Installed by the user with npm; FluxCode detects the copy on PATH.
+            cx.open_url("https://commandcode.ai/docs/quickstart");
+            return;
+        }
         let tracker = crate::acp::Tracker::default();
         let title: SharedString = crate::trf!("Installing {name}"; name => crate::acp::display_name(&id)).into();
         let anim = cx.new(|cx| crate::flux_anim::InstallAnim::new(tracker.clone(), title, cx));
@@ -4156,7 +4161,7 @@ impl Workbench {
                         .text_xs()
                         .text_color(c(theme::FG_MUTED))
                         .child(Icon::new(gpui_kit::assets::IconName::Download).size(theme::u(14.)))
-                        .child(if k == "mura" { tr("Get") } else { tr("Download") }),
+                        .child(if k == "mura" || k == "commandcode" { tr("Get") } else { tr("Download") }),
                 )
                 .on_click(cx.listener(move |this, _, w, cx| this.agent_install(kid.clone(), w, cx)))
         }));
@@ -4164,7 +4169,6 @@ impl Workbench {
             .child(div().text_xs().text_center().text_color(c(theme::FG_DIM)).child(note))
             .child(list)
             .when(!any, |v| v.child(div().pt_1().text_xs().text_color(c(theme::FG_DIM)).child(tr("The menu above lists every agent in the ACP registry."))))
-            .children(err_box)
             .into_any_element()
     }
 }

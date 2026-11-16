@@ -5,6 +5,14 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## Command Code over ACP (16 November 2026)
+
+- The agent panel lists **Command Code**, the coding agent for open models.
+  FluxCode doesn't download it: install it once with `npm i -g command-code`,
+  log in with `cmd login`, and FluxCode finds `commandcode` on PATH and starts
+  it over the Agent Client Protocol when you pick it. Its Get button opens
+  Command Code's quickstart instead of a download.
+
 ## HTML preview says it runs a WebView (15 November 2026)
 
 - Opening the HTML preview now shows a notice first: the preview runs a

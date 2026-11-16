@@ -10,6 +10,14 @@
 //   @en / @id                the Markdown that follows is English / Indonesian
 // Lines starting with // before the first @release are comments.
 
+@release 2026-11-16
+@title en: Command Code, over ACP
+@title id: Command Code, lewat ACP
+@en
+The agent panel now lists **Command Code**, the coding agent for open models. FluxCode doesn't download it: install it once with `npm i -g command-code`, run `cmd login` in a terminal, and FluxCode finds it on PATH and starts it over the Agent Client Protocol when you pick it.
+@id
+Panel agent sekarang menampilkan **Command Code**, coding agent untuk model terbuka. FluxCode tidak mengunduhnya: pasang sekali dengan `npm i -g command-code`, jalankan `cmd login` di terminal, dan FluxCode menemukannya di PATH lalu menjalankannya lewat Agent Client Protocol saat kamu memilihnya.
+
 @release 2026-11-15
 @title en: HTML preview says it runs a WebView
 @title id: Pratinjau HTML bilang ia menjalankan WebView
