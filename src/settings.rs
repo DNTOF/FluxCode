@@ -1105,40 +1105,43 @@ impl Workbench {
                                             .output();
                                         match out {
                                             Ok(o) if o.status.success() => Ok(()),
-                                            Ok(o) => {
-                                                let mut msg = if o.stderr.is_empty() {
-                                                    format!("npm exited with {}", o.status)
-                                                } else {
-                                                    String::from_utf8_lossy(&o.stderr)
-                                                        .trim()
-                                                        .to_string()
-                                                };
-                                                let low = msg.to_lowercase();
-                                                if low.contains("eacces")
-                                                    || low.contains("permission denied")
-                                                {
-                                                    msg.push_str(". ");
-                                                    msg.push_str(tr(
-                                                        "npm's global folder is not writable; see the npm docs on EACCES, or install the server by hand.",
-                                                    ));
-                                                }
-                                                Err(msg)
-                                            }
+                                            Ok(o) => Err(crate::copilot::npm_install_error(
+                                                &String::from_utf8_lossy(&o.stderr),
+                                                &o.status.to_string(),
+                                            )),
                                             Err(e) => Err(e.to_string()),
                                         }
                                     })
                                     .await;
-                                _ = this.update(cx, |this, cx| {
-                                    this.copilot_installing = false;
-                                    match r {
-                                        Ok(()) => {
-                                            this.copilot.retry();
-                                            this.status = tr("Copilot server installed.").into();
+                                let installed = this
+                                    .update(cx, |this, cx| {
+                                        this.copilot_installing = false;
+                                        cx.notify();
+                                        match r {
+                                            Ok(()) => {
+                                                this.copilot.retry();
+                                                this.status = tr("Copilot server installed.").into();
+                                                Some(this.copilot.clone())
+                                            }
+                                            Err(e) => {
+                                                this.status = crate::trf!("Install failed: {e}"; e => e).into();
+                                                None
+                                            }
                                         }
-                                        Err(e) => this.status = crate::trf!("Install failed: {e}"; e => e).into(),
-                                    }
-                                    cx.notify();
-                                });
+                                    })
+                                    .ok()
+                                    .flatten();
+                                // Start it now, so Settings moves on to the sign-in step
+                                // instead of waiting for the next suggestion request.
+                                if let Some(copilot) = installed {
+                                    let started = cx.background_spawn(async move { copilot.start() }).await;
+                                    _ = this.update(cx, |this, cx| {
+                                        if let Err(e) = started {
+                                            this.status = e.into();
+                                        }
+                                        cx.notify();
+                                    });
+                                }
                             })
                             .detach();
                         })),

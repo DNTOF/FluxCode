@@ -203,6 +203,13 @@ impl Copilot {
         st.last_attempt = None;
     }
 
+    /// Start the server now instead of on the next suggestion request, so
+    /// Settings can show the sign-in step right after an install. Blocks up
+    /// to the initialize timeout; call it off the UI thread.
+    pub fn start(&self) -> Result<(), String> {
+        self.ensure_started(None)
+    }
+
     /// Stop the server, if it is running. Safe to call when it is not.
     pub fn stop(&self) {
         let child;
@@ -540,6 +547,22 @@ fn find_on_path(name: &str) -> Option<PathBuf> {
 /// Node.js, so its presence also covers the server runtime prerequisite.
 pub(crate) fn npm_present() -> bool {
     find_on_path(if cfg!(windows) { "npm.cmd" } else { "npm" }).is_some()
+}
+
+/// One status-bar line for a failed `npm install`: npm's first stderr line
+/// (its full output runs to a dozen lines and the status bar truncates),
+/// plus a hint when the global folder is not writable.
+pub(crate) fn npm_install_error(stderr: &str, exit: &str) -> String {
+    let first = stderr.lines().map(str::trim).find(|l| !l.is_empty());
+    let msg = first.map_or_else(|| format!("npm exited with {exit}"), str::to_string);
+    let low = stderr.to_lowercase();
+    if low.contains("eacces") || low.contains("permission denied") {
+        return format!(
+            "{}. {msg}",
+            crate::i18n::tr("npm's global folder is not writable; see the npm docs on EACCES, or install the server by hand.")
+        );
+    }
+    msg
 }
 
 /// The command that runs the server, or an error whose text starts with
@@ -1057,6 +1080,21 @@ mod tests {
         assert!(!state.not_installed);
         assert!(state.start_error.is_none());
         assert!(state.last_attempt.is_none());
+    }
+
+    #[test]
+    fn npm_install_error_puts_eacces_hint_first() {
+        let stderr = "\nnpm error code EACCES\nnpm error syscall mkdir\nnpm error path /usr/lib/node_modules\n";
+        let msg = npm_install_error(stderr, "exit status: 243");
+        assert!(msg.starts_with("npm's global folder is not writable"), "{msg}");
+        assert!(msg.ends_with("npm error code EACCES"), "{msg}");
+        assert!(!msg.contains('\n'));
+    }
+
+    #[test]
+    fn npm_install_error_falls_back_to_exit_status() {
+        assert_eq!(npm_install_error("  \n", "exit status: 1"), "npm exited with exit status: 1");
+        assert_eq!(npm_install_error("npm error 404 Not Found\nmore", "x"), "npm error 404 Not Found");
     }
 
     #[test]
