@@ -8,6 +8,8 @@
 //! the details open in the editor area, since the sidebar is too narrow for them (VS
 //! Code's extension editor); the page lists what the extension adds and needs (Zed's
 //! "provides", Raycast's command list), with the folder's own projects first.
+//! VS Code Marketplace extensions get their own tab and a section under All
+//! (market_view.rs).
 
 use super::{Filter, Manifest, Project, Task, Tool};
 use crate::i18n::tr;
@@ -18,7 +20,7 @@ use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
     h_flex,
-    input::{Input, InputState},
+    input::{Input, InputEvent, InputState},
     menu::{DropdownMenu, PopupMenu, PopupMenuItem},
     spinner::Spinner,
     text::TextView,
@@ -58,7 +60,7 @@ pub fn icon(name: &str) -> Ico {
 }
 
 /// The square tile an extension's icon sits on.
-fn tile(name: &str, size: f32) -> Div {
+pub(super) fn tile(name: &str, size: f32) -> Div {
     div()
         .flex_none()
         .size(theme::u(size))
@@ -176,13 +178,33 @@ pub(crate) fn run_row(id: ElementId, ic: Ico, label: SharedString, running: bool
 
 impl super::Ext {
     pub fn new(window: &mut Window, cx: &mut Context<Workbench>) -> Self {
+        let query = cx.new(|cx| InputState::new(window, cx).placeholder(tr("Search extensions")));
+        let query_sub = cx.subscribe_in(
+            &query,
+            window,
+            |this: &mut Workbench, _, ev: &InputEvent, _, cx| {
+                if matches!(ev, InputEvent::Change) {
+                    this.market_query_changed(cx);
+                }
+            },
+        );
+        cx.spawn(async move |this, cx| {
+            let list = cx
+                .background_spawn(async move { super::market::installed_list() })
+                .await;
+            _ = this.update(cx, |this, cx| {
+                this.ext.market.installed = list;
+                cx.notify();
+            });
+        })
+        .detach();
         Self {
             catalog: super::catalog(),
             found: Vec::new(),
             tasks: Vec::new(),
-            query: cx.new(|cx| InputState::new(window, cx).placeholder(tr("Search extensions"))),
+            query,
             new_name: cx.new(|cx| InputState::new(window, cx).placeholder(tr("Name"))),
-            filter: Filter::All,
+            filter: Filter::Market,
             page: None,
             needs: Default::default(),
             after: None,
@@ -193,13 +215,17 @@ impl super::Ext {
             fold_scan: 0,
             fold_count: 0,
             fold_line: None,
+            market: Default::default(),
+            _query_sub: query_sub,
         }
     }
 }
 
 impl Workbench {
+    /// Every manifest FluxCode has counts as installed: the Extensions view lists the
+    /// VS Code Marketplace only, so nothing there turns a built-in off any more.
     pub(crate) fn ext_installed(&self, id: &str) -> bool {
-        self.settings.extensions.iter().any(|e| e == id)
+        self.ext_manifest(id).is_some() || self.settings.extensions.iter().any(|e| e == id)
     }
 
     fn ext_manifest(&self, id: &str) -> Option<&Manifest> {
@@ -271,29 +297,6 @@ impl Workbench {
         cx.notify();
     }
 
-    /// Install an extension from an extension.json the user picks.
-    fn ext_install_from_file(&mut self, cx: &mut Context<Self>) {
-        let paths = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: false, prompt: Some(tr("Install extension").into()) });
-        cx.spawn(async move |this, cx| {
-            let Ok(Ok(Some(paths))) = paths.await else { return };
-            let Some(p) = paths.into_iter().next() else { return };
-            let res = super::install_file(&p);
-            _ = this.update(cx, |this, cx| {
-                match res {
-                    Ok(id) => {
-                        this.ext.catalog = super::catalog();
-                        this.ext_install(&id, cx);
-                        this.ext.page = Some(id);
-                        this.ext_scan(cx);
-                    }
-                    Err(e) => this.ext.note = Some(crate::trf!("Couldn't install it: {e}"; e => e)),
-                }
-                cx.notify();
-            });
-        })
-        .detach();
-    }
-
     pub(crate) fn ext_open_page(&mut self, id: &str, cx: &mut Context<Self>) {
         self.ext.page = Some(id.to_string());
         self.settings_open = false;
@@ -320,7 +323,8 @@ impl Workbench {
 
     /// What the agent is told about the folder's projects (see ws_context).
     pub(crate) fn ext_agent_notes(&self) -> Option<String> {
-        super::agent_notes(&self.ext.catalog, &self.settings.extensions, &self.ext.found, &self.roots())
+        let all: Vec<String> = self.ext.catalog.iter().map(|m| m.id.clone()).collect();
+        super::agent_notes(&self.ext.catalog, &all, &self.ext.found, &self.roots())
     }
 
     // ------------------------------------------------------------ running tasks
@@ -635,141 +639,17 @@ impl Workbench {
 
     // ------------------------------------------------------------ the sidebar view
 
+    /// The Extensions side bar: the VS Code Marketplace (market_view.rs).
     pub(crate) fn render_ext_view(&self, cx: &mut Context<Self>) -> AnyElement {
-        let q = self.ext.query.read(cx).value().to_lowercase();
-        let here = |m: &Manifest| self.ext.found.iter().any(|p| p.ext == m.id);
-        let count = |f: Filter| {
-            self.ext.catalog.iter().filter(|m| match f {
-                Filter::Installed => self.ext_installed(&m.id),
-                Filter::Here => here(m),
-                Filter::All => true,
-            })
-            .count()
-        };
-        let tab = |id: &'static str, label: SharedString, f: Filter, cx: &mut Context<Self>| {
-            let on = self.ext.filter == f;
-            div()
-                .id(id)
-                .px_2()
-                .h(theme::u(22.))
-                .flex()
-                .items_center()
-                .rounded(px(4.))
-                .text_xs()
-                .cursor_pointer()
-                .text_color(c(if on { theme::FG_STRONG } else { theme::FG_MUTED }))
-                .when(on, |d| d.bg(c(theme::BG_HOVER)))
-                .hover(|d| d.text_color(c(theme::FG_STRONG)))
-                .child(label)
-                .on_click(cx.listener(move |this, _, _, cx| {
-                    this.ext.filter = f;
-                    cx.notify();
-                }))
-        };
-        let tabs = h_flex()
-            .px_2()
-            .gap_0p5()
-            .flex_wrap()
-            .child(tab("ext-f-all", format!("{} {}", tr("All"), count(Filter::All)).into(), Filter::All, cx))
-            .child(tab("ext-f-inst", format!("{} {}", tr("Installed"), count(Filter::Installed)).into(), Filter::Installed, cx))
-            .child(tab("ext-f-here", format!("{} {}", tr("This folder"), count(Filter::Here)).into(), Filter::Here, cx));
-        let mut list = v_flex().id("ext-list").w_full().flex_1().min_h_0().overflow_y_scroll().pb_2();
-        let mut shown = 0;
-        for (i, m) in self.ext.catalog.iter().enumerate() {
-            let installed = self.ext_installed(&m.id);
-            let ok = match self.ext.filter {
-                Filter::Installed => installed,
-                Filter::Here => here(m),
-                Filter::All => true,
-            };
-            let hay = format!("{} {} {} {}", m.name, m.summary, m.category, m.id).to_lowercase();
-            if !ok || (!q.is_empty() && !q.split_whitespace().all(|w| hay.contains(w))) {
-                continue;
-            }
-            shown += 1;
-            let selected = self.ext.page.as_deref() == Some(m.id.as_str());
-            let (id_open, id_install) = (m.id.clone(), m.id.clone());
-            list = list.child(
-                h_flex()
-                    .id(("ext-row", i))
-                    .flex_none()
-                    .w_full()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .px_3()
-                    .py_1()
-                    .gap_2()
-                    .items_center()
-                    .cursor_pointer()
-                    .when(selected, |d| d.bg(c(theme::BG_HOVER)))
-                    .hover(|d| d.bg(c(theme::BG_HOVER)))
-                    .child(tile(&m.icon, 24.))
-                    .child(
-                        v_flex()
-                            .flex_1()
-                            .min_w_0()
-                            .child(
-                                h_flex()
-                                    .gap_1p5()
-                                    .child(div().flex_shrink(1.).min_w_0().truncate().text_sm().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(m.name.clone()))
-                                    .child(div().flex_none().text_xs().text_color(c(theme::FG_DIM)).child(m.version.clone())),
-                            )
-                            // One line, cut with an ellipsis at the end, never a
-                            // second line that stops mid-word.
-                            .child(div().w_full().truncate().text_xs().text_color(c(theme::FG_MUTED)).child(m.summary.clone())),
-                    )
-                    .when(!installed, |h| {
-                        h.child(Button::new(("ext-install", i)).label(tr("Install")).xsmall().primary().on_click(cx.listener(move |this, _, _, cx| {
-                            cx.stop_propagation();
-                            this.ext_install(&id_install, cx);
-                        })))
-                    })
-                    .when(installed, |h| {
-                        let id_page = id_open.clone();
-                        h.child(Button::new(("ext-installed", i)).label(tr("Installed")).xsmall().ghost().on_click(cx.listener(move |this, _, _, cx| {
-                            cx.stop_propagation();
-                            this.ext_open_page(&id_page, cx);
-                        })))
-                    })
-                    .on_click(cx.listener(move |this, _, _, cx| this.ext_open_page(&id_open, cx))),
-            );
-        }
-        if shown == 0 {
-            list = list.child(div().px_3().py_4().text_xs().text_color(c(theme::FG_DIM)).child(match self.ext.filter {
-                Filter::Here if self.root.is_none() => tr("Open a folder to see which extensions it uses."),
-                Filter::Here => tr("No extension is for a project in this folder."),
-                Filter::Installed => tr("Nothing installed yet: pick one under All."),
-                Filter::All => tr("No extension matches."),
-            }));
-        }
-        v_flex()
-            .size_full()
-            .child(
-                h_flex()
-                    .px_2()
-                    .pt_1()
-                    .pb_2()
-                    .gap_1()
-                    .child(div().flex_1().min_w_0().child(Input::new(&self.ext.query).small().cleanable(true)))
-                    .child(
-                        Button::new("ext-from-file")
-                            .icon(Icon::new(Ico::FolderOpen))
-                            .ghost()
-                            .small()
-                            .tooltip(tr("Install from a file (extension.json)"))
-                            .on_click(cx.listener(|this, _, _, cx| this.ext_install_from_file(cx))),
-                    ),
-            )
-            .child(tabs)
-            .when_some(self.ext.note.clone(), |v, n| v.child(div().px_3().pt_2().text_xs().text_color(c(theme::FG_MUTED)).child(n)))
-            .child(div().h(px(1.)).mt_2().bg(c(theme::BORDER)))
-            .child(list)
-            .into_any_element()
+        self.render_market_view(cx)
     }
 
     // ------------------------------------------------------------ the page
 
     pub(crate) fn render_ext_page(&self, id: &str, cx: &mut Context<Self>) -> AnyElement {
+        if id.starts_with(super::market_view::PAGE) {
+            return self.render_market_page(cx);
+        }
         let Some(m) = self.ext_manifest(id).cloned() else { return div().into_any_element() };
         let installed = self.ext_installed(&m.id);
 
@@ -791,10 +671,22 @@ impl Workbench {
         let actions = h_flex()
             .flex_none()
             .gap_1()
-            .child(if installed {
-                Button::new("ext-uninstall").label(tr("Uninstall")).small().on_click(cx.listener(move |this, _, _, cx| this.ext_uninstall(&mid, cx))).into_any_element()
-            } else {
-                Button::new("ext-install-page").label(tr("Install")).small().primary().on_click(cx.listener(move |this, _, _, cx| this.ext_install(&mid, cx))).into_any_element()
+            // Built-ins are always on (see ext_installed): nothing to install or remove.
+            .when(!m.builtin(), |h| {
+                h.child(if installed {
+                    Button::new("ext-uninstall")
+                        .label(tr("Uninstall"))
+                        .small()
+                        .on_click(cx.listener(move |this, _, _, cx| this.ext_uninstall(&mid, cx)))
+                        .into_any_element()
+                } else {
+                    Button::new("ext-install-page")
+                        .label(tr("Install"))
+                        .small()
+                        .primary()
+                        .on_click(cx.listener(move |this, _, _, cx| this.ext_install(&mid, cx)))
+                        .into_any_element()
+                })
             })
             .child(Button::new("ext-close").icon(Icon::new(Ico::Close)).small().ghost().tooltip(tr("Close (Esc)")).on_click(cx.listener(|this, _, _, cx| {
                 this.ext.page = None;

@@ -3,6 +3,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 /// Files larger than this are refused instead of freezing the editor.
 pub const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
@@ -186,57 +187,155 @@ fn preview(line: &str, match_char: usize) -> String {
     s
 }
 
-pub fn search(root: &Path, query: &str, match_case: bool, whole_word: bool) -> SearchResult {
+/// Find in files, giving up as soon as `stop` says so: live search starts a new search
+/// on every pause in typing, and the old one must not keep the disk busy.
+///
+/// In a git repository the files come from `git ls-files`, so whatever .gitignore
+/// leaves out (build output, worktrees, dependencies) is never read. Files are read on
+/// several threads, and a file is only split into lines when it contains the query.
+pub fn search_until(root: &Path, query: &str, match_case: bool, whole_word: bool, stop: &dyn Fn() -> bool) -> SearchResult {
     let needle = if match_case { query.to_string() } else { query.to_lowercase() };
     let mut result = SearchResult::default();
     if needle.is_empty() {
         return result;
     }
+    let files = git_files(root).unwrap_or_else(|| walk_files(root, stop));
+    let next = AtomicUsize::new(0);
+    let total = AtomicUsize::new(0);
+    let threads = std::thread::available_parallelism().map_or(4, |n| n.get()).clamp(2, 8);
+    let stop_flag = AtomicBool::new(false);
+    let mut found: Vec<(usize, FileHits)> = std::thread::scope(|scope| {
+        let workers: Vec<_> = (0..threads)
+            .map(|_| {
+                scope.spawn(|| {
+                    let mut mine = Vec::new();
+                    loop {
+                        let i = next.fetch_add(1, Ordering::Relaxed);
+                        if i >= files.len() || stop_flag.load(Ordering::Relaxed) || total.load(Ordering::Relaxed) >= MAX_SEARCH_HITS {
+                            break;
+                        }
+                        if let Some(fh) = search_file(&files[i], &needle, match_case, whole_word) {
+                            total.fetch_add(fh.hits.len(), Ordering::Relaxed);
+                            mine.push((i, fh));
+                        }
+                    }
+                    mine
+                })
+            })
+            .collect();
+        // The caller's `stop` is not Sync: it is polled here and passed on as a flag.
+        while workers.iter().any(|w| !w.is_finished()) {
+            if stop() {
+                stop_flag.store(true, Ordering::Relaxed);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        workers.into_iter().flat_map(|w| w.join().unwrap_or_default()).collect()
+    });
+    found.sort_by_key(|(i, _)| *i);
+    for (_, mut fh) in found {
+        let room = MAX_SEARCH_HITS - result.total;
+        if room == 0 {
+            result.truncated = true;
+            break;
+        }
+        if fh.hits.len() > room {
+            fh.hits.truncate(room);
+            result.truncated = true;
+        }
+        result.total += fh.hits.len();
+        result.files.push(fh);
+    }
+    result
+}
+
+/// Every file git knows about or would not ignore, sorted; None outside a repository.
+fn git_files(root: &Path) -> Option<Vec<PathBuf>> {
+    if !root.join(".git").exists() {
+        return None;
+    }
+    let out = crate::proc::command("git")
+        .args(["ls-files", "-z", "--cached", "--others", "--exclude-standard"])
+        .current_dir(root)
+        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let mut files: Vec<PathBuf> = out.stdout.split(|b| *b == 0).filter(|p| !p.is_empty()).map(|p| root.join(String::from_utf8_lossy(p).as_ref())).collect();
+    files.sort();
+    files.dedup();
+    Some(files)
+}
+
+/// Outside git: walk the folder, skipping the usual build and dependency folders.
+fn walk_files(root: &Path, stop: &dyn Fn() -> bool) -> Vec<PathBuf> {
+    let mut files = Vec::new();
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        let Ok(rd) = fs::read_dir(&dir) else { continue };
-        let mut entries: Vec<_> = rd.filter_map(Result::ok).collect();
-        entries.sort_by_key(|e| e.file_name());
-        for e in entries.iter().rev() {
-            if e.file_type().is_ok_and(|t| t.is_dir()) {
-                let name = e.file_name();
-                if !SKIP_DIRS.iter().any(|s| name.eq_ignore_ascii_case(s)) {
-                    stack.push(e.path());
-                }
-            }
+        if stop() {
+            break;
         }
-        for e in &entries {
-            let Ok(meta) = e.metadata() else { continue };
-            if !meta.is_file() || meta.len() > MAX_SEARCH_FILE_BYTES {
-                continue;
-            }
-            let Ok(bytes) = fs::read(e.path()) else { continue };
-            if bytes[..bytes.len().min(8192)].contains(&0) {
-                continue;
-            }
-            let text = String::from_utf8_lossy(&bytes);
-            let mut hits = Vec::new();
-            for (n, line) in text.lines().enumerate() {
-                let hay = if match_case { std::borrow::Cow::Borrowed(line) } else { std::borrow::Cow::Owned(line.to_lowercase()) };
-                if let Some(at) = find_match(&hay, &needle, whole_word) {
-                    let match_char = hay[..at].chars().count();
-                    hits.push(Hit { line: n as u32 + 1, text: preview(line, match_char) });
-                    result.total += 1;
-                    if result.total >= MAX_SEARCH_HITS {
-                        result.truncated = true;
-                        break;
+        let Ok(rd) = fs::read_dir(&dir) else { continue };
+        for e in rd.filter_map(Result::ok) {
+            match e.file_type() {
+                Ok(t) if t.is_dir() => {
+                    let name = e.file_name();
+                    if !SKIP_DIRS.iter().any(|s| name.eq_ignore_ascii_case(s)) {
+                        stack.push(e.path());
                     }
                 }
-            }
-            if !hits.is_empty() {
-                result.files.push(FileHits { path: e.path(), hits });
-            }
-            if result.truncated {
-                return result;
+                Ok(t) if t.is_file() => files.push(e.path()),
+                _ => {}
             }
         }
     }
-    result
+    files.sort();
+    files
+}
+
+/// The matching lines of one file (None: no match, binary, too large or unreadable).
+fn search_file(path: &Path, needle: &str, match_case: bool, whole_word: bool) -> Option<FileHits> {
+    let meta = fs::metadata(path).ok()?;
+    if !meta.is_file() || meta.len() > MAX_SEARCH_FILE_BYTES {
+        return None;
+    }
+    let bytes = fs::read(path).ok()?;
+    if bytes[..bytes.len().min(8192)].contains(&0) {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&bytes);
+    // ASCII folding keeps every byte where it was, so lines of the folded text line
+    // up with the original; other queries fold line by line as before.
+    let ascii = match_case || needle.is_ascii();
+    let folded: std::borrow::Cow<str> = if match_case { std::borrow::Cow::Borrowed(&text) } else if ascii { text.to_ascii_lowercase().into() } else { text.to_lowercase().into() };
+    if !folded.contains(needle) {
+        return None;
+    }
+    let mut hits = Vec::new();
+    let mut add = |n: usize, line: &str, hay: &str| {
+        if let Some(at) = find_match(hay, needle, whole_word) {
+            let match_char = hay[..at].chars().count();
+            hits.push(Hit { line: n as u32 + 1, text: preview(line, match_char) });
+        }
+        hits.len() >= MAX_SEARCH_HITS
+    };
+    if ascii {
+        for (n, (line, hay)) in text.lines().zip(folded.lines()).enumerate() {
+            if add(n, line, hay) {
+                break;
+            }
+        }
+    } else {
+        for (n, line) in text.lines().enumerate() {
+            if add(n, line, &line.to_lowercase()) {
+                break;
+            }
+        }
+    }
+    (!hits.is_empty()).then(|| FileHits { path: path.to_path_buf(), hits })
 }
 
 #[cfg(test)]
