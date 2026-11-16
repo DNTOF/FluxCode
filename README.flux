@@ -34,20 +34,22 @@ proses ([benchmark](#benchmark)).
 Proyek [MuaraAI](https://github.com/MuaraAI). Open source, masih dalam
 pengembangan.
 
+@all
 [![Latest build](https://img.shields.io/github/v/release/MuaraAI/FluxCode?display_name=tag&label=latest%20build)](https://github.com/MuaraAI/FluxCode/releases/latest)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 
 @en
-@image assets/screenshots/agent.png width=100% link=assets/screenshots/agent.png alt="FluxCode with main.py open. In the agent panel on the right, OpenCode has added a docstring to greet(); the Changes card lists main.py with one added line, and a prompt asks before the agent runs a Python command."
+@image assets/screenshots/agent-workspace.png width=100% link=assets/screenshots/agent-workspace.png alt="The agent filling the window: saved chats on the left, the conversation in the middle, the files it changed on the right, as floating glass columns over the ocean background."
 
-The agent added a docstring (line 23), the Changes card lists the file with Undo, and
-because access is set to Read & write, it has to ask before running a command.
+The agent's full-screen workspace: your chats on the left, the conversation in the middle
+and the files it changed on the right, each a floating glass column over an animated
+pixel background. Beside the code, the same agent stays a compact panel (`Ctrl+L`).
 @id
-@image assets/screenshots/agent.png width=100% link=assets/screenshots/agent.png alt="FluxCode dengan main.py terbuka. Di panel agent sebelah kanan, OpenCode menambahkan docstring ke greet(); kartu Changes mendaftar main.py dengan satu baris tambahan, dan ada prompt yang bertanya sebelum agent menjalankan perintah Python."
+@image assets/screenshots/agent-workspace.png width=100% link=assets/screenshots/agent-workspace.png alt="Agent memenuhi jendela: daftar chat di kiri, percakapan di tengah, file yang diubahnya di kanan, sebagai kolom kaca yang melayang di atas latar laut."
 
-Agent menambahkan docstring (baris 23), kartu Changes mendaftar file itu beserta Undo,
-dan karena akses disetel ke Read & write, agent harus bertanya sebelum menjalankan
-perintah.
+Workspace layar penuh milik agent: daftar chat di kiri, percakapan di tengah, dan file yang
+diubahnya di kanan, masing-masing kolom kaca yang melayang di atas latar pixel beranimasi.
+Di samping kode, agent yang sama tetap menjadi panel ringkas (`Ctrl+L`).
 
 @en
 ## Benchmark
@@ -216,6 +218,52 @@ Settings > Updates mematikan pemeriksaannya.
 @id
 ## Lebih dekat
 
+@all
+@gallery
+@image assets/screenshots/token-saver.png width=49% link=assets/screenshots/token-saver.png alt="The token saver panel over the chat: Caveman on at the Full level, Lean code off, Quiet tools on, about 36 percent fewer output tokens."
+@image assets/screenshots/usage-limit.png width=49% link=assets/screenshots/usage-limit.png alt="A banner above the message box: Usage limit reached, resets 15.45 in 2 hours, with a Resume at reset checkbox and a Continue now button."
+@end
+
+@en
+The token saver (the leaf under the message box) asks the agent for shorter answers,
+diffs instead of whole files and quieter tool use. When a plan's limit is reached, a banner
+says when it resets: Continue now sends the message again, Resume at reset does it for you.
+@id
+Hemat token (ikon daun di bawah kotak pesan) meminta agent menjawab lebih pendek, memakai
+diff alih-alih seluruh file, dan memakai tool seperlunya. Saat limit paket tercapai, banner
+memberi tahu kapan limit reset: Continue now mengirim ulang pesannya, Resume at reset
+melakukannya untukmu.
+
+@all
+@gallery
+@image assets/screenshots/side-bars-search.png width=49% link=assets/screenshots/side-bars-search.png alt="Search moved to the right side bar, with the Explorer on the left: typing right_view lists 23 results in 4 files as you type, each match tinted, long files folded to six lines."
+@image assets/screenshots/extensions-marketplace.png width=49% link=assets/screenshots/extensions-marketplace.png alt="The Extensions view searching the VS Code Marketplace for prettier: 256 results with icons, installs, ratings and Install buttons, and Prettier's page with its details and README."
+@end
+
+@en
+Any view can sit in the left or the right side bar: right-click its icon. Find in files
+searches while you type. Extensions search the whole VS Code Marketplace and install from
+the list.
+@id
+View mana pun bisa ditaruh di side bar kiri atau kanan: klik kanan ikonnya. Find in files
+mencari sambil kamu mengetik. Extensions mencari di seluruh VS Code Marketplace dan bisa
+dipasang langsung dari daftarnya.
+
+@all
+@gallery
+@image assets/screenshots/settings-backgrounds.png width=49% link=assets/screenshots/settings-backgrounds.png alt="Settings, Appearance: Liquid glass on, Animated background with None, Ocean, River, Beach, Mountains and Anime, Background animation on, and Background visibility."
+@image assets/screenshots/backgrounds.png width=49% link=assets/screenshots/backgrounds.png alt="The five animated backgrounds as pixel art: a moonlit ocean, a river between hills and trees, a beach at sunset, mountain ridges with fog, and an anime dusk with a city skyline."
+@end
+
+@en
+Liquid glass turns the panels translucent with floating cards. Five animated pixel
+backgrounds (ocean, river, beach, mountains, anime dusk) play behind them, or none.
+@id
+Liquid glass membuat panel tembus pandang dengan kartu yang melayang. Lima latar pixel
+beranimasi (laut, sungai, pantai, pegunungan, senja anime) diputar di belakangnya, atau
+tidak sama sekali.
+
+@all
 @gallery
 @image assets/screenshots/python-error.png width=49% link=assets/screenshots/python-error.png alt="A Python run fails with ModuleNotFoundError. The Output panel shows a card with the file and line, the code line, a hint, and a Fix button that runs py -m pip install tabulate."
 @image assets/screenshots/sqlite.png width=49% link=assets/screenshots/sqlite.png alt="A SQLite database opened as text: each table and view with its CREATE statement and row count, under a line saying the view is read-only."
@@ -230,6 +278,7 @@ Error Python menjadi kartu berisi file, baris, dan petunjuk; kalau modulnya tida
 memasangnya. Database SQLite terbuka sebagai daftar tabel, SQL, dan jumlah barisnya, sama
 seperti file Word, Excel, PDF, dan ZIP, bukan sebagai error.
 
+@all
 @gallery
 @image assets/screenshots/source-control.png width=49% link=assets/screenshots/source-control.png alt="Source Control after git init in a game server folder: 2801 untracked files, with the folders holding most of them listed first, each with an Ignore button."
 @image assets/screenshots/go-to-file.png width=49% link=assets/screenshots/go-to-file.png alt="Go to File in the FluxMono theme: typing wbench finds workbench.rs in the src folder."
@@ -242,6 +291,7 @@ that hold them. Go to File (`Ctrl+P`) finds a file from a few letters of its nam
 Source Control tetap cepat dengan ribuan file baru dan menawarkan untuk mengabaikan folder
 yang menampungnya. Go to File (`Ctrl+P`) menemukan file dari beberapa huruf namanya.
 
+@all
 @gallery
 @image assets/screenshots/themes.png width=49% link=assets/screenshots/themes.png alt="Settings: six color themes as cards (FluxDark, FluxCream, FluxMono, FluxRed, FluxMuara, FluxMuara Dark), then language and interface size."
 @image assets/screenshots/update-indonesian.png width=49% link=assets/screenshots/update-indonesian.png alt="The FluxCream theme with the interface in Bahasa Indonesia. A card in the corner offers a newer build, with its notes and a button to update and restart."
@@ -262,8 +312,8 @@ FluxCream.
   bar sit where VS Code puts them, and the keys are VS Code's: `Ctrl+Shift+P` for the
   Command Palette, `Ctrl+P` to find a file, `Ctrl+G` to go to a line, `Ctrl+/` to
   comment, `Alt+Up` to move a line. If you know VS Code, you already know where things
-  are. It is not a VS Code clone: there is no debugger yet, and the extensions are build
-  tasks rather than a catalog (see the table below).
+  are. It is not a VS Code clone: there is no debugger yet, and VS Code extensions install
+  from the Marketplace but their JavaScript doesn't run (see the table below).
 - **Light like Zed.** The whole editor is one Rust program drawn by the GPU with GPUI,
   the framework Zed is built on. In the [benchmark](#benchmark) it opens its window in
   0.22 s, reserves 72 MB (Zed: 154 MB), and once idle shows 1.4 MB in Task Manager,
@@ -291,8 +341,9 @@ FluxCream.
   status bar berada di tempat yang sama dengan VS Code, dan tombolnya juga punya VS Code:
   `Ctrl+Shift+P` untuk Command Palette, `Ctrl+P` mencari file, `Ctrl+G` menuju baris,
   `Ctrl+/` mengomentari, `Alt+Up` memindah baris. Kalau kamu sudah kenal VS Code, kamu
-  sudah tahu letak semuanya. Ini bukan tiruan VS Code: belum ada debugger, dan
-  extension-nya berupa task build, bukan katalog (lihat tabel di bawah).
+  sudah tahu letak semuanya. Ini bukan tiruan VS Code: belum ada debugger, dan extension
+  VS Code bisa dipasang dari Marketplace tetapi JavaScript-nya tidak berjalan (lihat tabel
+  di bawah).
 - **Ringan seperti Zed.** Seluruh editor adalah satu program Rust yang digambar GPU lewat
   GPUI, framework yang dipakai Zed. Di [benchmark](#benchmark) jendelanya muncul dalam
   0,22 detik, mereservasi 72 MB (Zed: 154 MB), dan saat idle menampilkan 1,4 MB di Task
@@ -428,15 +479,20 @@ Menjalankan relay sendiri cukup satu perintah di VPS: lihat
 @en
 ## Extensions and FluxCompile
 
-The Extensions view (`Ctrl+Shift+X`) lists what FluxCode can build, run, pack and preview:
-Paper plugins, Bedrock add-ons, Gradle, Maven, Node.js, Rust, Python, Go, C/C++ (CMake
-and Make), .NET and the HTML preview. An extension is one small JSON file: the files that
-mark its projects, the tasks it adds, the tools it needs (with a winget id to install
-them) and notes for the AI agent. Nothing runs until you click a task, so installing one
-costs a few KB. More can be installed from an `extension.json` file.
+The Extensions view (`Ctrl+Shift+X`) is the VS Code Marketplace: all of it, loaded a page
+at a time as you scroll, searched as you type (an earlier search comes back instantly),
+sorted by relevance, installs, rating, last update or name, and filtered by category.
+Install puts the extension's VSIX into `~/.fluxcode/vscode-extensions`; Update and
+Uninstall are on its page, and the folder button installs a local `.vsix` file. VS Code's
+JavaScript extension host isn't part of FluxCode, so an extension's own code doesn't run
+here; its page says what it declares (themes, languages, snippets).
 
-Once an extension is installed, the Run view lists the folder's projects with their tasks,
-and the agent is told what each project is and how it builds.
+FluxCode's own project support is always on, with nothing to install: Paper plugins,
+Bedrock add-ons, Gradle, Maven, Node.js, Rust, Python, Go, C/C++ (CMake and Make), .NET and
+the HTML preview. Each is one small JSON manifest: the files that mark its projects, the
+tasks it adds, the tools it needs (with a winget id to install them) and notes for the AI
+agent. The Run view lists the folder's projects with their tasks, and the agent is told
+what each project is and how it builds.
 
 - **Paper plugins (Minecraft Java).** Build, Build & deploy, Start server, Test, Clean. The
   project's name is its plugin's name, read from the `plugin.yml` inside the built jar. Deploy
@@ -463,16 +519,21 @@ and the agent is told what each project is and how it builds.
 @id
 ## Extension dan FluxCompile
 
-Tampilan Extensions (`Ctrl+Shift+X`) mendaftar apa yang bisa dibangun, dijalankan, dikemas,
-dan dipratinjau FluxCode: plugin Paper, add-on Bedrock, Gradle, Maven, Node.js, Rust,
-Python, Go, C/C++ (CMake dan Make), .NET, dan pratinjau HTML. Satu extension adalah satu
-file JSON kecil: file yang menandai proyeknya, task yang ditambahkannya, alat yang
-dibutuhkannya (dengan id winget untuk memasangnya), dan catatan untuk agent AI. Tidak ada
-yang berjalan sampai kamu menekan sebuah task, jadi memasangnya hanya memakai beberapa KB.
-Extension lain bisa dipasang dari file `extension.json`.
+Tampilan Extensions (`Ctrl+Shift+X`) adalah VS Code Marketplace: seluruhnya, dimuat per
+halaman sambil kamu menggulir, dicari sambil kamu mengetik (pencarian sebelumnya kembali
+seketika), diurutkan menurut relevansi, jumlah pasang, rating, update terakhir, atau nama,
+dan disaring per kategori. Install menaruh VSIX extension itu di
+`~/.fluxcode/vscode-extensions`; Update dan Uninstall ada di halamannya, dan tombol folder
+memasang file `.vsix` lokal. Extension host JavaScript milik VS Code bukan bagian dari
+FluxCode, jadi kode extension itu sendiri tidak berjalan di sini; halamannya menyebutkan apa
+yang dideklarasikannya (tema, bahasa, snippet).
 
-Setelah extension terpasang, tampilan Run mendaftar proyek di folder itu beserta task-nya,
-dan agent diberi tahu proyek itu apa serta bagaimana ia dibangun.
+Dukungan proyek milik FluxCode sendiri selalu aktif, tanpa perlu dipasang: plugin Paper,
+add-on Bedrock, Gradle, Maven, Node.js, Rust, Python, Go, C/C++ (CMake dan Make), .NET, dan
+pratinjau HTML. Masing-masing satu manifest JSON kecil: file yang menandai proyeknya, task
+yang ditambahkannya, alat yang dibutuhkannya (dengan id winget untuk memasangnya), dan
+catatan untuk agent AI. Tampilan Run mendaftar proyek di folder itu beserta task-nya, dan
+agent diberi tahu proyek itu apa serta bagaimana ia dibangun.
 
 - **Plugin Paper (Minecraft Java).** Build, Build & deploy, Start server, Test, Clean. Nama
   proyeknya adalah nama plugin-nya, dibaca dari `plugin.yml` di dalam jar hasil build.
@@ -606,6 +667,28 @@ di atasnya.
   GitHub's `> [!NOTE]` callouts), with Source to go back. Flux documents keep their
   own Preview and Source.
 - Settings > About FluxCode links to this repository, the issue tracker and the changelog.
+- **Side bars on either side.** Explorer, Search, Source Control, Run, Extensions and the
+  agent can each live in the left or the right side bar, as in VS Code's secondary side
+  bar: right-click an activity bar icon to move it. The right side bar's header switches
+  between the views that live there.
+- **Find in files while you type.** Results update after a short pause in typing, each
+  match is tinted, and a file with many matches folds to its first six lines with an
+  "N more matches" row. In a git repository only the files git tracks or would not ignore
+  are read, on several threads.
+- **The agent's full-screen workspace.** The full-screen button in the agent's header turns
+  it into three columns: chats, the conversation, and the files it changed with their
+  diffs and undo. The columns step aside on narrow windows.
+- **Token saver.** Caveman (Lite, Full or Ultra) asks for shorter answers, Lean code for
+  diffs instead of whole files, Quiet tools for reading and printing only what the task
+  needs. The guidance goes out with a message when the packs change and every few turns,
+  so it costs almost nothing itself.
+- **Usage limit reached.** A banner above the message box shows when the limit resets.
+  Continue now sends the cut-off message again; Resume at reset does it by itself once the
+  limit window has reset.
+- **Liquid glass and animated backgrounds.** Panels can turn translucent over the system's
+  blur, with floating glass cards. Five looping pixel backgrounds play behind them (ocean,
+  river, beach, mountains, anime dusk); each is downloaded once (0.4 to 3.3 MB), plays at
+  10 frames a second, and Background animation turns it into a still picture.
 @id
 ## Kemampuan lainnya
 
@@ -674,6 +757,29 @@ di atasnya.
   gambar lokal, callout `> [!NOTE]` milik GitHub), dengan Source untuk kembali. Dokumen
   Flux tetap punya Preview dan Source sendiri.
 - Settings > About FluxCode menautkan ke repositori ini, issue tracker, dan changelog.
+- **Side bar di kedua sisi.** Explorer, Search, Source Control, Run, Extensions, dan agent
+  masing-masing bisa ditaruh di side bar kiri atau kanan, seperti secondary side bar VS
+  Code: klik kanan ikon di activity bar untuk memindahkannya. Header side bar kanan
+  berpindah di antara view yang ada di sana.
+- **Find in files sambil mengetik.** Hasil diperbarui setelah jeda singkat saat mengetik,
+  tiap kecocokan diberi warna, dan file dengan banyak kecocokan dilipat ke enam baris
+  pertamanya dengan baris "N hasil lagi". Di repositori git, hanya file yang dilacak git
+  atau tidak diabaikan yang dibaca, dengan beberapa thread.
+- **Workspace layar penuh untuk agent.** Tombol layar penuh di header agent mengubahnya
+  menjadi tiga kolom: daftar chat, percakapan, dan file yang diubahnya beserta diff dan
+  undo. Kolom-kolomnya menyingkir di jendela yang sempit.
+- **Hemat token.** Caveman (Lite, Full, atau Ultra) meminta jawaban lebih pendek, Lean code
+  meminta diff alih-alih seluruh file, Quiet tools meminta membaca dan mencetak seperlunya.
+  Panduannya ikut terkirim bersama pesan saat paketnya berubah dan tiap beberapa giliran,
+  jadi panduan itu sendiri hampir tidak memakan token.
+- **Limit pemakaian tercapai.** Banner di atas kotak pesan menunjukkan kapan limit reset.
+  Continue now mengirim ulang pesan yang terpotong; Resume at reset melakukannya sendiri
+  setelah jendela limitnya reset.
+- **Liquid glass dan latar beranimasi.** Panel bisa menjadi tembus pandang di atas blur
+  sistem, dengan kartu kaca yang melayang. Lima latar pixel berulang diputar di belakangnya
+  (laut, sungai, pantai, pegunungan, senja anime); masing-masing diunduh sekali (0,4 sampai
+  3,3 MB), diputar 10 frame per detik, dan Background animation mengubahnya menjadi gambar
+  diam.
 
 @en
 ## FluxCode, Zed and VS Code
@@ -684,7 +790,7 @@ FluxCode is the lightest of the three by a wide margin, and the gap grows the lo
 editor stays open. It uses 1.4 MB idle against 66.2 MB for Zed and 929.2 MB for VS Code,
 and takes 16 MB on disk against 261 MB and 1,044 MB. It opens in 221 ms, against 818 ms
 and about 3 s. What it gives up is clear in the table: no debugger, no language servers,
-and no extension catalog yet.
+and VS Code extensions install but their code doesn't run.
 
 | | FluxCode | Zed | VS Code |
 | --- | --- | --- | --- |
@@ -696,7 +802,7 @@ and no extension catalog yet.
 | Telemetry | none | on by default, can be turned off | on by default in Microsoft's build, can be turned off |
 | Language smarts (go to definition, rename, diagnostics) | not yet: colors and word completion | built in, through language servers | through extensions |
 | Debugger | not yet (Run only) | yes | yes |
-| Extensions | 11 built in (build, run, deploy and pack tasks, as manifests), more from a file | yes | the largest catalog |
+| Extensions | the VS Code Marketplace to browse and install (their code doesn't run), plus 11 built-in project manifests | yes | the largest catalog |
 | AI agent | any ACP agent, three access levels, per-turn changes with undo; GitHub Copilot inline completions | its own agent and ACP agents | GitHub Copilot and extensions |
 | Files that are not text | hex, PDF, Office, ZIP, SQLite (read-only) | images | images; more through extensions |
 | Real-time collaboration | built in, through the host's PC (no account or server) | built in, through Zed's servers | Live Share extension, through Microsoft's servers |
@@ -740,7 +846,8 @@ FluxCode adalah yang paling ringan dari ketiganya dengan selisih yang besar, dan
 itu makin terasa makin lama editor dibiarkan terbuka. Ia memakai 1,4 MB saat idle lawan
 66,2 MB untuk Zed dan 929,2 MB untuk VS Code, dan memakan 16 MB di disk lawan 261 MB dan
 1.044 MB. Ia terbuka dalam 221 ms, lawan 818 ms dan sekitar 3 detik. Yang ia korbankan terlihat
-jelas di tabel: belum ada debugger, language server, maupun katalog extension.
+jelas di tabel: belum ada debugger maupun language server, dan extension VS Code bisa
+dipasang tetapi kodenya tidak berjalan.
 
 | | FluxCode | Zed | VS Code |
 | --- | --- | --- | --- |
@@ -752,7 +859,7 @@ jelas di tabel: belum ada debugger, language server, maupun katalog extension.
 | Telemetri | tidak ada | aktif secara bawaan, bisa dimatikan | aktif secara bawaan di build Microsoft, bisa dimatikan |
 | Kecerdasan bahasa (go to definition, rename, diagnostik) | belum ada: warna dan penyelesaian kata | bawaan, lewat language server | lewat extension |
 | Debugger | belum ada (hanya Run) | ada | ada |
-| Extension | 11 bawaan (task build, run, deploy, dan pack, berupa manifest), lebih banyak dari file | ada | katalog terbesar |
+| Extension | VS Code Marketplace untuk dijelajah dan dipasang (kodenya tidak berjalan), plus 11 manifest proyek bawaan | ada | katalog terbesar |
 | Agent AI | agent ACP apa pun, tiga tingkat akses, perubahan per giliran dengan undo | agent sendiri dan agent ACP | GitHub Copilot dan extension |
 | File yang bukan teks | hex, PDF, Office, ZIP, SQLite (baca-saja) | gambar | gambar; lebih banyak lewat extension |
 | Kolaborasi real-time | bawaan, lewat PC host (tanpa akun atau server) | bawaan, lewat server Zed | extension Live Share, lewat server Microsoft |
@@ -806,6 +913,9 @@ The first time an agent starts, FluxCode installs the agents' browser tool
 Extensions download nothing by themselves: Add Gradle wrapper asks services.gradle.org for
 the current version and fetches the wrapper from Gradle's GitHub repository, and an
 Install button on an extension's page runs `winget` in the Terminal, only when you click.
+The Extensions view asks marketplace.visualstudio.com for the list while it is open, and
+downloads an extension's VSIX only when you click Install. An animated background is
+downloaded from this repository on GitHub the first time you pick it.
 @id
 ## Privasi
 
@@ -825,6 +935,9 @@ Saat agent pertama kali dijalankan, FluxCode memasang alat browser untuk agent
 Extension tidak mengunduh apa pun sendiri: Add Gradle wrapper menanyakan versi terbaru ke
 services.gradle.org dan mengambil wrapper dari repositori GitHub Gradle, dan tombol Install
 di halaman sebuah extension menjalankan `winget` di Terminal, hanya saat kamu menekannya.
+Tampilan Extensions meminta daftar ke marketplace.visualstudio.com selama tampilan itu
+terbuka, dan mengunduh VSIX sebuah extension hanya saat kamu menekan Install. Latar
+beranimasi diunduh dari repositori ini di GitHub saat pertama kali kamu memilihnya.
 
 @en
 ## Shortcuts
