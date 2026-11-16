@@ -97,6 +97,12 @@ pub fn known(id: &str) -> Option<&'static Known> {
     KNOWN.iter().find(|k| k.id == id)
 }
 
+/// The agents FluxCode recommends (tested most, best with its agent panel): the
+/// picker marks them "Recommended" and lists them first.
+pub fn recommended(id: &str) -> bool {
+    matches!(id, "opencode-v2" | "opencode" | "commandcode" | "claude-acp")
+}
+
 /// Agents still being built: the picker marks them "Experimental".
 pub fn experimental(id: &str) -> bool {
     id == "mura"

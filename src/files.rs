@@ -1,6 +1,6 @@
 //! File system helpers: workspace tree, language detection, file badges.
 
-use gpui_kit::assets::IconName;
+use crate::fluxicon::{self, FluxIcon};
 use gpui_kit::component::tree::TreeItem;
 use std::path::Path;
 
@@ -446,62 +446,30 @@ fn shebang(line: &str) -> Option<(&'static str, &'static str)> {
 }
 
 
-/// The explorer's, tabs' and search's file icon: one Lucide outline per kind of
-/// file (code, data, text, image, config, script, lock, archive, ...), tinted
-/// with the language's color, so every row lines up and reads the same way.
+/// The explorer's, tabs' and search's file icon: a FluxIcon (FluxCode's own set,
+/// see `fluxicon.rs`) and its tint. Files the set doesn't know get the generic
+/// code icon when the editor colors them as a language, else the plain file icon.
 /// `None` means the neutral text color.
-pub fn icon_for(name: &str) -> (IconName, Option<u32>) {
-    let lower = name.to_ascii_lowercase();
-    let ext = if lower.contains('.') { lower.rsplit('.').next().unwrap_or("") } else { "" };
-    match (lower.as_str(), ext) {
-        ("package-lock.json" | "cargo.lock" | "yarn.lock" | "pnpm-lock.yaml" | "composer.lock", _) | (_, "lock") => (IconName::FileLock, None),
-        ("license" | "licence" | "copying", _) => (IconName::FileText, Some(0xd9a74a)),
-        ("dockerfile" | "makefile" | ".gitignore" | ".gitattributes" | ".editorconfig" | ".npmrc" | ".env", _) => (IconName::FileCog, None),
-        (_, "js" | "mjs" | "cjs") => (IconName::FileCode, Some(0xe8c547)),
-        (_, "jsx") => (IconName::FileCode, Some(0x61dafb)),
-        (_, "ts" | "mts" | "cts" | "tsx") => (IconName::FileCode, Some(0x3b8eea)),
-        (_, "html" | "htm" | "vue" | "svelte") => (IconName::FileCode, Some(0xe8704a)),
-        (_, "css" | "scss" | "less") => (IconName::FileCode, Some(0x5aa7e8)),
-        (_, "py" | "pyw" | "pyi") => (IconName::FileCode, Some(0x4f9fd8)),
-        (_, "rs") => (IconName::FileCode, Some(0xdea584)),
-        (_, "php") => (IconName::FileCode, Some(0x8c8fd8)),
-        (_, "c" | "h" | "cpp" | "hpp" | "cc" | "cs") => (IconName::FileCode, Some(0x6c9bd2)),
-        (_, "go") => (IconName::FileCode, Some(0x4fd1c5)),
-        (_, "java" | "kt") => (IconName::FileCode, Some(0xe76f51)),
-        (_, "lua" | "rb" | "swift" | "dart" | "sql") => (IconName::FileCode, Some(0x5a7fe8)),
-        (_, "json" | "jsonc" | "json5" | "webmanifest") => (IconName::FileBraces, Some(0xd9a74a)),
-        (_, "md" | "markdown" | "mdx" | "txt" | "rst" | "log") => (IconName::FileText, Some(0x8fb8ff)),
-        (_, "flx") => (IconName::FileText, Some(0xc792ea)),
-        (_, "toml" | "yml" | "yaml" | "ini" | "cfg" | "conf" | "env" | "xml") => (IconName::FileCog, None),
-        (_, "sh" | "bash" | "zsh" | "ps1" | "bat" | "cmd") => (IconName::FileTerminal, Some(0x5fd38d)),
-        (_, "png" | "jpg" | "jpeg" | "gif" | "svg" | "ico" | "webp" | "bmp" | "avif") => (IconName::FileImage, Some(0xc792ea)),
-        (_, "zip" | "7z" | "rar" | "gz" | "tgz" | "tar" | "whl" | "jar") => (IconName::FileArchive, None),
-        (_, "mp3" | "wav" | "ogg" | "flac") => (IconName::FileMusic, None),
-        (_, "mp4" | "mov" | "webm" | "mkv") => (IconName::FileVideoCamera, None),
-        (_, "ttf" | "otf" | "woff" | "woff2") => (IconName::FileType, None),
-        (_, "csv" | "tsv" | "xlsx") => (IconName::FileSpreadsheet, Some(0x5fd38d)),
-        (_, "pem" | "key" | "crt") => (IconName::FileKey, None),
-        (_, "pdf" | "docx" | "doc" | "odt" | "rtf" | "pptx" | "odp") => (IconName::FileText, Some(0xe8704a)),
-        (_, "ods" | "xls") => (IconName::FileSpreadsheet, Some(0x5fd38d)),
-        (_, "db" | "sqlite" | "sqlite3") => (IconName::FileBraces, Some(0x8fb8ff)),
-        // Anything else the editor colors is code.
-        _ => match language_for(Path::new(&lower), "").0 {
-            "text" => (IconName::File, None),
-            _ => (IconName::FileCode, None),
-        },
+pub fn icon_for(name: &str) -> (FluxIcon, Option<u32>) {
+    if let Some(hit) = fluxicon::for_name(name) {
+        return hit;
+    }
+    match language_for(Path::new(&name.to_ascii_lowercase()), "").0 {
+        "text" => (fluxicon::FILE, None),
+        _ => (fluxicon::CODE, None),
     }
 }
 
-/// Folder icon: `.git` gets its own, everything else the plain folder.
-pub fn folder_icon(name: &str, open: bool) -> IconName {
-    match name {
-        ".git" => IconName::FolderGit,
-        _ if open => IconName::FolderOpen,
-        _ => IconName::Folder,
+/// Folder icon: open or closed.
+pub fn folder_icon(_name: &str, open: bool) -> FluxIcon {
+    if open {
+        fluxicon::FOLDER_OPEN
+    } else {
+        fluxicon::FOLDER
     }
 }
 
-// The extra Lucide icons above, embedded next to gpui-kit's default set
+// Extra Lucide icons for the interface, embedded next to gpui-kit's default set
 // (about 0.5 KiB of SVG each); see `main.rs` for the asset source.
 gpui_kit::assets::icon_assets!(pub FileIcons, [
     File, FileCode, FileBraces, FileText, FileImage, FileLock, FileCog, FileTerminal, FileArchive,
@@ -526,28 +494,49 @@ gpui_kit::assets::icon_assets!(pub FileIcons, [
     // Agent: token saver
     Leaf,
     // Agent full screen: only the chat, and the limits card's way to the usage panel
-    Focus, Maximize2
+    Focus, Maximize2,
+    // Agent chats: the view menu and the archive
+    ListFilter, Archive, ArchiveRestore,
+    // Editor header: word wrap and image zoom
+    TextWrap, ZoomIn, ZoomOut
 ]);
 
 #[cfg(test)]
 mod tests {
-    use super::{language_for, walk, IconName};
+    use super::{language_for, walk};
     use std::path::Path;
 
     #[test]
     fn typed_names_map_to_their_file_icons() {
-        assert_eq!(
-            super::icon_for("main.py"),
-            (IconName::FileCode, Some(0x4f9fd8))
-        );
-        assert_eq!(
-            super::icon_for("app.ts"),
-            (IconName::FileCode, Some(0x3b8eea))
-        );
-        assert_eq!(
-            super::icon_for("plain.txt"),
-            (IconName::FileText, Some(0x8fb8ff))
-        );
+        use crate::fluxicon;
+        assert_eq!(super::icon_for("main.py"), (fluxicon::PYTHON, Some(0x4F9FD8)));
+        assert_eq!(super::icon_for("app.ts").0, fluxicon::TYPESCRIPT);
+        assert_eq!(super::icon_for("types.d.ts").0, fluxicon::TS_DECL);
+        assert_eq!(super::icon_for("Button.test.tsx").0, fluxicon::TEST_TS);
+        assert_eq!(super::icon_for("plain.txt").0, fluxicon::TEXT);
+        assert_eq!(super::icon_for("README.md").0, fluxicon::README);
+        assert_eq!(super::icon_for("Dockerfile.prod").0, fluxicon::DOCKER);
+        assert_eq!(super::icon_for(".env.local").0, fluxicon::ENV);
+        assert_eq!(super::icon_for("package.json").0, fluxicon::NPM);
+        assert_eq!(super::icon_for("package-lock.json").0, fluxicon::LOCK);
+        assert_eq!(super::icon_for("vite.config.ts").0, fluxicon::TOOL_CONFIG);
+        assert_eq!(super::icon_for("schema.prisma").0, fluxicon::PRISMA);
+        assert_eq!(super::icon_for("data.sqlite").0, fluxicon::SQLITE);
+        assert_eq!(super::icon_for("query.sql").0, fluxicon::SQL);
+        assert_eq!(super::icon_for("requirements-dev.txt").0, fluxicon::PYPACKAGE);
+        assert_eq!(super::icon_for("icon-48.png").0, fluxicon::IMAGE);
+        // Known to the editor as a language, but not to the icon set.
+        assert_eq!(super::icon_for("x.sml").0, fluxicon::CODE);
+        assert_eq!(super::icon_for("NOTES").0, fluxicon::FILE);
+    }
+
+    #[test]
+    fn every_fluxicon_is_embedded_and_drawn() {
+        for (path, svg) in crate::fluxicon::SVGS {
+            let text = std::str::from_utf8(svg).unwrap();
+            assert!(text.starts_with("<svg") && text.contains("<path"), "{path}");
+        }
+        assert_eq!(crate::fluxicon::SVGS.len(), crate::fluxicon::KINDS);
     }
 
     #[test]

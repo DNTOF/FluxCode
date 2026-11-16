@@ -126,6 +126,8 @@ pub struct Settings {
     pub extensions: Vec<String>,
     /// Launches that showed the Ctrl+L hint in the status bar (100: shortcut used).
     pub agent_hint: u8,
+    /// How the agent's chat list is grouped (`ChatView::id`).
+    pub chat_view: String,
     /// Look for new development builds on GitHub at start and every 6 hours.
     pub update_check: bool,
     /// Read WSL folders through the helper inside the distro instead of the 9p
@@ -197,6 +199,7 @@ impl Default for Settings {
             agent_browser_headless: false,
             extensions: crate::ext::default_installed(),
             agent_hint: 0,
+            chat_view: String::new(),
             update_check: true,
             wsl_helper: false,
             #[cfg(feature = "embedded-preview")]
@@ -541,6 +544,7 @@ impl Workbench {
     pub(crate) fn apply_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settings.save();
         self.copilot.set_enabled(self.settings.copilot);
+        self.kick_copilot(cx);
         crate::remote::set_helper_enabled(self.settings.wsl_helper);
         if self.settings.agent_right && self.view == crate::workbench::SideView::Agent {
             self.view = crate::workbench::SideView::Explorer;
@@ -550,6 +554,7 @@ impl Workbench {
         let (wrap, dots) = (self.settings.word_wrap, self.settings.show_whitespace);
         let opts = EditorOpts::of(&self.settings);
         for d in &self.docs {
+            let wrap = d.wraps(wrap);
             d.editor.update(cx, |s, cx| {
                 s.set_soft_wrap(wrap, window, cx);
                 s.set_show_whitespaces(dots, window, cx);
@@ -675,6 +680,8 @@ impl Workbench {
             .border_color(c(theme::BORDER))
             .py_3()
             .px_2()
+            // Room between the rows, so a selected row and a hovered one never touch.
+            .gap(px(3.))
             .child(
                 div()
                     .px_3()
@@ -1147,14 +1154,17 @@ impl Workbench {
         use crate::copilot::Status;
         let (text, show_signin, show_signout): (SharedString, bool, bool) = match self.copilot.status() {
             Status::Off => (tr("Off. Turn Copilot suggestions on in the Editor section.").into(), false, false),
-            Status::Starting => (tr("Starting the Copilot server...").into(), false, false),
+            Status::Starting => (tr("Checking Copilot…").into(), false, false),
             Status::NotInstalled => (
                 tr("Not installed. Install it once with: npm install -g @github/copilot-language-server (Node.js 20.8 or later).").into(),
                 false,
                 false,
             ),
             Status::Ready => (
-                tr("Ready. Suggestions appear as ghost text a moment after you stop typing.").into(),
+                match self.copilot.user() {
+                    Some(u) => crate::trf!("Ready, signed in as {user}. Suggestions appear as ghost text a moment after you stop typing; Tab accepts."; user => u).into(),
+                    None => tr("Ready. Suggestions appear as ghost text a moment after you stop typing.").into(),
+                },
                 false,
                 true,
             ),

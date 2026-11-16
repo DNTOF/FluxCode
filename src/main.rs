@@ -26,6 +26,7 @@ mod docs;
 mod explorer;
 mod ext;
 mod files;
+mod fluxicon;
 mod flux_anim;
 mod fluxdoc;
 mod github;
@@ -147,6 +148,9 @@ struct AppAssets;
 
 impl AssetSource for AppAssets {
     fn load(&self, path: &str) -> Result<Option<std::borrow::Cow<'static, [u8]>>> {
+        if let Some(bytes) = fluxicon::load(path) {
+            return Ok(Some(std::borrow::Cow::Borrowed(bytes)));
+        }
         if let Some(bytes) = files::FileIcons.load(path)? {
             return Ok(Some(bytes));
         }
@@ -160,6 +164,7 @@ impl AssetSource for AppAssets {
     fn list(&self, path: &str) -> Result<Vec<SharedString>> {
         let mut paths = gpui_kit::assets::Assets.list(path)?;
         paths.extend(files::FileIcons.list(path)?);
+        paths.extend(fluxicon::paths().filter(|p| p.starts_with(path)).map(SharedString::from));
         paths.sort();
         paths.dedup();
         Ok(paths)

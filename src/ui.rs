@@ -6,7 +6,7 @@
 
 use crate::theme::{self, c};
 use crate::workbench::Workbench;
-use gpui_kit::*;
+use gpui_kit::{prelude::FluentBuilder, *};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Kind {
@@ -54,6 +54,25 @@ impl Workbench {
                 .active(|s| s.bg(c(theme::BG_ELEVATED))),
         }
     }
+}
+
+/// A small square icon button for an editor's own actions (word wrap, zoom):
+/// muted, lit with the accent while its option is `on`.
+pub fn tool_button(id: impl Into<ElementId>, icon: impl Into<component::Icon>, on: bool) -> Stateful<Div> {
+    div()
+        .id(id)
+        .flex_none()
+        .size(theme::u(22.))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(4.))
+        .cursor_pointer()
+        .text_color(c(if on { theme::ACCENT_TEXT } else { theme::FG_MUTED }))
+        .when(on, |d| d.bg(c(theme::BG_HOVER)))
+        .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(if on { theme::ACCENT_TEXT } else { theme::FG_STRONG })))
+        .active(|s| s.bg(c(theme::BG_ELEVATED)))
+        .child(icon.into().size(theme::u(14.)))
 }
 
 /// The FluxCode mark, the meander from the app icon, drawn from rectangles so it
