@@ -1,0 +1,13 @@
+# FluxCode
+
+> FluxCode is a 16 MB native code editor for Windows, macOS and Linux, written in Rust and drawn by the GPU. It has an ACP agent panel (Command Code, Copilot and more), Source Control, Live share, no telemetry, and is free and open source under GPL-3.0-or-later.
+
+## Pages
+
+- [Home](https://fluxcode.muaraai.com/): product overview, screenshots and downloads
+
+## Code
+
+- [Source](https://github.com/MuaraAI/FluxCode): the repository
+- [Changelog](https://github.com/MuaraAI/FluxCode/blob/main/changelog.flux): bilingual release notes
+- [Releases](https://github.com/MuaraAI/FluxCode/releases): builds for every platform
