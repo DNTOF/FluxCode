@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- FluxCode. A meander: one line that turns at right angles and never crosses itself,
+       split at its centre into two hooks that hold each other (see README, The icon). -->
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="#17181b"/>
+  <path d="M394.2 747.5 L747.5 747.5 L747.5 394.2 L394.2 394.2 L394.2 512.0 L512.0 512.0" fill="none" stroke="#ebe4d6" stroke-width="58.9" stroke-linejoin="miter"/>
+  <path d="M512.0 512.0 L629.8 512.0 L629.8 629.8 L276.5 629.8 L276.5 276.5 L629.8 276.5" fill="none" stroke="#b98a5e" stroke-width="58.9" stroke-linejoin="miter"/>
+</svg>

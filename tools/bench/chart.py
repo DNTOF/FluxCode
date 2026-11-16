@@ -42,7 +42,18 @@ def short_version(v):
     return v.split("+")[0].strip()
 
 
+# Hand-timed figures (manual.json) that replace a logged median, kept apart from
+# results.json because bench.ps1 rewrites that file on every run.
+MANUAL = {}
+
+
+def manual_of(app, key):
+    return MANUAL.get(app["name"], {}).get(key)
+
+
 def median_of(app, key, which):
+    if manual_of(app, key) is not None:
+        return manual_of(app, key)
     if key == "disk_mb":
         return app["disk_mb"]
     runs = app["runs"][1:] if which == "warm" and len(app["runs"]) > 1 else app["runs"]
@@ -104,8 +115,11 @@ def panel(x, y, w, metric, apps, t, subject):
         color = t["accent"] if me else t["other"]
         parts.append(f'<rect x="{x + label_w}" y="{ry}" width="{bw:.1f}" height="{bar_h}" rx="2" fill="{color}"/>')
         val = fmt(v, dec) + (f" {unit}" if unit and unit != "% of one core" else ("%" if unit == "% of one core" else ""))
+        by_hand = me and manual_of(next(a for a in apps if a["name"] == name), key) is not None
+        if by_hand:
+            val = f"about {val}, timed by hand"
         parts.append(f'<text x="{x + label_w + bw + 6:.1f}" y="{ry + 11}" font-size="12" font-weight="{weight}" fill="{t["text"]}">{esc(val)}</text>')
-        if me:
+        if me and not by_hand:
             note = ratio_note(values, subject, key)
             if note:
                 nx = x + label_w + bw + 6 + 7.2 * len(val) + 8
@@ -133,6 +147,8 @@ def svg(data, theme, subject="FluxCode"):
         "Median of 5 runs, fresh empty profile each, telemetry and update checks off, no folder open. Window: runs 2 to 5 (warm).",
         "Memory and CPU summed over all of an app's processes. Reproduce: tools/bench/bench.ps1",
     ]
+    if MANUAL:
+        foot.append("FluxCode's window time was timed by hand (tools/bench/manual.json); bench.ps1 logs 221 ms, which includes its own polling.")
     for k, line in enumerate(foot):
         out.append(f'<text x="8" y="{y + k * 17}" font-size="11.5" fill="{t["muted"]}">{esc(line)}</text>')
     h = y + len(foot) * 17
@@ -149,6 +165,11 @@ def table(data):
         cells = []
         for a in apps:
             v = median_of(a, key, which)
+            if manual_of(a, key) is not None:
+                runs = a["runs"][1:] if which == "warm" and len(a["runs"]) > 1 else a["runs"]
+                logged = statistics.median([r[key] for r in runs if r.get(key) is not None])
+                cells.append(f"about {fmt(v, dec)}, timed by hand (bench.ps1: {fmt(logged, dec)})")
+                continue
             if key == "disk_mb" or not a["runs"]:
                 cells.append(fmt(v, dec))
                 continue
@@ -164,6 +185,9 @@ def table(data):
 def main():
     path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "results.json")
     data = json.load(open(path, encoding="utf-8-sig"))
+    manual_path = os.path.join(HERE, "manual.json")
+    if os.path.exists(manual_path):
+        MANUAL.update({k: v for k, v in json.load(open(manual_path, encoding="utf-8")).items() if isinstance(v, dict)})
     os.makedirs(OUT, exist_ok=True)
     for theme in THEMES:
         with open(os.path.join(OUT, f"benchmark-{theme}.svg"), "w", encoding="utf-8", newline="\n") as f:
