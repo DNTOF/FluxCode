@@ -86,6 +86,11 @@ pub struct Settings {
     pub saver_level: String,
     /// Send the waiting message again by itself when a usage limit resets.
     pub resume_at_reset: bool,
+    /// The animated scene behind the panels ("ocean", "river", "beach", "mountains",
+    /// "anime", or "none"); a background image takes its place while one is set.
+    pub bg_scene: String,
+    /// The scene moves (off: a still picture).
+    pub bg_anim: bool,
     /// When the agent edits a file, the editor opens it and shows the change being
     /// typed in, line by line, with the view following it.
     pub agent_follow_edits: bool,
@@ -176,6 +181,8 @@ impl Default for Settings {
             saver_packs: Vec::new(),
             saver_level: "full".into(),
             resume_at_reset: false,
+            bg_scene: "ocean".into(),
+            bg_anim: true,
             agent_follow_edits: true,
             agent_accounts: Vec::new(),
             agent_account: Default::default(),
@@ -254,6 +261,27 @@ impl Settings {
     /// The background image, if one is set and the file is still there.
     pub fn background(&self) -> Option<&Path> {
         self.bg_image.as_deref().filter(|p| p.is_file())
+    }
+
+    /// The animated scene that shows (none while an image is set).
+    pub fn scene(&self) -> Option<crate::scene::Scene> {
+        if self.background().is_some() {
+            return None;
+        }
+        crate::scene::Scene::from_id(&self.bg_scene)
+    }
+
+    /// Something shows behind the panels (an image or a scene): they turn translucent.
+    pub fn backdrop_visibility(&self) -> Option<Visibility> {
+        (self.background().is_some() || self.scene().is_some()).then_some(self.bg_visibility)
+    }
+
+    /// Push the backdrop choices to the theme and the scene.
+    pub fn apply_backdrop(&self) {
+        crate::theme::set(&self.theme, self.backdrop_visibility());
+        crate::theme::set_glass(self.glass);
+        crate::scene::set(self.scene(), self.bg_anim);
+        crate::theme::set_scene_backdrop(self.scene().is_some());
     }
 }
 
@@ -535,8 +563,7 @@ impl Workbench {
     pub(crate) fn apply_appearance(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settings.save();
         theme::set_ui_size(self.settings.ui_size);
-        theme::set(&self.settings.theme, self.settings.background().map(|_| self.settings.bg_visibility));
-        theme::set_glass(self.settings.glass);
+        self.settings.apply_backdrop();
         theme::apply(cx);
         window.refresh();
         cx.notify();
@@ -824,7 +851,45 @@ impl Workbench {
                             .into_any_element(),
                     ),
                 ];
-                if s.background().is_some() {
+                // Animated scenes: one of five, or none, and whether it moves.
+                let scene_controls = h_flex()
+                    .flex_wrap()
+                    .gap_1()
+                    .child(Button::new("sc-none").label(tr("None")).xsmall().when(s.bg_scene == "none", |b| b.primary()).on_click(cx.listener(|this, _, w, cx| {
+                        this.settings.bg_scene = "none".into();
+                        this.apply_appearance(w, cx);
+                    })))
+                    .children(crate::scene::Scene::ALL.into_iter().map(|sc| {
+                        Button::new(SharedString::from(format!("sc-{}", sc.id())))
+                            .label(tr(sc.label()))
+                            .xsmall()
+                            .when(s.bg_scene == sc.id(), |b| b.primary())
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                this.settings.bg_scene = sc.id().into();
+                                this.apply_appearance(w, cx);
+                            }))
+                    }))
+                    .into_any_element();
+                let scene_desc: SharedString = if s.background().is_some() {
+                    tr("Your background image shows instead. Remove it to see the scene.").into()
+                } else {
+                    tr("A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.").into()
+                };
+                rows.push(settings_row(tr("Animated background"), scene_desc, scene_controls));
+                rows.push(settings_row(
+                    tr("Background animation"),
+                    tr("Off keeps the scene's first frame as a still picture (nothing decodes while you work).").into(),
+                    Button::new("sc-anim")
+                        .label(if s.bg_anim { tr("On") } else { tr("Off") })
+                        .xsmall()
+                        .when(s.bg_anim, |b| b.primary())
+                        .on_click(cx.listener(|this, _, w, cx| {
+                            this.settings.bg_anim = !this.settings.bg_anim;
+                            this.apply_appearance(w, cx);
+                        }))
+                        .into_any_element(),
+                ));
+                if s.backdrop_visibility().is_some() {
                     rows.push(settings_row(tr("Background visibility"), vis_desc, vis_controls));
                 }
                 settings_card(rows)

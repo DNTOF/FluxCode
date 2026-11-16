@@ -317,6 +317,9 @@ pub struct Workbench {
     pub(crate) search: core::SearchResult,
     pub(crate) searching: bool,
     pub(crate) search_rows: Vec<(usize, Option<usize>)>,
+    /// Result files opened past the first lines, and files folded to their header.
+    pub(crate) search_unfolded: std::collections::HashSet<usize>,
+    pub(crate) search_closed: std::collections::HashSet<usize>,
     // panel (terminal + output)
     pub(crate) procs: Procs,
     pub(crate) panel_open: bool,
@@ -548,6 +551,8 @@ impl Workbench {
             search: core::SearchResult::default(),
             searching: false,
             search_rows: Vec::new(),
+            search_unfolded: Default::default(),
+            search_closed: Default::default(),
             procs,
             panel_open: false,
             panel_tab: PanelTab::Terminal,
@@ -2754,6 +2759,8 @@ impl Render for Workbench {
                 .h_full()
                 .flex_none()
                 .cursor_col_resize()
+                // Painted like the panels: a bare gap would show the backdrop raw.
+                .bg(c(theme::BG_SIDE))
                 .hover(|s| s.bg(c(theme::ACCENT)))
                 .when(this.resizing == which, |d| d.bg(c(theme::ACCENT)))
                 .on_mouse_down(MouseButton::Left, cx.listener(move |this, _, _, cx| {
@@ -2804,7 +2811,7 @@ impl Render for Workbench {
             .track_focus(&self.focus)
             .size_full()
             .relative()
-            .bg(gpui_kit::Hsla::from(rgb(theme::palette().swatches()[1])).opacity(if theme::glass() && self.settings.background().is_none() { 0.42 } else { 1. }))
+            .bg(gpui_kit::Hsla::from(rgb(theme::palette().swatches()[1])).opacity(if crate::scene::active() { 0. } else if theme::glass() && self.settings.background().is_none() { 0.42 } else { 1. }))
             .text_color(c(theme::FG))
             .children(backdrop)
             .on_action(cx.listener(Self::on_next_theme))
@@ -3334,7 +3341,8 @@ mod fit_tests {
 fn apply_glass(window: &mut Window) {
     use std::sync::atomic::{AtomicU8, Ordering};
     static APPLIED: AtomicU8 = AtomicU8::new(0);
-    let want = if theme::glass() { 2 } else { 1 };
+    // A scene or picture covers the window, so the blur behind it would never show.
+    let want = if theme::glass() && !crate::scene::active() && !theme::has_backdrop() { 2 } else { 1 };
     if APPLIED.swap(want, Ordering::Relaxed) != want {
         window.set_background_appearance(if want == 2 { WindowBackgroundAppearance::Blurred } else { WindowBackgroundAppearance::Opaque });
     }

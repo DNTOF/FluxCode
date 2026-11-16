@@ -1273,6 +1273,23 @@ pub const ID: &[(&str, &str)] = &[
     ("No chats yet. Each answer saves the chat here.", "Belum ada chat. Setiap jawaban menyimpan chat di sini."),
     ("Untitled chat", "Chat tanpa judul"),
     ("Files the agent edits show up here, with a diff a click away.", "File yang diedit agent muncul di sini; klik untuk melihat diff."),
+    // ------------------------------------------------------------ animated backgrounds
+    ("Ocean", "Laut"),
+    ("River", "Sungai"),
+    ("Beach", "Pantai"),
+    ("Mountains", "Pegunungan"),
+    ("Anime", "Anime"),
+    ("None", "Tidak ada"),
+    ("Animated background", "Latar animasi"),
+    ("Background animation", "Animasi latar"),
+    ("Your background image shows instead. Remove it to see the scene.", "Gambar latar kamu yang tampil. Hapus gambarnya untuk melihat scene."),
+    // ------------------------------------------------------------ backgrounds, search
+    (
+        "A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.",
+        "Video pixel berulang di belakang panel: laut, sungai, pantai, pegunungan atau senja anime. Diunduh sekali (beberapa MB) saat pertama dipilih.",
+    ),
+    ("Off keeps the scene's first frame as a still picture (nothing decodes while you work).", "Off: frame pertama jadi gambar diam (tidak ada decode saat kamu bekerja)."),
+    ("{0} more matches", "{0} hasil lagi"),
 ];
 
 #[cfg(test)]

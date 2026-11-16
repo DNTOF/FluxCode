@@ -23,6 +23,12 @@ static GEN: AtomicU64 = AtomicU64::new(0);
 /// long enough that a word typed at speed costs one walk, not one per letter.
 const TYPE_PAUSE: Duration = Duration::from_millis(140);
 
+/// Lines shown per file before a "N more" row: a file with hundreds of matches no
+/// longer pushes every other file off the list.
+const FOLD: usize = 6;
+/// The hit index that stands for a file's "N more" row.
+const MORE: usize = usize::MAX;
+
 impl Workbench {
     /// The query changed: search once typing pauses (Enter still searches at once).
     pub(crate) fn search_soon(&mut self, cx: &mut Context<Self>) {
@@ -94,18 +100,33 @@ impl Workbench {
                 if GEN.load(Ordering::Relaxed) != gen {
                     return;
                 }
-                this.search_rows = result
-                    .files
-                    .iter()
-                    .enumerate()
-                    .flat_map(|(f, fh)| std::iter::once((f, None)).chain((0..fh.hits.len()).map(move |h| (f, Some(h)))))
-                    .collect();
                 this.search = result;
+                this.search_unfolded.clear();
+                this.search_closed.clear();
+                this.rebuild_search_rows();
                 this.searching = false;
                 cx.notify();
             });
         })
         .detach();
+    }
+
+    /// The rows the list shows: each file, then its first `FOLD` lines unless the user
+    /// opened it all, then a "N more" row. A closed file shows its header alone.
+    pub(crate) fn rebuild_search_rows(&mut self) {
+        let mut rows = Vec::new();
+        for (f, fh) in self.search.files.iter().enumerate() {
+            rows.push((f, None));
+            if self.search_closed.contains(&f) {
+                continue;
+            }
+            let shown = if self.search_unfolded.contains(&f) { fh.hits.len() } else { fh.hits.len().min(FOLD) };
+            rows.extend((0..shown).map(|h| (f, Some(h))));
+            if shown < fh.hits.len() {
+                rows.push((f, Some(MORE)));
+            }
+        }
+        self.search_rows = rows;
     }
 
     pub(crate) fn render_search(&self, cx: &mut Context<Self>) -> AnyElement {
@@ -158,11 +179,36 @@ impl Workbench {
                                         let name = fh.path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
                                         let rel = fh.path.parent().map(|p| this.rel_display(&p.to_string_lossy())).unwrap_or_default();
                                         let (icon, tint) = files::icon_for(&name);
-                                        row.child(gpui_kit::component::Icon::new(icon).size(theme::u(14.)).text_color(theme::tint(tint)))
+                                        let closed = this.search_closed.contains(&f);
+                                        row.cursor_pointer()
+                                            .on_click(cx.listener(move |this, _, _, cx| {
+                                                if !this.search_closed.remove(&f) {
+                                                    this.search_closed.insert(f);
+                                                }
+                                                this.rebuild_search_rows();
+                                                cx.notify();
+                                            }))
+                                            .child({
+                                                use gpui_kit::component::IconName as I;
+                                                gpui_kit::component::Icon::new(if closed { I::ChevronRight } else { I::ChevronDown }).size(theme::u(12.)).text_color(c(theme::FG_DIM))
+                                            })
+                                            .child(gpui_kit::component::Icon::new(icon).size(theme::u(14.)).text_color(theme::tint(tint)))
                                             .child(div().text_color(c(theme::FG_STRONG)).child(name))
                                             .child(div().text_xs().text_color(c(theme::FG_DIM)).child(rel))
                                             .child(div().flex_1())
                                             .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(fh.hits.len().to_string()))
+                                    }
+                                    Some(MORE) => {
+                                        let more = fh.hits.len().saturating_sub(FOLD);
+                                        row.pl(px(28.))
+                                            .cursor_pointer()
+                                            .text_color(c(theme::ACCENT_TEXT))
+                                            .child(crate::trf!("{0} more matches"; 0 => more))
+                                            .on_click(cx.listener(move |this, _, _, cx| {
+                                                this.search_unfolded.insert(f);
+                                                this.rebuild_search_rows();
+                                                cx.notify();
+                                            }))
                                     }
                                     Some(h) => {
                                         let hit = &fh.hits[h];

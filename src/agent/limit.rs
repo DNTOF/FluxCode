@@ -14,7 +14,7 @@ use crate::workbench::Workbench;
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
     checkbox::Checkbox,
-    h_flex, Icon, IconName, Sizable,
+    h_flex, v_flex, Icon, IconName, Sizable,
 };
 use gpui_kit::{prelude::FluentBuilder, *};
 use std::path::PathBuf;
@@ -132,43 +132,63 @@ impl Workbench {
             }
         });
         let resume = self.settings.resume_at_reset;
+        // Two groups that wrap: the notice (its text wraps too, never cut) and the
+        // controls, which drop to a line of their own when the column is narrow.
+        let notice = h_flex()
+            .flex_1()
+            .min_w(theme::u(180.))
+            .gap_2()
+            .items_start()
+            .child(Icon::new(IconName::TriangleAlert).flex_none().mt(px(2.)).size(theme::u(15.)).text_color(c(theme::WARN)))
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .child(div().text_color(c(theme::FG_STRONG)).font_weight(FontWeight::MEDIUM).child(tr("Usage limit reached")))
+                    .children(when.map(|w| div().text_xs().text_color(c(theme::FG_MUTED)).child(w))),
+            );
+        let controls = h_flex()
+            .flex_none()
+            .ml_auto()
+            .gap_2()
+            .when(resets.is_some(), |h| {
+                h.child(
+                    Checkbox::new("ag-resume-reset").label(tr("Resume at reset")).checked(resume).small().on_click(cx.listener(|this, on: &bool, _, cx| {
+                        this.settings.resume_at_reset = *on;
+                        this.settings.save();
+                        this.agent.limit.gen += 1;
+                        this.agent_schedule_resume(cx);
+                        cx.notify();
+                    })),
+                )
+            })
+            .child(
+                Button::new("ag-limit-continue")
+                    .label(tr("Continue now"))
+                    .small()
+                    .primary()
+                    .on_click(cx.listener(|this, _, _, cx| this.agent_continue_after_limit(cx))),
+            )
+            .child(Button::new("ag-limit-close").icon(IconName::Close).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| {
+                this.agent.limit.hit = None;
+                this.agent.limit.gen += 1;
+                cx.notify();
+            })));
         Some(
             h_flex()
+                .flex_wrap()
                 .mx_3()
                 .mb_2()
                 .px_3()
                 .py_2()
-                .gap_2()
+                .gap_x_3()
+                .gap_y_2()
                 .glass()
                 .border_color(c(theme::WARN).opacity(0.45))
                 .bg(c(theme::WARN).opacity(0.12))
                 .text_sm()
-                .child(Icon::new(IconName::TriangleAlert).flex_none().size(theme::u(15.)).text_color(c(theme::WARN)))
-                .child(div().flex_none().text_color(c(theme::FG_STRONG)).child(tr("Usage limit reached")))
-                .child(div().flex_1().min_w_0().truncate().text_color(c(theme::FG_MUTED)).children(when.map(|w| format!("· {w}"))))
-                .when(resets.is_some(), |h| {
-                    h.child(
-                        Checkbox::new("ag-resume-reset").label(tr("Resume at reset")).checked(resume).small().on_click(cx.listener(|this, on: &bool, _, cx| {
-                            this.settings.resume_at_reset = *on;
-                            this.settings.save();
-                            this.agent.limit.gen += 1;
-                            this.agent_schedule_resume(cx);
-                            cx.notify();
-                        })),
-                    )
-                })
-                .child(
-                    Button::new("ag-limit-continue")
-                        .label(tr("Continue now"))
-                        .small()
-                        .primary()
-                        .on_click(cx.listener(|this, _, _, cx| this.agent_continue_after_limit(cx))),
-                )
-                .child(Button::new("ag-limit-close").icon(IconName::Close).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| {
-                    this.agent.limit.hit = None;
-                    this.agent.limit.gen += 1;
-                    cx.notify();
-                })))
+                .child(notice)
+                .child(controls)
                 .into_any_element(),
         )
     }

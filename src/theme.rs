@@ -395,6 +395,17 @@ pub fn rem() -> gpui_kit::Pixels {
 /// 0 = no image, otherwise Visibility index + 1.
 static IMAGE: AtomicU8 = AtomicU8::new(0);
 static GLASS: AtomicBool = AtomicBool::new(false);
+/// The backdrop is a drawn scene, not a photo: its colors are calm and mid-dark, so the
+/// panels can let much more of it through and text keeps its contrast.
+static SCENE: AtomicBool = AtomicBool::new(false);
+
+pub fn set_scene_backdrop(on: bool) {
+    SCENE.store(on, Ordering::Relaxed);
+}
+
+fn strength(v: Visibility) -> f32 {
+    v.strength() * if SCENE.load(Ordering::Relaxed) { 2.2 } else { 1. }
+}
 
 /// Liquid glass on: the window takes the system blur and the panels let it through.
 pub fn set_glass(on: bool) {
@@ -448,10 +459,10 @@ pub fn c(p: impl Into<Paint>) -> Hsla {
             match (image(), t) {
                 // Panels become translucent over the image; the title bar and popovers stay
                 // nearly solid (menus and window buttons sit on them).
-                (Some(v), Tok::BgTitle) => col.opacity(1. - v.strength() * 0.5),
-                (Some(v), Tok::BgSide) => col.opacity(1. - v.strength() * 0.8),
-                (Some(v), Tok::BgEditor) => col.opacity(1. - v.strength() * 0.6),
-                (Some(v), Tok::BgElevated) => col.opacity(1. - v.strength() * 0.3),
+                (Some(v), Tok::BgTitle) => col.opacity(1. - strength(v) * 0.5),
+                (Some(v), Tok::BgSide) => col.opacity(1. - strength(v) * 0.8),
+                (Some(v), Tok::BgEditor) => col.opacity(1. - strength(v) * 0.6),
+                (Some(v), Tok::BgElevated) => col.opacity(1. - strength(v) * 0.3),
                 // Glass over the blurred desktop: the code surface stays nearly solid
                 // for contrast, the chrome around it lets more through.
                 (None, Tok::BgTitle) if glass() => col.opacity(0.72),
@@ -486,10 +497,12 @@ pub fn editor_wash() -> Background {
     match image() {
         None if glass() => base.opacity(0.88).into(),
         None => base.into(),
+        // The code side keeps the photo-level strength even over a scene, so text
+        // always sits on a calm surface; the scene's extra strength shows at the right.
         Some(v) => linear_gradient(
             90.,
             linear_color_stop(base.opacity(1. - v.strength() * 0.6), 0.45),
-            linear_color_stop(base.opacity(1. - v.strength()), 1.),
+            linear_color_stop(base.opacity(1. - strength(v)), 1.),
         ),
     }
 }
@@ -559,6 +572,9 @@ pub fn apply(cx: &mut App) {
         let mut hl = (*t.highlight_theme).clone();
         let st = &mut hl.style;
         st.editor_background = Some(if image().is_some() { gpui_kit::transparent_black() } else { c(BG_EDITOR) });
+        // The line numbers sit on the same surface as the code (the syntax theme's own
+        // gutter color would be a solid stripe over a backdrop).
+        st.editor_gutter_background = st.editor_background;
         st.editor_foreground = Some(c(FG));
         st.editor_active_line = Some(c(FG).opacity(0.05));
         st.editor_line_number = Some(c(FG_DIM));
@@ -652,3 +668,8 @@ pub trait GlassExt: gpui_kit::Styled + Sized {
     }
 }
 impl<T: gpui_kit::Styled> GlassExt for T {}
+
+/// An image (or scene) shows behind the panels.
+pub fn has_backdrop() -> bool {
+    image().is_some()
+}
