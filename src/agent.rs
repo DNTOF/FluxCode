@@ -4169,6 +4169,7 @@ impl Workbench {
             .child(div().text_xs().text_center().text_color(c(theme::FG_DIM)).child(note))
             .child(list)
             .when(!any, |v| v.child(div().pt_1().text_xs().text_color(c(theme::FG_DIM)).child(tr("The menu above lists every agent in the ACP registry."))))
+            .children(err_box)
             .into_any_element()
     }
 }

@@ -52,7 +52,12 @@ pub const KNOWN: &[Known] = &[
     // Command Code: installed by the user (`npm i -g command-code`); FluxCode only
     // detects it. Not in the ACP registry, so the picker opens its docs instead of
     // a download. The bare `cmd` bin is skipped: on Windows it is cmd.exe.
-    Known { id: "commandcode", name: "Command Code", by: "Command Code · open models", path: &[("commandcode", &["acp"]), ("cmdc", &["acp"])] },
+    Known {
+        id: "commandcode",
+        name: "Command Code",
+        by: "Command Code · open models",
+        path: &[("commandcode", &["acp"]), ("cmdc", &["acp"])],
+    },
     Known { id: "goose", name: "goose", by: "Block", path: &[("goose", &["acp"])] },
     Known { id: "mistral-vibe", name: "Mistral Vibe", by: "Mistral AI", path: &[("vibe-acp", &[])] },
     Known { id: "cline", name: "Cline", by: "Cline", path: &[("cline", &["--acp"])] },
@@ -1029,8 +1034,14 @@ mod tests {
         // with "acp", so the known entry lists the unambiguous names only.
         let k = known("commandcode").expect("Command Code is in the known list");
         assert!(k.path.iter().all(|(exe, _)| *exe != "cmd"));
-        assert!(k.path.iter().any(|(exe, args)| *exe == "commandcode" && *args == ["acp"]));
-        assert!(k.path.iter().any(|(exe, args)| *exe == "cmdc" && *args == ["acp"]));
+        assert!(k
+            .path
+            .iter()
+            .any(|(exe, args)| *exe == "commandcode" && *args == ["acp"]));
+        assert!(k
+            .path
+            .iter()
+            .any(|(exe, args)| *exe == "cmdc" && *args == ["acp"]));
     }
 
     #[test]
