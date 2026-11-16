@@ -589,9 +589,19 @@ impl Copilot {
     /// Start the device-flow sign-in. Returns the user code; the server
     /// opens the browser for the rest. Settings shows the code as well, so
     /// the user can open github.com/login/device by hand if no browser opens.
+    ///
+    /// The server requires a params object (`{}`): without one it answers
+    /// "Schema validation failed: Expected object". A GitHub CLI token can't be used
+    /// instead: Copilot only accepts tokens from its own OAuth app (403 otherwise),
+    /// so the device flow is the way in. Returns an empty code when the server says
+    /// the account is signed in already.
     pub fn sign_in(&self) -> Result<String, String> {
         self.ensure_started(None)?;
-        let result = self.request("signIn", None, SIGNIN_TIMEOUT)?;
+        let result = self.request("signIn", Some(serde_json::json!({})), SIGNIN_TIMEOUT)?;
+        if result.get("status").and_then(|s| s.as_str()) == Some("AlreadySignedIn") {
+            self.check_status();
+            return Ok(String::new());
+        }
         let code = result
             .get("userCode")
             .and_then(|c| c.as_str())
@@ -632,7 +642,7 @@ impl Copilot {
             st.user = None;
         }
         if self.shared.state.lock().unwrap().started {
-            let _ = self.request("signOut", None, SIGNIN_TIMEOUT);
+            let _ = self.request("signOut", Some(serde_json::json!({})), SIGNIN_TIMEOUT);
             self.check_status();
         }
         self.shared.ping();

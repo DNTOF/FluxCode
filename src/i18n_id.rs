@@ -1436,6 +1436,9 @@ pub const ID: &[(&str, &str)] = &[
     ("Code and tools", "Kode dan alat"),
     ("Shows changed lines or a small diff, never whole files again.", "Hanya baris yang berubah atau diff kecil, tidak pernah seluruh file lagi."),
     ("Reads only the lines it needs and keeps command output short.", "Hanya membaca baris yang perlu dan menjaga output perintah tetap pendek."),
+    ("Sign-in code copied: paste it on the GitHub page that opened, then click Authorize.", "Kode masuk disalin: tempel di halaman GitHub yang terbuka, lalu klik Authorize."),
+    ("Paste it on github.com/login/device and click Authorize; this page updates by itself.", "Tempel di github.com/login/device lalu klik Authorize; halaman ini akan berubah sendiri."),
+    ("Open GitHub", "Buka GitHub"),
 ];
 
 #[cfg(test)]

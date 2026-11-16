@@ -1196,7 +1196,13 @@ impl Workbench {
 
     fn copilot_signin_result(&mut self, r: Result<String, String>, cx: &mut Context<Self>) {
         match r {
-            Ok(_) => self.status = tr("Signed in to Copilot").into(),
+            Ok(code) if code.is_empty() => self.status = tr("Signed in to Copilot").into(),
+            // The device code goes on the clipboard: paste it on the GitHub page the
+            // browser opened, then Authorize.
+            Ok(code) => {
+                cx.write_to_clipboard(ClipboardItem::new_string(code));
+                self.status = tr("Sign-in code copied: paste it on the GitHub page that opened, then click Authorize.").into();
+            }
             Err(e) => self.status = e.into(),
         }
         cx.notify();
@@ -1322,16 +1328,22 @@ impl Workbench {
         if let Some(code) = code {
             let copy = code.clone();
             col = col.child(
-                h_flex()
+                v_flex()
                     .gap_1()
                     .child(div().child(crate::trf!("Your sign-in code: {code}"; code => code)))
+                    .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(tr("Paste it on github.com/login/device and click Authorize; this page updates by itself.")))
                     .child(
-                        Button::new("cpl-copy")
-                            .label(tr("Copy code"))
-                            .xsmall()
-                            .on_click(move |_, _, cx| {
-                                cx.write_to_clipboard(ClipboardItem::new_string(copy.clone()));
-                            }),
+                        h_flex()
+                            .gap_1()
+                            .child(
+                                Button::new("cpl-copy")
+                                    .label(tr("Copy code"))
+                                    .xsmall()
+                                    .on_click(move |_, _, cx| {
+                                        cx.write_to_clipboard(ClipboardItem::new_string(copy.clone()));
+                                    }),
+                            )
+                            .child(Button::new("cpl-open").label(tr("Open GitHub")).xsmall().on_click(|_, _, cx| cx.open_url("https://github.com/login/device"))),
                     ),
             );
         }
