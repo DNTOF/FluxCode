@@ -1,1724 +1,1468 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FluxCode: Editor Kode Native Berbasis Rust &amp; GPUI</title>
-<meta name="description" content="Editor kode native untuk Windows, macOS, dan Linux. Ditulis dalam Rust dan digambar GPU. Dilengkapi panel agen AI (ACP), terminal cepat, Source Control bawaan, dan pembaca SQLite/PDF. Tanpa telemetri.">
+<title>FluxCode: a 16 MB native code editor with AI agents built in</title>
+<meta name="description" content="FluxCode is a native code editor for Windows, macOS and Linux. One 16 MB program written in Rust and drawn by the GPU, with an ACP agent panel, Source Control, Live share and no telemetry.">
+<meta name="theme-color" content="#0e0e10">
+<meta property="og:title" content="FluxCode: a 16 MB native code editor with AI agents built in">
+<meta property="og:description" content="Rust, drawn by the GPU, 1.4 MB RAM when idle, no telemetry. Open source, GPL-3.0.">
+<meta property="og:image" content="https://fluxcode.muaraai.com/img/agent.webp">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.github.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BBH+Bogle&family=Playwrite+AU+SA+Guides&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/*
+  Design read: product download page for developers, a dark editor-tool language following
+  kiwstudio.com's structure (left-aligned titles, live data panels), dial ENERGY 2 /
+  RHYTHM 3 / MOTION 1.
+  Dark because FluxCode is a developer tool that ships dark by default; yellow #F0D55B is the
+  only accent (primary button, FluxCode's numbers, active tab); ivory and clay come from the
+  meander logo. Fonts: BBH Bogle for titles and big numbers (the owner's pick); Schibsted
+  Grotesk for text, a newspaper grotesk that stays readable small; Spline Sans Mono only for
+  technical data; Playwrite AU SA Guides only for handwritten notes.
+*/
 :root {
   color-scheme: dark;
-  --bg: #111215;
-  --bg-card: #18191f;
-  --bg-card-alt: #1e2027;
-  --panel: #242630;
-  --border: #323542;
-  --border-subtle: #252833;
-  --ink: #f2f3f7;
-  --muted: #9ea3b5;
-  --yellow: #F0D55B;
-  --yellow-hover: #f7df78;
-  --yellow-dark: #b89f37;
-  --yellow-glow: rgba(240, 213, 91, 0.16);
+  --bg: #0e0e10;
+  --surface: #151518;
+  --surface-2: #1b1b1f;
+  --line: #24242a;
+  --line-strong: #34343c;
+  --ink: #f2f0ea;
+  --muted: #a3a09a;
+  --faint: #8a877f;
+  --yellow: #f0d55b;
+  --yellow-hover: #f6e07e;
+  --on-yellow: #141311;
   --ivory: #ebe4d6;
-  --green: #4ade80;
-  --sans: "Bricolage Grotesque", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --clay: #b98a5e;
+  --bar-other: #4b4a50;
+  --danger: #f2a38f;
+  --display: "BBH Bogle", "Arial Narrow", Impact, sans-serif;
+  --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, "Cascadia Mono", monospace;
+  --hand: "Playwrite AU SA Guides", "Segoe Script", cursive;
+  --wrap: 1120px;
+  --header-h: 64px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
-  background-color: var(--bg);
+  background: var(--bg);
   color: var(--ink);
   font: 400 1rem/1.6 var(--sans);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+a, button, summary, [role="tab"] { cursor: pointer; }
+button { font: inherit; color: inherit; }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; border-radius: 4px; }
+::selection { background: rgba(240, 213, 91, 0.3); }
 
-a { color: inherit; text-decoration: none; }
-:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
-
-.wrap {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 24px;
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+.mono { font-family: var(--mono); font-size: 0.86em; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip {
+  position: absolute; left: 16px; top: -48px; z-index: 200;
+  background: var(--yellow); color: var(--on-yellow); padding: 10px 14px; border-radius: 8px;
+  font-weight: 600; text-decoration: none;
 }
+.skip:focus { top: 12px; }
+.hand { font-family: var(--hand); font-weight: 400; color: var(--clay); letter-spacing: 0; }
 
 /* Header */
-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(17, 18, 21, 0.88);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-subtle);
+.site-header {
+  position: sticky; top: 0; z-index: 60;
+  background: rgba(14, 14, 16, 0.94);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
 }
-header .wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  height: 72px;
-}
+.site-header.scrolled { border-bottom-color: var(--line); }
+.site-header .wrap { height: var(--header-h); display: flex; align-items: center; gap: 20px; }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
+  display: inline-flex; align-items: center; gap: 10px;
+  text-decoration: none; font: 400 1.2rem/1 var(--display); letter-spacing: 0.01em;
+  margin-right: auto; min-height: 44px;
 }
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.brand img { width: 30px; height: 30px; }
+.brand small { font: 500 0.8rem var(--sans); color: var(--faint); }
+.top-nav { display: flex; gap: 2px; }
+.top-nav a {
+  text-decoration: none; color: var(--muted); font-weight: 500; font-size: 0.95rem;
+  padding: 8px 12px; border-radius: 8px;
 }
-.brand-icon svg { width: 100%; height: 100%; border-radius: 8px; }
-.brand span { color: var(--ink); }
-.brand small {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--muted);
-  margin-left: 2px;
-}
+.top-nav a:hover { color: var(--ink); background: var(--surface-2); }
+.top-nav a[aria-current="true"] { color: var(--ink); }
+.header-actions { display: flex; align-items: center; gap: 8px; }
 
-nav.main-nav {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  font-size: 0.95rem;
-  color: var(--muted);
-  font-weight: 600;
+/* Language switch: two buttons, the pressed one filled. */
+.lang { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.lang button {
+  min-width: 44px; min-height: 42px; padding: 0 8px; border: none; border-radius: 0;
+  background: transparent; color: var(--muted); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em;
 }
-nav.main-nav a:hover { color: var(--yellow); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); }
 
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.stars {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+  padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px;
+  text-decoration: none; font-weight: 600; font-size: 0.9rem; color: var(--ink);
 }
+.stars:hover { border-color: var(--muted); }
+.stars svg { width: 16px; height: 16px; }
+.stars .count { font-variant-numeric: tabular-nums; min-width: 2ch; }
 
 /* Buttons */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 22px;
-  border-radius: 10px;
-  font: 600 0.95rem var(--sans);
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; padding: 0 20px; border-radius: 8px;
+  font: 600 0.98rem var(--sans); text-decoration: none; white-space: nowrap;
   border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.btn.primary {
-  background: var(--yellow);
-  color: #121316;
-  border-color: var(--yellow);
-  box-shadow: 0 4px 20px var(--yellow-glow);
+.btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.btn-primary { background: var(--yellow); color: var(--on-yellow); }
+.btn-primary:hover { background: var(--yellow-hover); }
+.btn-primary:active { background: #dcc04a; }
+.btn-ghost { border-color: var(--line-strong); color: var(--ink); background: transparent; }
+.btn-ghost:hover { border-color: var(--muted); background: var(--surface-2); }
+.btn-ghost:active { background: var(--surface); }
+.btn-sm { min-height: 44px; padding: 0 14px; font-size: 0.92rem; }
+
+/* Section heads. The hook above each title is the meander from the logo: a line that
+   turns at a right angle, in the logo's clay colour. */
+section { scroll-margin-top: calc(var(--header-h) + 16px); }
+.head { max-width: 640px; margin-bottom: 36px; }
+.head h2 {
+  font-family: var(--display); font-weight: 400;
+  font-size: clamp(2rem, 4.2vw, 3rem); line-height: 1; letter-spacing: 0.005em;
+  margin: 0 0 12px; text-wrap: balance;
 }
-.btn.primary:hover {
-  background: var(--yellow-hover);
-  border-color: var(--yellow-hover);
-  transform: translateY(-1px);
+.head h2::before {
+  content: ""; display: block; width: 22px; height: 9px; margin-bottom: 18px;
+  border-top: 2px solid var(--clay); border-right: 2px solid var(--clay);
 }
-.btn.outline {
-  border-color: var(--border);
-  background: var(--bg-card);
-  color: var(--ink);
+.head p { margin: 0; color: var(--muted); font-size: 1.05rem; }
+.head p.hand { margin-top: 10px; font-size: 1.05rem; line-height: 2.1; color: var(--clay); }
+
+/* Hero */
+.hero { padding: 72px 0 40px; }
+.hero h1 {
+  font-family: var(--display); font-weight: 400;
+  font-size: clamp(2.9rem, 8vw, 6rem); line-height: 0.94; letter-spacing: 0.005em;
+  margin: 0 0 24px; max-width: 16ch; text-wrap: balance;
 }
-.btn.outline:hover {
-  border-color: var(--yellow);
-  color: var(--yellow);
-  background: var(--bg-card-alt);
+.hero h1 .accent { color: var(--yellow); white-space: nowrap; }
+.hero .lead { font-size: 1.15rem; color: var(--muted); max-width: 34em; margin: 0 0 32px; }
+.hero .lead strong { color: var(--ink); font-weight: 600; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.release-line { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: 0.9rem; color: var(--faint); margin: 0; }
+.release-line a { color: var(--muted); text-underline-offset: 3px; }
+.release-line a:hover { color: var(--ink); }
+.release-line .sep { color: var(--line-strong); }
+
+/* Screenshot viewer: real screenshots of the app, switched by tabs. */
+.viewer { padding: 32px 0 96px; }
+.viewer-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -24px 14px; padding: 2px 24px; }
+.viewer-tabs::-webkit-scrollbar { display: none; }
+.viewer-tabs button {
+  flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 500; font-size: 0.92rem;
 }
-.btn.sm {
-  padding: 8px 16px;
-  font-size: 0.88rem;
-  border-radius: 8px;
+.viewer-tabs button:hover { color: var(--ink); border-color: var(--line-strong); }
+.viewer-tabs button[aria-selected="true"] { color: var(--on-yellow); background: var(--yellow); border-color: var(--yellow); font-weight: 600; }
+.shot { margin: 0; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.shot img { width: 100%; height: auto; aspect-ratio: 1600 / 938; background: #141416; }
+.shot figcaption {
+  display: flex; gap: 16px; justify-content: space-between; align-items: baseline; flex-wrap: wrap;
+  padding: 14px 18px; border-top: 1px solid var(--line); font-size: 0.95rem; color: var(--muted);
 }
-.btn svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+.shot figcaption .k { color: var(--faint); font-size: 0.85rem; }
+kbd {
+  font: 500 0.78rem var(--mono); padding: 1px 6px; border: 1px solid var(--line-strong);
+  border-bottom-width: 2px; border-radius: 4px; color: var(--ivory); white-space: nowrap;
 }
 
-/* Badge: a neutral bordered pill showing the exact build tag. No dot,
-   no green, no human date. */
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  font: 500 0.85rem var(--mono);
-  color: var(--ink);
-  margin-bottom: 20px;
-}
+/* Benchmark */
+.bench { padding: 96px 0; border-top: 1px solid var(--line); }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 48px; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stat { background: var(--bg); padding: 22px 20px; }
+.stat .v { font: 400 clamp(2.4rem, 5vw, 3.4rem)/1 var(--display); letter-spacing: 0.01em; color: var(--yellow); }
+.stat .v small { font-size: 0.42em; color: var(--muted); margin-left: 6px; }
+.stat .l { margin-top: 10px; font-size: 0.92rem; color: var(--muted); }
+.stat .hand { display: block; margin-top: 6px; font-size: 0.86rem; line-height: 1.9; }
+.charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 48px; align-items: start; }
+.chart h3 { font-size: 1rem; font-weight: 600; margin: 0 0 2px; }
+.chart .unit { font-size: 0.85rem; color: var(--faint); margin: 0 0 12px; }
+.bar-row { display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: center; gap: 12px; margin-bottom: 8px; }
+.bar-row .n { font-size: 0.9rem; color: var(--muted); }
+.bar-row.me .n { color: var(--ink); font-weight: 700; }
+.bar-track { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bar { height: 12px; border-radius: 2px; background: var(--bar-other); flex-shrink: 0; min-width: 3px; }
+.bar-row.me .bar { background: var(--yellow); }
+.bar-track .val { font: 500 0.82rem var(--mono); color: var(--muted); white-space: nowrap; }
+.bar-row.me .val { color: var(--ink); }
+.method { border: 1px solid var(--line); border-radius: 12px; padding: 4px 18px; color: var(--muted); font-size: 0.9rem; }
+.method[open] { grid-column: 1 / -1; padding-bottom: 14px; }
+.method summary { color: var(--ink); font-weight: 600; min-height: 48px; display: flex; align-items: center; }
+.method summary:hover { color: var(--yellow); }
+.method ul { margin: 4px 0 0; padding-left: 18px; }
+.method li { margin-bottom: 6px; }
+.method code { font-family: var(--mono); font-size: 0.85em; color: var(--ivory); }
 
-/* Hero: two columns on desktop (copy left, editor mockup right), as in
-   design.md. Width math at the 1024px breakpoint, JetBrains Mono at
-   0.8rem (12.8px, 0.6em advance = 7.68px per char): the longest code
-   line is 55 chars (422px) plus the line-number gutter (29px) plus
-   code padding (32px), so the code pane needs 484px. At 1024px the
-   content is 976px wide, so a 5fr/7fr grid with a 48px gap gives the
-   mockup 541px and the code pane 495px, 11px of slack. At 1280px the
-   code pane is 645px (161px slack); at 1920px it is 621px (137px
-   slack, container capped at 1240px). Below 1024px the mockup stacks
-   under the copy, where the full-width pane fits the code easily. */
-@media (min-width: 1024px) {
-  .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 48px;
-    align-items: center;
-  }
-  .hero-content { max-width: none; }
-  .editor-window { margin-top: 0; }
-}
-.hero {
-  padding: 72px 0 80px;
-}
-.hero > * {
-  min-width: 0;
-}
-.hero-content {
-  max-width: 760px;
-}
-.hero-content h1 {
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  font-weight: 800;
-  margin: 0 0 20px;
-  text-wrap: balance;
-}
-.hero-content h1 .accent {
-  color: var(--yellow);
-  display: block;
-}
-.hero-desc {
-  font-size: 1.125rem;
-  line-height: 1.6;
-  color: var(--muted);
-  max-width: 32em;
-  margin: 0 0 32px;
-}
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 20px;
-}
-.quick-os-note {
-  font-size: 0.88rem;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.quick-os-note a {
-  color: var(--yellow);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.quick-os-note a:hover {
-  color: var(--yellow-hover);
-}
+/* Features: one flagship, then short rows. */
+.features { padding: 96px 0; border-top: 1px solid var(--line); }
+.features-layout { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; align-items: start; }
+.features-intro { position: sticky; top: calc(var(--header-h) + 32px); }
+.features-intro .head { margin-bottom: 20px; }
+.text-link { color: var(--ink); font-weight: 600; text-underline-offset: 4px; text-decoration-color: var(--clay); }
+.text-link:hover { color: var(--yellow); }
+.flagship { border: 1px solid var(--line-strong); border-radius: 12px; padding: 26px 28px; margin-bottom: 8px; background: var(--surface); }
+.flagship h3 { font: 400 1.9rem/1.05 var(--display); letter-spacing: 0.01em; margin: 0 0 8px; }
+.flagship > p { color: var(--muted); margin: 0 0 16px; }
+.agents { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding: 0; list-style: none; }
+.agents li { font: 500 0.8rem var(--mono); padding: 4px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ivory); }
+.checks { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+.checks li { position: relative; padding-left: 20px; font-size: 0.95rem; color: var(--ink); }
+.checks li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 9px; height: 5px; border-left: 2px solid var(--yellow); border-bottom: 2px solid var(--yellow); transform: rotate(-45deg); }
+.feature-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; margin: 0; padding: 0; list-style: none; }
+.feature { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.feature h3 { font-size: 1rem; margin: 0 0 2px; font-weight: 700; }
+.feature p { margin: 0; color: var(--muted); font-size: 0.93rem; }
 
-/* Mockup Editor Window */
-.editor-window {
-  background: #14151a;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-  margin-top: 48px;
-  min-width: 0;
-}
-.window-titlebar {
-  background: #1c1e25;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  font: 500 0.8rem var(--mono);
-  color: var(--muted);
-}
-.window-dots {
-  display: flex;
-  gap: 6px;
-}
-.window-dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #3b3e4f;
-}
-.window-title {
-  color: #cccfdc;
-}
-/* One view at a time: the activity bar plus a single content cell. The
-   code pane and the agent pane share that cell, and the titlebar toggle
-   switches between them, so the agent panel never squeezes the code. */
-.editor-body {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  min-height: 380px;
-  background: #111217;
-  min-width: 0;
-}
-.activity-bar { grid-column: 1; grid-row: 1; }
-.code-pane,
-.agent-pane { grid-column: 2; grid-row: 1; }
-.code-pane[hidden],
-.agent-pane[hidden] { display: none; }
+/* Comparison */
+.compare { padding: 96px 0; border-top: 1px solid var(--line); }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; min-width: 620px; font-size: 0.94rem; }
+th, td { text-align: left; vertical-align: top; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+thead th { font-weight: 700; font-size: 0.95rem; background: var(--surface); }
+thead th.me { color: var(--yellow); }
+tbody th { font-weight: 500; color: var(--muted); width: 22%; }
+td.me { color: var(--ink); background: rgba(240, 213, 91, 0.04); }
+td { color: var(--muted); }
 
-/* Agent view toggle in the titlebar. */
-.agent-toggle {
-  font: 600 0.75rem var(--sans);
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--muted);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.agent-toggle:hover { color: var(--ink); border-color: var(--yellow); }
-.agent-toggle[aria-pressed="true"] {
-  background: rgba(240, 213, 91, 0.15);
-  border-color: rgba(240, 213, 91, 0.4);
-  color: var(--yellow);
-}
+/* Download */
+.download { padding: 96px 0; border-top: 1px solid var(--line); }
+.dl-list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.dl-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 4fr) auto; gap: 20px; align-items: center; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+.dl-row:last-child { border-bottom: none; }
+.dl-row.mine { background: var(--surface); }
+.dl-row h3 { font-size: 1.08rem; margin: 0 0 2px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dl-row .req { font-size: 0.88rem; color: var(--faint); }
+.dl-row .note { font-size: 0.93rem; color: var(--muted); }
+.dl-row .file { font: 400 0.78rem var(--mono); color: var(--faint); margin-top: 4px; overflow-wrap: anywhere; }
+.yours { font: 600 0.75rem var(--sans); color: var(--yellow); border: 1px solid rgba(240, 213, 91, 0.45); padding: 1px 8px; border-radius: 6px; }
+.dl-row .btn { min-width: 168px; }
+.dl-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; margin-top: 18px; font-size: 0.92rem; color: var(--muted); }
+.dl-foot a { color: var(--ink); text-underline-offset: 3px; }
 
-/* Activity Bar */
-.activity-bar {
-  background: #16171d;
-  border-right: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 14px 0;
-  gap: 18px;
-  color: #717588;
-}
-.activity-bar svg {
-  width: 20px;
-  height: 20px;
-}
-.activity-bar .active {
-  color: var(--yellow);
-}
-.activity-bar .git-badge {
-  position: relative;
-}
-.activity-bar .git-badge::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #38bdf8;
-}
+/* Built in the open */
+.open { padding: 96px 0; border-top: 1px solid var(--line); }
+.live-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 0.88rem; margin: -16px 0 28px; }
+.live-meta .state { color: var(--muted); }
+.live-meta .state.err { color: var(--danger); }
+.live-meta button { min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font-size: 0.86rem; font-weight: 500; }
+.live-meta button:hover { border-color: var(--muted); }
+.open-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px; align-items: start; }
+.panel { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.panel-head h3 { font-size: 1rem; margin: 0; }
+.panel-head a { font-size: 0.88rem; color: var(--muted); text-underline-offset: 3px; }
+.panel-head a:hover { color: var(--ink); }
+.repo-stats { display: grid; grid-template-columns: 1fr 1fr; }
+.repo-stats > div { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.repo-stats > div:nth-child(odd) { border-right: 1px solid var(--line); }
+.repo-stats > div:nth-last-child(-n+2) { border-bottom: none; }
+.repo-stats time { font-size: 0.8em; }
+.repo-stats .v { font: 400 2rem/1.05 var(--display); letter-spacing: 0.01em; }
+.repo-stats .l { font-size: 0.86rem; color: var(--muted); margin-top: 4px; }
+.flash { animation: flash 1.2s ease; }
+@keyframes flash { 0% { color: var(--yellow); } 100% { color: inherit; } }
+.commits { list-style: none; margin: 0; padding: 0; }
+.commits li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+.commits li:last-child { border-bottom: none; }
+.commits img { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); }
+.commits .msg { color: var(--ink); text-decoration: none; font-size: 0.94rem; overflow-wrap: anywhere; display: block; }
+.commits .msg:hover { text-decoration: underline; text-underline-offset: 3px; }
+.commits .by { font-size: 0.84rem; color: var(--faint); margin-top: 2px; }
+.commits .by .mono { color: var(--muted); }
+.placeholder { padding: 22px 20px; color: var(--muted); font-size: 0.93rem; list-style: none; }
+.placeholder.err { color: var(--danger); }
+.skeleton-line { height: 12px; border-radius: 3px; background: var(--surface-2); margin: 6px 0; }
 
-/* Code Pane */
-.code-pane {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
+.people { margin-top: 64px; }
+.people-head { display: flex; justify-content: space-between; align-items: end; gap: 16px 32px; flex-wrap: wrap; margin-bottom: 24px; }
+.people-head .head { margin-bottom: 0; }
+.people-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; list-style: none; margin: 0; padding: 0; }
+.person a {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; align-items: center;
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; background: var(--surface);
+  transition: border-color 0.15s ease;
 }
-.tab-bar {
-  display: flex;
-  background: #16171d;
-  border-bottom: 1px solid var(--border-subtle);
-  font: 500 0.82rem var(--mono);
-  overflow-x: auto;
-}
-.tab-item {
-  padding: 8px 16px;
-  color: var(--muted);
-  border-right: 1px solid var(--border-subtle);
-  border-top: none;
-  border-bottom: none;
-  border-left: none;
-  background: none;
-  font: inherit;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.tab-item:hover {
-  color: var(--ink);
-}
-.tab-item.active {
-  color: var(--ink);
-  background: #111217;
-  border-top: 2px solid var(--yellow);
-}
-.code-content {
-  padding: 16px;
-  font: 400 0.8rem/1.65 var(--mono);
-  color: #e2e4ed;
-  overflow-x: auto;
-  flex: 1;
-  min-width: 0;
-}
-.code-sample[hidden] {
-  display: none;
-}
-.code-content .ln { color: #4e5366; margin-right: 14px; user-select: none; }
-.code-content .kw { color: var(--yellow); }
-.code-content .fn { color: #93c5fd; }
-.code-content .str { color: #86efac; }
-.code-content .cm { color: #62687c; font-style: italic; }
+.person a:hover { border-color: var(--line-strong); }
+.person a:hover .login { color: var(--yellow); }
+.person img { width: 52px; height: 52px; border-radius: 50%; background: var(--surface-2); }
+.person .login { font-weight: 700; overflow-wrap: anywhere; }
+.person .count { font-size: 0.86rem; color: var(--muted); }
+.person .bar-mini { height: 3px; border-radius: 2px; background: var(--line-strong); margin-top: 8px; overflow: hidden; }
+.person .bar-mini span { display: block; height: 100%; background: var(--clay); }
 
-/* Agent Panel */
-.agent-pane {
-  background: #15161d;
-  display: flex;
-  flex-direction: column;
-  font-family: var(--sans);
-  min-width: 0;
-}
-.agent-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--ink);
-}
-.agent-header .tag {
-  font: 600 0.72rem var(--mono);
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(240, 213, 91, 0.15);
-  color: var(--yellow);
-}
-.agent-chat {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  font-size: 0.84rem;
-}
-.chat-msg {
-  padding: 10px 12px;
-  border-radius: 8px;
-  line-height: 1.5;
-}
-.chat-msg.user {
-  background: #1e2029;
-  color: #cbd0e0;
-  align-self: flex-end;
-}
-.chat-msg.agent {
-  background: #20232e;
-  border: 1px solid rgba(240, 213, 91, 0.2);
-  color: #e5e8f4;
-}
-.chat-msg.agent b {
-  color: var(--yellow);
-}
-.agent-confirm {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-.agent-confirm button {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font: 600 0.75rem var(--sans);
-  border: none;
-  cursor: pointer;
-}
-.btn-allow { background: var(--yellow); color: #111; }
-.btn-deny { background: #2d303d; color: var(--muted); }
+/* Footer: one row of links. */
+footer { border-top: 1px solid var(--line); padding: 40px 0 48px; color: var(--muted); font-size: 0.92rem; }
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px 40px; align-items: start; }
+.foot .brand { margin: 0 0 8px; }
+.foot p { margin: 0; max-width: 40ch; }
+.foot nav { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.foot nav a { text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.foot nav a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.copy { margin-top: 24px; font-size: 0.86rem; color: var(--faint); }
 
-.agent-status {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  color: var(--muted);
+/* Download toast */
+.toast {
+  position: fixed; right: 20px; bottom: 20px; z-index: 90; max-width: 380px;
+  background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 12px;
+  padding: 14px 16px 14px 18px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px;
+  transform: translateY(12px); opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
+.toast.show { transform: none; opacity: 1; pointer-events: auto; }
+.toast strong { font-size: 0.95rem; }
+.toast p { grid-column: 1; margin: 0; font-size: 0.86rem; color: var(--muted); overflow-wrap: anywhere; }
+.toast p a { color: var(--yellow); }
+.toast button { grid-row: 1 / span 2; grid-column: 2; align-self: start; width: 40px; height: 40px; border: none; background: transparent; color: var(--muted); border-radius: 8px; font-size: 1.2rem; line-height: 1; }
+.toast button:hover { background: var(--surface); color: var(--ink); }
 
-.agent-meter {
-  padding: 8px 14px;
-  border-top: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font: 500 0.72rem var(--mono);
-  color: var(--muted);
-}
-.agent-meter .bar-bg {
-  width: 70px;
-  height: 6px;
-  border-radius: 3px;
-  background: #292c3a;
-  overflow: hidden;
-}
-.agent-meter .bar-fill {
-  width: 14%;
-  height: 100%;
-  background: var(--yellow);
-}
+/* Mobile tab bar, as on kiwstudio.com: the four sections a phone visitor jumps to. */
+.tabbar { display: none; }
 
-.window-statusbar {
-  background: var(--yellow);
-  color: #121316;
-  padding: 4px 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 16px;
-  justify-content: space-between;
-  font: 700 0.78rem var(--sans);
-}
-
-/* Sections: one even padding, thin dividers, no dead bands. The
-   scroll margin keeps anchored sections below the 72px sticky header. */
-section {
-  padding: 72px 0;
-  border-top: 1px solid var(--border-subtle);
-  scroll-margin-top: 88px;
-}
-/* The hero carries its own padding, so the section wrapper adds none;
-   otherwise the hero got double padding (the old dead band). */
-.hero-section {
-  padding: 0;
-}
-.section-title {
-  text-align: center;
-  max-width: 640px;
-  margin: 0 auto 40px;
-}
-.section-title.left {
-  text-align: left;
-  margin-left: 0;
-}
-.section-title h2 {
-  font-size: clamp(1.8rem, 3.8vw, 2.6rem);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
-  margin: 0 0 16px;
-  text-wrap: balance;
-}
-.section-title p {
-  color: var(--muted);
-  font-size: 1.05rem;
-  margin: 0;
-}
-
-/* Benchmarks Grid */
-.bench-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-}
-.bench-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 24px 20px;
-  display: flex;
-  flex-direction: column;
-}
-.bench-label {
-  font-size: 0.88rem;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.bench-main {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.bench-val {
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: var(--yellow);
-  letter-spacing: -0.02em;
-  font-family: var(--sans);
-}
-.bench-unit {
-  font-size: 0.88rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-.bench-caption {
-  font-size: 0.85rem;
-  color: #797f94;
-  text-align: center;
-  margin: 0;
-}
-
-/* Features: editorial layout. Intro column on the left, feature list
-   as rows with thin dividers on the right, so the section does not
-   repeat the centred card grid used elsewhere. */
-.features-layout {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 64px;
-  align-items: start;
-}
-.features-intro {
-  position: sticky;
-  top: 104px;
-}
-.features-intro h2 {
-  font-size: clamp(1.8rem, 3.8vw, 2.6rem);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
-  margin: 0 0 16px;
-  text-wrap: balance;
-}
-.features-intro p {
-  color: var(--muted);
-  font-size: 1.05rem;
-  margin: 0 0 24px;
-}
-.features-list {
-  min-width: 0;
-}
-.feature-row {
-  display: flex;
-  gap: 20px;
-  padding: 26px 0;
-  border-top: 1px solid var(--border-subtle);
-  align-items: flex-start;
-}
-.feature-row:first-child {
-  border-top: none;
-  padding-top: 4px;
-}
-.feature-row .feature-icon {
-  flex-shrink: 0;
-  margin-bottom: 0;
-}
-.feature-row h3 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-.feature-row p {
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 56ch;
-}
-
-/* Download Hub */
-.download-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 32px;
-}
-.dl-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: all 0.15s ease;
-}
-.dl-card:hover {
-  border-color: rgba(240, 213, 91, 0.4);
-  transform: translateY(-2px);
-}
-.dl-card.recommended {
-  border-color: var(--yellow);
-  background: #191c24;
-}
-.rec-badge {
-  position: absolute;
-  top: -11px;
-  left: 20px;
-  background: var(--yellow);
-  color: #111;
-  font: 700 0.72rem var(--sans);
-  padding: 2px 10px;
-  border-radius: 12px;
-  text-transform: uppercase;
-}
-.dl-os-icon {
-  width: 40px;
-  height: 40px;
-  color: var(--yellow);
-  margin-bottom: 16px;
-}
-.dl-os-icon svg { width: 100%; height: 100%; }
-.dl-card h3 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-.dl-meta {
-  font: 500 0.82rem var(--mono);
-  color: var(--muted);
-  margin-bottom: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dl-card p {
-  font-size: 0.88rem;
-  color: #9297aa;
-  line-height: 1.5;
-  margin: 0 0 20px;
-  flex: 1;
-}
-.dl-card .btn {
-  margin-top: auto;
-}
-
-.release-meta-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-.release-meta-box strong {
-  color: var(--ink);
-}
-.release-meta-box code {
-  font-family: var(--mono);
-  color: var(--yellow);
-}
-
-/* Toast Notification */
-#download-toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-  background: #1d2029;
-  border: 1px solid var(--yellow);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
-  border-radius: 12px;
-  padding: 16px 20px;
-  max-width: 380px;
-  display: none;
-  animation: slideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-#download-toast.show {
-  display: block;
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.toast-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--ink);
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.toast-title svg { color: var(--green); }
-.toast-body {
-  font-size: 0.85rem;
-  color: var(--muted);
-  line-height: 1.45;
-}
-.toast-body a {
-  color: var(--yellow);
-  text-decoration: underline;
-}
-
-/* Footer */
-footer {
-  border-top: 1px solid var(--border-subtle);
-  padding: 40px 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-footer .wrap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-footer a:hover { color: var(--yellow); }
-.footer-links {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-/* Closing: a real ending before the footer, with only real links. */
-.closing-inner {
-  max-width: 680px;
-  margin: 0 auto;
-  text-align: center;
-}
-.closing-inner h2 {
-  font-size: clamp(1.8rem, 3.8vw, 2.6rem);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
-  margin: 0 0 16px;
-  text-wrap: balance;
-}
-.closing-inner p {
-  color: var(--muted);
-  font-size: 1.05rem;
-  margin: 0 0 28px;
-}
-.closing-actions {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-.closing-links {
-  display: flex;
-  gap: 8px 24px;
-  justify-content: center;
-  flex-wrap: wrap;
-  font-size: 0.92rem;
-  color: var(--muted);
-}
-.closing-links a {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.closing-links a:hover { color: var(--yellow); }
-
-/* Responsive */
-@media (max-width: 992px) {
-  .hero { padding: 48px 0 56px; }
-  .editor-window { margin-top: 32px; }
-  .bench-grid { grid-template-columns: 1fr 1fr; }
-  .features-layout { grid-template-columns: 1fr; gap: 32px; }
+@media (max-width: 960px) {
+  .top-nav { display: none; }
+  .features-layout, .open-layout { grid-template-columns: 1fr; gap: 32px; }
+  .stat-grid, .charts { grid-template-columns: 1fr 1fr; }
   .features-intro { position: static; }
-  .download-grid { grid-template-columns: 1fr 1fr; }
-  .editor-body { grid-template-columns: 40px 1fr; }
-  .agent-pane { display: none; }
-  /* The agent view is unavailable at this width, so the toggle hides
-     and the code pane always shows, even if the agent view was active
-     before the window was narrowed. */
-  .agent-toggle { display: none; }
-  .code-pane[hidden] { display: flex; }
-  /* Header budget: hide the small brand text and the stars pill so the
-     five nav links and the download button still fit at tablet width. */
-  .brand small { display: none; }
-  .gh-stars { display: none; }
-  nav.main-nav { gap: 18px; }
-  .nav-actions .btn.sm { padding: 8px 12px; }
+  .open-layout { gap: 16px; }
 }
-@media (max-width: 640px) {
-  .bench-grid { grid-template-columns: 1fr; }
-  .download-grid { grid-template-columns: 1fr; }
-  nav.main-nav { display: none; }
-  .hero-actions .btn { width: 100%; min-height: 48px; }
-  #download-toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+@media (max-width: 720px) {
+  :root { --header-h: 60px; }
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .wrap { padding: 0 16px; }
+  .site-header .wrap { gap: 10px; }
+  .viewer-tabs { margin: 0 -16px 12px; padding: 2px 16px; }
+  .brand small, .header-dl { display: none; }
+  .hero { padding: 40px 0 28px; }
+  .hero .lead { font-size: 1.05rem; }
+  .cta-row .btn { flex: 1 1 100%; }
+  .release-line { flex-direction: column; align-items: flex-start; }
+  .release-line .sep { display: none; }
+  .viewer { padding: 20px 0 64px; }
+  .shot figcaption { padding: 12px 14px; }
+  .bench, .features, .compare, .download, .open { padding: 64px 0; }
+  .feature-list, .checks, .charts { grid-template-columns: 1fr; }
+  .charts { gap: 32px; }
+  .stat-grid { margin-bottom: 36px; }
+  .flagship { padding: 22px 18px; }
+  .dl-row { grid-template-columns: 1fr; gap: 12px; padding: 18px 16px; }
+  .dl-row .btn { width: 100%; }
+  .stat { padding: 18px 16px; }
+  .people-actions .btn { flex: 1 1 auto; }
+  .toast { left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); max-width: none; }
+  .tabbar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+    background: #121214; border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabbar a {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 60px; text-decoration: none; color: var(--faint); font-size: 0.72rem; font-weight: 600;
+  }
+  .tabbar a svg { width: 20px; height: 20px; }
+  .tabbar a[aria-current="true"] { color: var(--yellow); }
 }
-@media (max-width: 480px) {
-  header .wrap { gap: 12px; }
+@media (max-width: 340px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: 70px minmax(0, 1fr); }
 }
-
-
-/* Benchmark Bar Charts: bars are direct scale (longer means a bigger,
-   worse value), so the shortest bar wins; the real figures stay in
-   the labels next to each bar. Competitor bars are flat brand colours,
-   not gradients. */
-.bench-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
-.bench-chart-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.bench-chart-label {
-  display: flex;
-  justify-content: space-between;
-  font: 500 0.78rem var(--mono);
-  color: var(--muted);
-}
-.bench-chart-label .name {
-  color: var(--ink);
-  font-weight: 600;
-}
-.bench-chart-label .name.fluxcode {
-  color: var(--yellow);
-}
-.bench-chart-bar-track {
-  height: 10px;
-  border-radius: 5px;
-  background: #252833;
-  overflow: hidden;
-  position: relative;
-}
-.bench-chart-bar {
-  height: 100%;
-  min-width: 2px;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--yellow-dark), var(--yellow));
-  transform-origin: left center;
-  transform: scaleX(0);
-  animation: barGrow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  animation-delay: calc(var(--delay, 0) * 100ms);
-}
-@keyframes barGrow {
-  to { transform: scaleX(1); }
-}
-.bench-chart-bar.fluxcode {
-  background: linear-gradient(90deg, var(--yellow), var(--yellow-hover));
-  box-shadow: 0 0 12px var(--yellow-glow);
-}
-
-.bench-chart-bar.zed { background: #3b82f6; }
-.bench-chart-bar.vscode { background: #0078d4; }
-
-/* GitHub Stars Badge */
-.gh-stars {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  font: 600 0.85rem var(--sans);
-  color: var(--ink);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.gh-stars:hover {
-  border-color: var(--yellow);
-  color: var(--yellow);
-}
-.gh-stars svg {
-  width: 16px;
-  height: 16px;
-  color: var(--yellow);
-}
-.gh-stars .count { font-variant-numeric: tabular-nums; }
-
-/* Scroll reveal: the class is added by JS only, so without JS
-   everything stays visible. One gentle fade, no loops. */
-.reveal {
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.reveal.in {
-  opacity: 1;
-  transform: none;
-}
-.bench-grid .bench-card:nth-child(2),
-.download-grid .dl-card:nth-child(2) { transition-delay: 60ms; }
-.bench-grid .bench-card:nth-child(3),
-.download-grid .dl-card:nth-child(3) { transition-delay: 120ms; }
-.bench-grid .bench-card:nth-child(4),
-.download-grid .dl-card:nth-child(4) { transition-delay: 180ms; }
-
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .bench-chart-bar { animation: none; transform: scaleX(1); }
-  .reveal { opacity: 1; transform: none; transition: none; }
-  *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-  }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
 <body>
+<a class="skip" href="#content" data-i18n="skip">Skip to content</a>
 
-<header>
+<header class="site-header" id="top">
   <div class="wrap">
-    <a href="#" class="brand" aria-label="Beranda FluxCode">
-      <div class="brand-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" aria-hidden="true">
-          <rect x="64" y="64" width="896" height="896" rx="208" fill="#17181b"/>
-          <path d="M394.2 747.5 L747.5 747.5 L747.5 394.2 L394.2 394.2 L394.2 512.0 L512.0 512.0" fill="none" stroke="#ebe4d6" stroke-width="58.9" stroke-linejoin="miter"/>
-          <path d="M512.0 512.0 L629.8 512.0 L629.8 629.8 L276.5 629.8 L276.5 276.5 L629.8 276.5" fill="none" stroke="#b98a5e" stroke-width="58.9" stroke-linejoin="miter"/>
-        </svg>
-      </div>
+    <a class="brand" href="#top" data-i18n-attr="aria-label:brand.label" aria-label="FluxCode, back to top">
+      <img src="img/icon.svg" width="30" height="30" alt="">
       <span>FluxCode</span>
-      <small>oleh MuaraAI</small>
+      <small data-i18n="brand.by">by MuaraAI</small>
     </a>
-
-    <nav class="main-nav">
-      <a href="#fitur">Fitur</a>
+    <nav class="top-nav" data-i18n-attr="aria-label:nav.label" aria-label="Page sections">
       <a href="#benchmark">Benchmark</a>
-      <a href="#unduh">Unduh</a>
-      <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Dokumen</a>
-      <a href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener">Rilis</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#download" data-i18n="nav.download">Download</a>
+      <a href="#contributors" data-i18n="nav.contributors">Contributors</a>
     </nav>
-
-    <div class="nav-actions">
-      <a class="gh-stars" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener" aria-label="Bintang GitHub FluxCode">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <span class="count" id="gh-stars-count">23</span>
+    <div class="header-actions">
+      <div class="lang" role="group" data-i18n-attr="aria-label:lang.label" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true" lang="en" aria-label="English">EN</button>
+        <button type="button" data-lang="id" aria-pressed="false" lang="id" aria-label="Bahasa Indonesia">ID</button>
+      </div>
+      <a class="stars" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener" data-i18n-attr="aria-label:stars.label" aria-label="FluxCode on GitHub, star count">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="count" data-live="stars">80</span>
       </a>
-      <button id="nav-dl-btn" class="btn primary sm" onclick="downloadRecommended()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        <span id="nav-dl-text">Unduh Cepat</span>
-      </button>
+      <a class="btn btn-primary btn-sm header-dl" data-dl="primary" href="#download" data-i18n="nav.download">Download</a>
     </div>
   </div>
 </header>
 
-<main>
-  <!-- Hero -->
-  <section class="hero-section" style="border-top:none;">
-    <div class="wrap hero">
-      <div class="hero-content">
-        <div class="status-pill">
-          <span id="hero-build-tag">BuildDev-2026-11-13-23-10-32</span>
-        </div>
-        <h1>
-          Editor kode native.
-          <span class="accent">Ringan dan cepat, dengan panel agen AI.</span>
-        </h1>
-        <p class="hero-desc">
-          Satu program ringkas untuk Windows, macOS, dan Linux. Ditulis dalam Rust dan digambar oleh GPU dengan GPUI. Dilengkapi panel agen AI (ACP), Source Control bawaan, dan pembaca SQLite/PDF tanpa beban ekstensi. Tanpa telemetri.
-        </p>
-
-        <div class="hero-actions">
-          <button id="primary-dl-btn" class="btn primary" onclick="downloadRecommended()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span id="primary-dl-label">Unduh untuk Windows (x64 setup.exe)</span>
-          </button>
-          <a class="btn outline" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">
-            Lihat Kode Sumber
-          </a>
-        </div>
-
-        <div class="quick-os-note">
-          <span id="primary-dl-filesize">Ukuran ~5.5 MB</span>
-          <span>&bull;</span>
-          <span>Pilihan lain: <a href="#unduh" id="other-os-link">macOS, Linux, Portable ZIP</a></span>
-        </div>
-      </div>
-
-      <!-- Editor Window Mockup -->
-      <div class="editor-window">
-        <div class="window-titlebar">
-          <div class="window-dots">
-            <span></span><span></span><span></span>
-          </div>
-          <div class="window-title">FluxCode - main.rs</div>
-          <button type="button" class="agent-toggle" id="agent-toggle" aria-pressed="false" onclick="toggleAgentPane()">Agen AI</button>
-        </div>
-
-        <div class="editor-body">
-          <div class="activity-bar">
-            <svg class="active" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <div class="git-badge">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          </div>
-
-          <div class="code-pane" id="code-pane">
-            <div class="tab-bar" role="tablist" aria-label="Contoh berkas">
-              <button type="button" class="tab-item active" role="tab" aria-selected="true" data-tab="main" onclick="switchMockupTab('main')">main.rs</button>
-              <button type="button" class="tab-item" role="tab" aria-selected="false" data-tab="agent" onclick="switchMockupTab('agent')">agent.flux</button>
-              <button type="button" class="tab-item" role="tab" aria-selected="false" data-tab="cargo" onclick="switchMockupTab('cargo')">Cargo.toml</button>
-            </div>
-            <div class="code-content">
-              <div class="code-sample" data-sample="main">
-              <div><span class="ln">1</span><span class="cm">// FluxCode native GPUI runtime</span></div>
-              <div><span class="ln">2</span><span class="kw">use</span> gpui::prelude::*;</div>
-              <div><span class="ln">3</span><span class="kw">use</span> fluxcode_acp::AgentSession;</div>
-              <div><span class="ln">4</span></div>
-              <div><span class="ln">5</span><span class="kw">pub fn</span> <span class="fn">main</span>() {</div>
-              <div><span class="ln">6</span>    <span class="kw">let</span> app = Application::<span class="fn">new</span>();</div>
-              <div><span class="ln">7</span>    app.<span class="fn">run</span>(|cx| {</div>
-              <div><span class="ln">8</span>        cx.<span class="fn">open_window</span>(WindowOptions::default(), |cx| {</div>
-              <div><span class="ln">9</span>            Workspace::<span class="fn">build</span>(cx)</div>
-              <div><span class="ln">10</span>        });</div>
-              <div><span class="ln">11</span>    });</div>
-              <div><span class="ln">12</span>}</div>
-              </div>
-              <div class="code-sample" data-sample="agent" hidden>
-              <div><span class="ln">1</span><span class="cm"># agent.flux</span></div>
-              <div><span class="ln">2</span><span class="cm"># Perintah untuk agen: ringkas dan langsung ke hasil.</span></div>
-              <div><span class="ln">3</span><span class="cm"># Jelaskan perubahan sebelum menjalankan perintah.</span></div>
-              <div><span class="ln">4</span><span class="cm"># Jangan mengubah berkas tanpa izin.</span></div>
-              </div>
-              <div class="code-sample" data-sample="cargo" hidden>
-              <div><span class="ln">1</span><span class="cm"># Cargo.toml</span></div>
-              <div><span class="ln">2</span>[package]</div>
-              <div><span class="ln">3</span>name = <span class="str">"fluxcode"</span></div>
-              <div><span class="ln">4</span>edition = <span class="str">"2021"</span></div>
-              <div><span class="ln">5</span>license = <span class="str">"GPL-3.0-or-later"</span></div>
-              <div><span class="ln">6</span></div>
-              <div><span class="ln">7</span>[dependencies]</div>
-              <div><span class="ln">8</span>gpui-kit = <span class="str">"=0.9.0"</span></div>
-              <div><span class="ln">9</span>anyhow = <span class="str">"1"</span></div>
-              <div><span class="ln">10</span>serde_json = <span class="str">"1"</span></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="agent-pane" id="agent-pane" hidden>
-            <div class="agent-header">
-              <span>Agen AI (ACP)</span>
-              <span class="tag">OpenCode 2</span>
-            </div>
-            <div class="agent-chat">
-              <div class="chat-msg user">
-                Optimalkan fungsi render dan tambahkan type check.
-              </div>
-              <div class="chat-msg agent">
-                Docstring dan verifikasi parameter ditambahkan di <b>line 8</b>. Ingin menjalankan pemeriksaan kargo?
-                <div class="agent-confirm" id="agent-confirm">
-                  <button class="btn-allow" type="button" onclick="respondAgent(true)">Izinkan</button>
-                  <button class="btn-deny" type="button" onclick="respondAgent(false)">Tolak</button>
-                </div>
-              </div>
-            </div>
-            <div class="agent-meter">
-              <span>Konteks: 4.8k / 128k</span>
-              <div class="bar-bg"><div class="bar-fill"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="window-statusbar">
-          <span>main &bull; 0 error &bull; Incoming: 1 commit</span>
-          <span>1.4 MB RAM (Idle) &bull; Buka 0.22 s</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Benchmarks -->
-  <section id="benchmark">
+<main id="content">
+  <section class="hero" aria-labelledby="hero-title">
     <div class="wrap">
-      <div class="section-title">
-        <h2>Performa yang terukur</h2>
-        <p>Diuji pada Windows 11 (AMD Ryzen 5 7535HS, 15 GB RAM). Nilai median dari 5 pengujian berturut-turut.</p>
+      <h1 id="hero-title" data-i18n-html="hero.title">A <span class="accent">16 MB</span> code editor with AI agents built in</h1>
+      <p class="lead" data-i18n-html="hero.lead">Rust, drawn by the GPU. Opens in <strong>about 50 ms</strong>, idles at <strong>1.4 MB RAM</strong>, sends no telemetry.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" data-dl="primary" href="#download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+          <span data-dl-label>Download FluxCode</span>
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener" data-i18n="hero.source">Source on GitHub</a>
       </div>
-
-      <div class="bench-grid">
-        <div class="bench-card">
-          <div class="bench-label">Waktu Buka Jendela</div>
-          <div class="bench-main">
-            <span class="bench-val">221</span>
-            <span class="bench-unit">ms</span>
-          </div>
-          <div class="bench-chart" id="chart-startup">
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>221 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 7%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">VS Code</span><span>3,000 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>818 ms</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 27%"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bench-card">
-          <div class="bench-label">RAM Idle (Task Manager)</div>
-          <div class="bench-main">
-            <span class="bench-val">1.4</span>
-            <span class="bench-unit">MB</span>
-          </div>
-          <div class="bench-chart" id="chart-ram">
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>1.4 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 0.15%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">VS Code</span><span>929.2 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>66.2 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 7.1%"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bench-card">
-          <div class="bench-label">Jumlah Proses</div>
-          <div class="bench-main">
-            <span class="bench-val">1</span>
-            <span class="bench-unit">proses</span>
-          </div>
-          <div class="bench-chart" id="chart-proc">
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>1</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 11%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">VS Code</span><span>9</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>2</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 22%"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bench-card">
-          <div class="bench-label">Ukuran di Disk</div>
-          <div class="bench-main">
-            <span class="bench-val">16</span>
-            <span class="bench-unit">MB</span>
-          </div>
-          <div class="bench-chart" id="chart-disk">
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name fluxcode">FluxCode</span><span>16 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar fluxcode" style="--delay:0; width: 1.5%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">VS Code</span><span>1,044 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar vscode" style="--delay:1; width: 100%"></div></div>
-            </div>
-            <div class="bench-chart-row">
-              <div class="bench-chart-label"><span class="name">Zed</span><span>261 MB</span></div>
-              <div class="bench-chart-bar-track"><div class="bench-chart-bar zed" style="--delay:2; width: 25%"></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <p class="bench-caption">
-        Makin pendek batangnya, makin bagus: makin cepat dibuka, makin hemat memori, makin sedikit proses, makin kecil ukurannya. FluxCode mengembalikan memori yang tidak dipakai kembali ke sistem operasi setelah 6 detik idle. Bebas bloatware Electron. Angka jendela VS Code adalah waktu sampai workbench siap dipakai, sekitar 3 detik; jendela kosongnya muncul lebih dulu.
+      <p class="release-line">
+        <span class="mono" data-live="tag">BuildDev-2026-11-15-16-50-41</span>
+        <span class="sep" aria-hidden="true">/</span>
+        <span><span data-i18n="release.released">released</span> <time data-live="published" datetime="2026-11-15T10:01:21Z">15 Nov 2026</time></span>
+        <span class="sep" aria-hidden="true">/</span>
+        <span data-dl-meta>GPL-3.0, free</span>
+        <span class="sep" aria-hidden="true">/</span>
+        <a href="#download" data-i18n="release.other">Other systems</a>
       </p>
     </div>
   </section>
 
-  <!-- Fitur Utama -->
-  <section id="fitur">
+  <section class="viewer" data-i18n-attr="aria-label:viewer.label" aria-label="FluxCode screenshots">
     <div class="wrap">
-      <div class="features-layout">
-        <div class="features-intro">
-          <h2>Dirancang Khusus untuk Alur Kerja Pengembang</h2>
-          <p>Semua yang kamu butuhkan sudah tertanam langsung tanpa perlu berburu puluhan ekstensi. Satu program, bukan tumpukan plugin.</p>
-          <a class="btn outline" href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Baca Dokumentasi</a>
-        </div>
+      <div class="viewer-tabs" role="tablist" data-i18n-attr="aria-label:viewer.tabs" aria-label="Pick a screenshot">
+        <button type="button" role="tab" id="tab-agent" aria-controls="shot" aria-selected="true" data-shot="agent" data-i18n="shot.agent.tab">AI agent</button>
+        <button type="button" role="tab" id="tab-source-control" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="source-control">Source Control</button>
+        <button type="button" role="tab" id="tab-sqlite" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="sqlite">SQLite</button>
+        <button type="button" role="tab" id="tab-python-error" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="python-error" data-i18n="shot.python-error.tab">Python errors</button>
+        <button type="button" role="tab" id="tab-go-to-file" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="go-to-file">Go to File</button>
+        <button type="button" role="tab" id="tab-themes" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="themes" data-i18n="shot.themes.tab">Themes</button>
+        <button type="button" role="tab" id="tab-update-indonesian" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="update-indonesian" data-i18n="shot.update-indonesian.tab">Indonesian UI</button>
+      </div>
+      <figure class="shot" id="shot" role="tabpanel" aria-labelledby="tab-agent">
+        <img id="shot-img" src="img/agent.webp" srcset="img/agent-800.webp 800w, img/agent.webp 1600w" sizes="(max-width: 1168px) 100vw, 1072px" width="1600" height="938" fetchpriority="high" decoding="async"
+          alt="FluxCode with main.py open. In the agent panel, OpenCode added a docstring to greet(), the Changes card lists main.py, and the agent asks before running a Python command.">
+        <figcaption>
+          <span id="shot-caption">The agent asks before it runs a command. Every change can be undone.</span>
+          <span class="k" id="shot-key"><kbd>Ctrl+L</kbd> opens the agent</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
 
-        <div class="features-list">
-          <div class="feature-row">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
-            </div>
-            <div>
-              <h3>Rendering Native GPU</h3>
-              <p>Ditulis dalam Rust menggunakan GPUI. Antarmuka digambar langsung oleh kartu grafis. Jendela tampil dalam 221 ms dan memori idle 1,4 MB, median dari 5 pengujian.</p>
-            </div>
-          </div>
-
-          <div class="feature-row">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-            </div>
-            <div>
-              <h3>Panel Agen AI (ACP)</h3>
-              <p>Mendukung protokol Agent Client Protocol: OpenCode 2, Claude Agent, Codex, GitHub Copilot, dan Mura. Tiga tingkat izin akses, undo per giliran, dan browser isolasi bawaan.</p>
-            </div>
-          </div>
-
-          <div class="feature-row">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            </div>
-            <div>
-              <h3>Live Share P2P Terenkripsi</h3>
-              <p>Kolaborasi koding bersama secara real-time. Komputer host bertindak sebagai server dengan enkripsi ChaCha20-Poly1305 tanpa server perantara pihak ketiga.</p>
-            </div>
-          </div>
-
-          <div class="feature-row">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            </div>
-            <div>
-              <h3>Viewer Berkas Khusus</h3>
-              <p>Membuka basis data SQLite (skema dan jumlah baris), dokumen PDF, arsip ZIP, dokumen Office, dan hex biner secara langsung dalam mode baca-saja.</p>
-            </div>
-          </div>
-
-          <div class="feature-row">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
-            </div>
-            <div>
-              <h3>Pintasan &amp; Alur VS Code</h3>
-              <p>Command Palette (Ctrl+Shift+P), Go to File (Ctrl+P), dan navigasi keyboard yang sudah kamu kenal. Tanpa perlu adaptasi ulang.</p>
-            </div>
-          </div>
-
-          <div class="feature-row">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            </div>
-            <div>
-              <h3>Nol Telemetri &amp; Open Source</h3>
-              <p>FluxCode tidak mengumpulkan data pribadi atau log aktivitas ketikanmu. Sepenuhnya transparan dengan lisensi GPL-3.0-or-later.</p>
-            </div>
-          </div>
-        </div>
+  <section class="bench" id="benchmark" aria-labelledby="bench-title">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="bench-title" data-i18n="bench.title">Light from the first frame</h2>
+        <p data-i18n="bench.sub">One Windows 11 PC, empty profiles. Shorter bars win.</p>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="v">~50<small>ms</small></div><div class="l"><span data-i18n="stat.window">to open the window</span> <span class="hand" data-i18n="stat.byhand">*timed by hand</span></div></div>
+        <div class="stat"><div class="v"><span data-i18n="stat.ramv">1.4</span><small>MB</small></div><div class="l" data-i18n="stat.ram">RAM when idle</div></div>
+        <div class="stat"><div class="v">1<small data-i18n="stat.procu">process</small></div><div class="l" data-i18n="stat.proc">VS Code runs 9</div></div>
+        <div class="stat"><div class="v">16<small>MB</small></div><div class="l" data-i18n="stat.disk">on disk, one program file</div></div>
+      </div>
+      <div class="charts" id="charts">
+        <details class="method">
+          <summary data-i18n="method.title">How we measured</summary>
+          <ul data-i18n-html="method.list">
+            <li>*FluxCode's window time is timed by hand. <code>tools/bench/bench.ps1</code> logs 221 ms because its polling loop adds its own time; Zed and VS Code come from that script.</li>
+            <li>VS Code: 3 s until the workbench is usable.</li>
+            <li>Not measured: typing latency, huge files, language servers.</li>
+            <li>Median of 5 runs, 10 Nov 2026, Ryzen 5 7535HS, 15 GB RAM. <a class="text-link" href="https://github.com/MuaraAI/FluxCode/blob/main/tools/bench/results.json" target="_blank" rel="noopener">Raw data</a>.</li>
+          </ul>
+        </details>
       </div>
     </div>
   </section>
 
-  <!-- Download Hub -->
-  <section id="unduh">
-    <div class="wrap">
-      <div class="section-title left">
-        <h2>Unduh FluxCode</h2>
-        <p>Pilih berkas untuk sistem operasimu di bawah ini.</p>
+  <section class="features" id="features" aria-labelledby="features-title">
+    <div class="wrap features-layout">
+      <div class="features-intro">
+        <div class="head">
+          <h2 id="features-title" data-i18n="feat.title">Built in, no extensions to hunt</h2>
+          <p data-i18n="feat.sub">VS Code's layout and keys. Not yet: a debugger and language servers.</p>
+        </div>
+        <a class="text-link" href="https://github.com/MuaraAI/FluxCode#readme" target="_blank" rel="noopener" data-i18n="feat.readme">Full README</a>
       </div>
-
-      <div class="download-grid">
-        <!-- Windows Setup -->
-        <div class="dl-card" id="card-windows-setup">
-          <div class="rec-badge" id="rec-windows-badge" style="display:none;">Disarankan</div>
-          <div class="dl-os-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="8" height="8"></rect>
-              <rect x="13" y="3" width="8" height="8"></rect>
-              <rect x="3" y="13" width="8" height="8"></rect>
-              <rect x="13" y="13" width="8" height="8"></rect>
-            </svg>
-          </div>
-          <h3>Windows x64</h3>
-          <div class="dl-meta" id="win-setup-size">Setup .exe &bull; ~5.5 MB</div>
-          <p>Pemasangan untuk Windows 10 &amp; 11. Tidak butuh hak akses admin, otomatis membuat pintasan Desktop dan Start Menu.</p>
-          <button class="btn primary sm" onclick="triggerDirectDownload('windows-setup')">
-            Unduh Installer (.exe)
-          </button>
-        </div>
-
-        <!-- Windows Portable -->
-        <div class="dl-card" id="card-windows-zip">
-          <div class="dl-os-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="5" rx="1"></rect>
-              <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"></path>
-              <path d="M10 13h4"></path>
-            </svg>
-          </div>
-          <h3>Windows Portable</h3>
-          <div class="dl-meta" id="win-zip-size">Arsip .zip &bull; ~7.3 MB</div>
-          <p>Ekstrak dan langsung jalankan FluxCode.exe tanpa proses install. Cocok untuk flashdisk atau lingkungan terisolasi.</p>
-          <button class="btn outline sm" onclick="triggerDirectDownload('windows-zip')">
-            Unduh Portable (.zip)
-          </button>
-        </div>
-
-        <!-- macOS Universal -->
-        <div class="dl-card" id="card-macos">
-          <div class="rec-badge" id="rec-mac-badge" style="display:none;">Disarankan</div>
-          <div class="dl-os-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"></path>
-              <path d="M10 2c1 .5 2 2 2 5"></path>
-            </svg>
-          </div>
-          <h3>macOS Universal</h3>
-          <div class="dl-meta" id="mac-dmg-size">Universal &bull; ~12.4 MB</div>
-          <p>Mendukung macOS 11 ke atas. Buka berkas .dmg lalu seret ikon FluxCode ke folder Applications.</p>
-          <button class="btn outline sm" onclick="triggerDirectDownload('macos-dmg')">
-            Unduh DMG (.dmg)
-          </button>
-        </div>
-
-        <!-- Linux Tarball -->
-        <div class="dl-card" id="card-linux">
-          <div class="rec-badge" id="rec-linux-badge" style="display:none;">Disarankan</div>
-          <div class="dl-os-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="4 17 10 11 4 5"></polyline>
-              <line x1="12" y1="19" x2="20" y2="19"></line>
-            </svg>
-          </div>
-          <h3>Linux x64</h3>
-          <div class="dl-meta" id="linux-tar-size">glibc 2.35+ &bull; ~11.6 MB</div>
-          <p>Ekstrak tarball dan jalankan ./install.sh tanpa butuh akses root. Berjalan di semua distro x64 dengan glibc 2.35 atau lebih baru dan Vulkan.</p>
-          <button class="btn outline sm" onclick="triggerDirectDownload('linux-tar')">
-            Unduh Tarball (.tar.gz)
-          </button>
-        </div>
-      </div>
-
-      <div class="release-meta-box">
-        <div>
-          <strong>Build terbaru:</strong> <code id="active-release-tag">BuildDev-2026-11-13-23-10-32</code>
-        </div>
-        <div>
-          Setiap perbaikan kode di-build otomatis. Aplikasi yang sudah terpasang dapat melakukan update mandiri dalam 1 klik.
-        </div>
+      <div>
+        <article class="flagship">
+          <h3 data-i18n="flag.title">An agent that asks first</h3>
+          <p data-i18n-html="flag.sub">Any ACP agent, installed in one click. <kbd>Ctrl+L</kbd> opens it.</p>
+          <ul class="agents" data-i18n-attr="aria-label:flag.agents" aria-label="Supported agents, for example">
+            <li>OpenCode 2</li><li>Claude Agent</li><li>Codex</li><li>Gemini CLI</li><li>GitHub Copilot</li><li>Mura</li>
+          </ul>
+          <ul class="checks">
+            <li data-i18n="flag.c1">Asks before commands and edits</li>
+            <li data-i18n="flag.c2">Undo per turn</li>
+            <li data-i18n="flag.c3">Pick model, effort and mode</li>
+            <li data-i18n="flag.c4">Its own browser, apart from yours</li>
+          </ul>
+        </article>
+        <ul class="feature-list">
+          <li class="feature"><h3>Live share</h3><p data-i18n="f1">Code together through your own PC, encrypted.</p></li>
+          <li class="feature"><h3>Source Control</h3><p data-i18n="f2">Commit, push, PRs and Actions built in.</p></li>
+          <li class="feature"><h3 data-i18n="f3t">Non-text files</h3><p data-i18n="f3">SQLite, PDF, Office, ZIP and hex, read-only.</p></li>
+          <li class="feature"><h3 data-i18n="f4t">Python errors</h3><p data-i18n="f4">A card with the line and a Fix button.</p></li>
+          <li class="feature"><h3>Copilot inline</h3><p data-i18n-html="f5">Ghost text. <kbd>Tab</kbd> accepts.</p></li>
+          <li class="feature"><h3 data-i18n="f6t">11 build extensions</h3><p data-i18n="f6">Gradle, Rust, Python, Go, Node, .NET and more.</p></li>
+          <li class="feature"><h3 data-i18n="f7t">VS Code keys</h3><p data-i18n-html="f7"><kbd>Ctrl+P</kbd>, <kbd>Ctrl+Shift+P</kbd> and the rest.</p></li>
+          <li class="feature"><h3 data-i18n="f8t">Six themes</h3><p data-i18n="f8">Three UI sizes, English or Indonesian.</p></li>
+          <li class="feature"><h3 data-i18n="f9t">One-click updates</h3><p data-i18n="f9">Every merge to main is a new build.</p></li>
+          <li class="feature"><h3 data-i18n="f10t">No telemetry</h3><p data-i18n="f10">The only automatic request is the update check.</p></li>
+        </ul>
       </div>
     </div>
   </section>
-  <!-- Penutup -->
-  <section class="closing">
+
+  <section class="compare" id="compare" aria-labelledby="compare-title">
     <div class="wrap">
-      <div class="closing-inner">
-        <h2>Kode sumber terbuka, ikut membangun FluxCode</h2>
-        <p>FluxCode berlisensi GPL-3.0-or-later dan kode sumbernya terbuka di GitHub. Unduhan terbaru, riwayat perubahan, dan dokumentasi semuanya ada di sana, dan laporan bug serta usulan fitur bisa dikirim lewat GitHub Issues.</p>
-        <div class="closing-actions">
-          <a class="btn primary" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">Buka GitHub</a>
-          <a class="btn outline" href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener">Lihat Rilis</a>
+      <div class="head">
+        <h2 id="compare-title" data-i18n="cmp.title">FluxCode, Zed and VS Code</h2>
+        <p data-i18n="cmp.sub">Including what FluxCode doesn't have yet.</p>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" data-i18n-attr="aria-label:cmp.label" aria-label="Comparison table, scrolls sideways">
+        <table>
+          <thead>
+            <tr><th scope="col"><span class="sr" data-i18n="cmp.aspect">Aspect</span></th><th scope="col" class="me">FluxCode</th><th scope="col">Zed</th><th scope="col">VS Code</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" data-i18n="cmp.r1">Built with</th><td class="me">Rust, GPUI</td><td>Rust, GPUI</td><td>TypeScript, Electron</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r2">Installed size</th><td class="me">16 MB</td><td>261 MB</td><td data-i18n="cmp.r2c">1,044 MB</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r3">Telemetry</th><td class="me" data-i18n="cmp.none">None</td><td data-i18n="cmp.optout">On, can be turned off</td><td data-i18n="cmp.optout">On, can be turned off</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r4">AI agents</th><td class="me" data-i18n="cmp.r4a">Any ACP agent, undo per turn</td><td data-i18n="cmp.r4b">Own agent and ACP</td><td data-i18n="cmp.r4c">Copilot, extensions</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r5">Collaboration</th><td class="me" data-i18n="cmp.r5a">Through your PC, no account</td><td data-i18n="cmp.r5b">Through Zed's servers</td><td data-i18n="cmp.r5c">Live Share, Microsoft's servers</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r6">Language servers</th><td class="me" data-i18n="cmp.notyet">Not yet</td><td data-i18n="cmp.builtin">Built in</td><td data-i18n="cmp.ext">Extensions</td></tr>
+            <tr><th scope="row">Debugger</th><td class="me" data-i18n="cmp.notyet">Not yet</td><td data-i18n="cmp.yes">Yes</td><td data-i18n="cmp.yes">Yes</td></tr>
+            <tr><th scope="row" data-i18n="cmp.r8">Maturity</th><td class="me" data-i18n="cmp.r8a">Dev builds</td><td data-i18n="cmp.stable">Stable</td><td data-i18n="cmp.stable">Stable</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="download" id="download" aria-labelledby="download-title">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="download-title" data-i18n="dl.title">Download FluxCode</h2>
+        <p><span data-i18n="dl.latest">Latest build</span> <span class="mono" data-live="tag">BuildDev-2026-11-15-16-50-41</span>, <span data-i18n="release.released">released</span> <time data-live="published" datetime="2026-11-15T10:01:21Z">15 Nov 2026</time>.</p>
+      </div>
+      <div class="dl-list">
+        <div class="dl-row" data-asset="windows-setup">
+          <div><h3>Windows <span class="yours" hidden data-i18n="dl.yours">Your system</span></h3><div class="req" data-i18n="dl.winreq">Windows 10 and 11, x64</div></div>
+          <div><div class="note" data-i18n="dl.win">Installer. No admin rights needed.</div><div class="file" data-file></div></div>
+          <a class="btn btn-ghost" data-dl-btn href="https://github.com/MuaraAI/FluxCode/releases/latest"><span data-i18n="dl.get">Download</span>&nbsp;.exe</a>
         </div>
-        <div class="closing-links">
-          <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Dokumentasi</a>
-          <a href="https://github.com/MuaraAI/FluxCode/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Perubahan</a>
-          <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Lapor Bug</a>
+        <div class="dl-row" data-asset="windows-zip">
+          <div><h3>Windows portable</h3><div class="req" data-i18n="dl.winreq">Windows 10 and 11, x64</div></div>
+          <div><div class="note" data-i18n="dl.zip">Unzip and run. Nothing to install.</div><div class="file" data-file></div></div>
+          <a class="btn btn-ghost" data-dl-btn href="https://github.com/MuaraAI/FluxCode/releases/latest"><span data-i18n="dl.get">Download</span>&nbsp;.zip</a>
         </div>
+        <div class="dl-row" data-asset="macos-dmg">
+          <div><h3>macOS <span class="yours" hidden data-i18n="dl.yours">Your system</span></h3><div class="req" data-i18n="dl.macreq">macOS 11+, Apple silicon and Intel</div></div>
+          <div><div class="note" data-i18n="dl.mac">Preview. Not notarized by Apple yet.</div><div class="file" data-file></div></div>
+          <a class="btn btn-ghost" data-dl-btn href="https://github.com/MuaraAI/FluxCode/releases/latest"><span data-i18n="dl.get">Download</span>&nbsp;.dmg</a>
+        </div>
+        <div class="dl-row" data-asset="linux-tar">
+          <div><h3>Linux <span class="yours" hidden data-i18n="dl.yours">Your system</span></h3><div class="req">x64, glibc 2.35+, Vulkan</div></div>
+          <div><div class="note" data-i18n-html="dl.linux">Unpack, run <span class="mono">./install.sh</span>. No root.</div><div class="file" data-file></div></div>
+          <a class="btn btn-ghost" data-dl-btn href="https://github.com/MuaraAI/FluxCode/releases/latest"><span data-i18n="dl.get">Download</span>&nbsp;.tar.gz</a>
+        </div>
+      </div>
+      <div class="dl-foot">
+        <span data-i18n="dl.note">No version numbers yet: each build is named after its time.</span>
+        <a href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener" data-i18n="dl.all">All builds on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="open" id="contributors" aria-labelledby="open-title">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="open-title" data-i18n="open.title">Built in the open</h2>
+        <p data-i18n="open.sub">Live from GitHub, refreshed every 2 minutes.</p>
+      </div>
+      <div class="live-meta">
+        <span class="state" id="live-state" aria-live="polite">Loading from GitHub...</span>
+        <button type="button" id="live-refresh" data-i18n="open.refresh">Refresh now</button>
+      </div>
+      <div class="open-layout">
+        <div class="panel">
+          <div class="panel-head">
+            <h3 data-i18n="open.repo">Repository</h3>
+            <a href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">MuaraAI/FluxCode</a>
+          </div>
+          <div class="repo-stats">
+            <div><div class="v" data-live="stars">80</div><div class="l" data-i18n="open.stars">stars</div></div>
+            <div><div class="v" data-live="forks">&nbsp;</div><div class="l" data-i18n="open.forks">forks</div></div>
+            <div><div class="v" data-live="downloads">&nbsp;</div><div class="l" data-i18n="open.downloads">installer downloads</div></div>
+            <div><div class="v" data-live="builds">&nbsp;</div><div class="l" data-i18n="open.builds">builds released</div></div>
+            <div><div class="v" data-live="people">&nbsp;</div><div class="l" data-i18n="open.people">contributors</div></div>
+            <div><div class="v"><time data-live="pushed" datetime="">&nbsp;</time></div><div class="l" data-i18n="open.pushed">last push</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3><span data-i18n="open.latest">Latest on</span> <span class="mono">main</span></h3>
+            <a href="https://github.com/MuaraAI/FluxCode/commits/main" target="_blank" rel="noopener" data-i18n="open.allcommits">All commits</a>
+          </div>
+          <ul class="commits" id="commits" aria-busy="true">
+            <li><span></span><div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:35%"></div></div></li>
+            <li><span></span><div><div class="skeleton-line" style="width:55%"></div><div class="skeleton-line" style="width:30%"></div></div></li>
+            <li><span></span><div><div class="skeleton-line" style="width:62%"></div><div class="skeleton-line" style="width:28%"></div></div></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="people">
+        <div class="people-head">
+          <div class="head">
+            <h2 id="people-title" data-i18n="people.title">Contributors</h2>
+            <p data-i18n="people.sub">Everyone with code in FluxCode, by commits.</p>
+            <p class="hand" data-i18n="people.thanks">Thank you for every commit.</p>
+          </div>
+          <div class="people-actions">
+            <a class="btn btn-ghost btn-sm" href="https://github.com/MuaraAI/FluxCode/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener" data-i18n="people.guide">Contributing guide</a>
+            <a class="btn btn-ghost btn-sm" href="https://github.com/MuaraAI/FluxCode/issues/new/choose" target="_blank" rel="noopener" data-i18n="people.issue">Report a bug or idea</a>
+          </div>
+        </div>
+        <ul class="people-grid" id="people" aria-labelledby="people-title" aria-busy="true">
+          <li class="placeholder" data-i18n="people.loading">Loading contributors from GitHub...</li>
+        </ul>
+        <noscript><p class="placeholder">The contributor list needs JavaScript. <a class="text-link" href="https://github.com/MuaraAI/FluxCode/graphs/contributors">See it on GitHub</a>.</p></noscript>
       </div>
     </div>
   </section>
 </main>
 
-<!-- Toast Unduhan -->
-<div id="download-toast">
-  <div class="toast-title">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    <span>Pengunduhan Dimulai</span>
-  </div>
-  <div class="toast-body">
-    Sedang mengunduh <b id="toast-filename">FluxCode</b>.<br>
-    Jika unduhan tidak berjalan otomatis, <a id="toast-direct-link" href="#">klik tautan ini langsung</a>.
-  </div>
-</div>
-
 <footer>
   <div class="wrap">
-    <div>
-      &copy; 2026 FluxCode oleh <b>MuaraAI</b>.
+    <div class="foot">
+      <div>
+        <a class="brand" href="#top"><img src="img/icon.svg" width="30" height="30" alt=""><span>FluxCode</span></a>
+        <p data-i18n-html="foot.about">A <a class="text-link" href="https://github.com/MuaraAI" target="_blank" rel="noopener">MuaraAI</a> project. Open source under GPL-3.0-or-later, still in development.</p>
+      </div>
+      <nav data-i18n-attr="aria-label:foot.label" aria-label="Project links">
+        <a href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/MuaraAI/FluxCode/blob/main/README.md" target="_blank" rel="noopener" data-i18n-attr="href:foot.readme">README</a>
+        <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener" data-i18n="foot.flux">Flux format</a>
+        <a href="https://github.com/MuaraAI/FluxCode/blob/main/changelog.flux" target="_blank" rel="noopener" data-i18n="foot.changelog">Changelog</a>
+        <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/MuaraAI/FluxCode/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n="foot.license">License</a>
+      </nav>
     </div>
-    <div class="footer-links">
-      <a href="https://github.com/MuaraAI/FluxCode/blob/main/docs/flux.md" target="_blank" rel="noopener">Dokumentasi</a>
-      <a href="https://github.com/MuaraAI/FluxCode/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Perubahan</a>
-      <a href="https://github.com/MuaraAI/FluxCode/releases" target="_blank" rel="noopener">Rilis</a>
-      <a href="https://github.com/MuaraAI/FluxCode/blob/main/LICENSE" target="_blank" rel="noopener">Lisensi GPL-3.0</a>
-      <a href="https://github.com/MuaraAI/FluxCode/issues" target="_blank" rel="noopener">Lapor Bug</a>
-      <a href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener">GitHub</a>
-    </div>
+    <p class="copy">&copy; 2026 MuaraAI.</p>
   </div>
 </footer>
 
-<script>
-// Data rilis fallback terverifikasi (siaga instan jika GitHub API limit/offline)
-const REPO_RELEASES_URL = "https://api.github.com/repos/MuaraAI/FluxCode/releases";
+<nav class="tabbar" data-i18n-attr="aria-label:tabbar.label" aria-label="Quick navigation">
+  <a href="#benchmark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M4 12h16M4 17h6"/></svg>
+    <span>Benchmark</span>
+  </a>
+  <a href="#features">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+    <span data-i18n="nav.features">Features</span>
+  </a>
+  <a href="#download">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+    <span data-i18n="nav.download">Download</span>
+  </a>
+  <a href="#contributors">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>
+    <span data-i18n="nav.contributors">Contributors</span>
+  </a>
+</nav>
 
-let currentRelease = {
-  tag_name: "BuildDev-2026-11-13-23-10-32",
-  published_at: "2026-11-13T16:24:08Z",
-  assets: {
-    "windows-setup": {
-      name: "FluxCode-BuildDev-2026-11-13-23-10-32-windows-x64-setup.exe",
-      url: "https://github.com/MuaraAI/FluxCode/releases/download/BuildDev-2026-11-13-23-10-32/FluxCode-BuildDev-2026-11-13-23-10-32-windows-x64-setup.exe",
-      size: "5.5 MB"
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <strong data-i18n="toast.title">Download started</strong>
+  <p><span id="toast-file">FluxCode</span>. <span data-i18n="toast.q">Not starting?</span> <a id="toast-link" href="#" data-i18n="toast.link">Direct link</a>.</p>
+  <button type="button" id="toast-close" data-i18n-attr="aria-label:toast.close" aria-label="Close notice">&times;</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Language ---------- */
+  // English is the page's own text; this table holds the Indonesian. Strings with markup
+  // are ours, never API data, so data-i18n-html may use innerHTML.
+  var ID = {
+    "skip": "Lompat ke isi",
+    "brand.label": "FluxCode, ke atas halaman",
+    "brand.by": "oleh MuaraAI",
+    "nav.label": "Bagian halaman",
+    "nav.features": "Fitur",
+    "nav.download": "Unduh",
+    "nav.contributors": "Kontributor",
+    "lang.label": "Bahasa",
+    "stars.label": "FluxCode di GitHub, jumlah bintang",
+    "hero.title": "Editor kode <span class=\"accent\">16 MB</span> dengan agen AI di dalamnya",
+    "hero.lead": "Rust, digambar GPU. Terbuka <strong>sekitar 50 ms</strong>, idle di <strong>1,4 MB RAM</strong>, tanpa telemetri.",
+    "hero.source": "Kode sumber di GitHub",
+    "release.released": "dirilis",
+    "release.other": "Sistem lain",
+    "viewer.label": "Tangkapan layar FluxCode",
+    "viewer.tabs": "Pilih tangkapan layar",
+    "shot.agent.tab": "Agen AI",
+    "shot.python-error.tab": "Error Python",
+    "shot.themes.tab": "Tema",
+    "shot.update-indonesian.tab": "Bahasa Indonesia",
+    "bench.title": "Ringan sejak jendela pertama",
+    "bench.sub": "Satu PC Windows 11, profil kosong. Batang lebih pendek lebih baik.",
+    "stat.window": "sampai jendela tampil",
+    "stat.byhand": "*diukur manual",
+    "stat.ramv": "1,4",
+    "stat.ram": "RAM saat idle",
+    "stat.procu": "proses",
+    "stat.proc": "VS Code menjalankan 9",
+    "stat.disk": "di disk, satu berkas program",
+    "method.title": "Cara mengukur",
+    "method.list": "<li>*Waktu jendela FluxCode diukur manual. <code>tools/bench/bench.ps1</code> mencatat 221 ms karena loop polling-nya ikut menghitung waktunya sendiri; Zed dan VS Code dari skrip itu.</li><li>VS Code: 3 detik sampai workbench bisa dipakai.</li><li>Tidak diukur: latensi mengetik, berkas raksasa, language server.</li><li>Median 5 kali jalan, 10 Nov 2026, Ryzen 5 7535HS, 15 GB RAM. <a class=\"text-link\" href=\"https://github.com/MuaraAI/FluxCode/blob/main/tools/bench/results.json\" target=\"_blank\" rel=\"noopener\">Data mentah</a>.</li>",
+    "feat.title": "Sudah ada, tanpa cari ekstensi",
+    "feat.sub": "Tata letak dan pintasan VS Code. Belum ada: debugger dan language server.",
+    "feat.readme": "README lengkap",
+    "flag.title": "Agen yang minta izin dulu",
+    "flag.sub": "Agen ACP apa pun, pasang sekali klik. <kbd>Ctrl+L</kbd> membukanya.",
+    "flag.agents": "Contoh agen yang didukung",
+    "flag.c1": "Minta izin sebelum perintah dan edit",
+    "flag.c2": "Undo per giliran",
+    "flag.c3": "Pilih model, effort, dan mode",
+    "flag.c4": "Browser sendiri, terpisah dari punyamu",
+    "f1": "Ngoding bareng lewat PC sendiri, terenkripsi.",
+    "f2": "Commit, push, PR, dan Actions bawaan.",
+    "f3t": "Berkas non-teks",
+    "f3": "SQLite, PDF, Office, ZIP, dan hex, baca-saja.",
+    "f4t": "Error Python",
+    "f4": "Kartu berisi baris dan tombol Fix.",
+    "f5": "Saran abu-abu. <kbd>Tab</kbd> untuk terima.",
+    "f6t": "11 ekstensi build",
+    "f6": "Gradle, Rust, Python, Go, Node, .NET, dan lainnya.",
+    "f7t": "Pintasan VS Code",
+    "f7": "<kbd>Ctrl+P</kbd>, <kbd>Ctrl+Shift+P</kbd>, dan lainnya.",
+    "f8t": "Enam tema",
+    "f8": "Tiga ukuran UI, Inggris atau Indonesia.",
+    "f9t": "Update sekali klik",
+    "f9": "Setiap merge ke main jadi build baru.",
+    "f10t": "Tanpa telemetri",
+    "f10": "Satu-satunya request otomatis: cek update.",
+    "cmp.title": "FluxCode, Zed, dan VS Code",
+    "cmp.sub": "Termasuk yang belum dimiliki FluxCode.",
+    "cmp.label": "Tabel perbandingan, bisa digeser ke samping",
+    "cmp.aspect": "Aspek",
+    "cmp.r1": "Dibuat dengan",
+    "cmp.r2": "Ukuran terpasang",
+    "cmp.r2c": "1.044 MB",
+    "cmp.r3": "Telemetri",
+    "cmp.none": "Tidak ada",
+    "cmp.optout": "Aktif, bisa dimatikan",
+    "cmp.r4": "Agen AI",
+    "cmp.r4a": "Agen ACP apa pun, undo per giliran",
+    "cmp.r4b": "Agen sendiri dan ACP",
+    "cmp.r4c": "Copilot, ekstensi",
+    "cmp.r5": "Kolaborasi",
+    "cmp.r5a": "Lewat PC sendiri, tanpa akun",
+    "cmp.r5b": "Lewat server Zed",
+    "cmp.r5c": "Live Share, server Microsoft",
+    "cmp.r6": "Language server",
+    "cmp.notyet": "Belum",
+    "cmp.builtin": "Bawaan",
+    "cmp.ext": "Ekstensi",
+    "cmp.yes": "Ada",
+    "cmp.r8": "Kematangan",
+    "cmp.r8a": "Build pengembangan",
+    "cmp.stable": "Stabil",
+    "dl.title": "Unduh FluxCode",
+    "dl.latest": "Build terbaru",
+    "dl.yours": "Sistemmu",
+    "dl.winreq": "Windows 10 dan 11, x64",
+    "dl.win": "Installer. Tanpa hak admin.",
+    "dl.zip": "Ekstrak lalu jalankan. Tanpa instal.",
+    "dl.macreq": "macOS 11+, Apple silicon dan Intel",
+    "dl.mac": "Pratinjau. Belum dinotarisasi Apple.",
+    "dl.linux": "Ekstrak, jalankan <span class=\"mono\">./install.sh</span>. Tanpa root.",
+    "dl.get": "Unduh",
+    "dl.note": "Belum ada nomor versi: tiap build dinamai waktunya.",
+    "dl.all": "Semua build di GitHub",
+    "open.title": "Dibangun terbuka",
+    "open.sub": "Langsung dari GitHub, diperbarui tiap 2 menit.",
+    "open.refresh": "Perbarui sekarang",
+    "open.repo": "Repositori",
+    "open.stars": "bintang",
+    "open.forks": "fork",
+    "open.downloads": "unduhan installer",
+    "open.builds": "build dirilis",
+    "open.people": "kontributor",
+    "open.pushed": "push terakhir",
+    "open.latest": "Terbaru di",
+    "open.allcommits": "Semua commit",
+    "people.title": "Kontributor",
+    "people.sub": "Semua yang kodenya masuk FluxCode, urut jumlah commit.",
+    "people.thanks": "Terima kasih untuk setiap commit-nya.",
+    "people.guide": "Panduan kontribusi",
+    "people.issue": "Laporkan bug atau ide",
+    "people.loading": "Memuat kontributor dari GitHub...",
+    "foot.about": "Proyek <a class=\"text-link\" href=\"https://github.com/MuaraAI\" target=\"_blank\" rel=\"noopener\">MuaraAI</a>. Open source, GPL-3.0-or-later, masih dikembangkan.",
+    "foot.label": "Tautan proyek",
+    "foot.readme": "https://github.com/MuaraAI/FluxCode/blob/main/README.id.md",
+    "foot.flux": "Format Flux",
+    "foot.changelog": "Catatan perubahan",
+    "foot.license": "Lisensi",
+    "tabbar.label": "Navigasi cepat",
+    "toast.title": "Unduhan dimulai",
+    "toast.q": "Belum mulai?",
+    "toast.link": "Unduh langsung",
+    "toast.close": "Tutup pemberitahuan"
+  };
+
+  // Strings the script writes itself, in both languages.
+  var STR = {
+    en: {
+      loading: "Loading from GitHub...",
+      updated: "Updated", auto: "Refreshes every 2 minutes.", rechecking: "Checking again...",
+      last: "Last data:", limit: "GitHub's API limit for your network is used up until",
+      offline: "You're offline.", failedAll: "GitHub can't be reached right now.", failedSome: "Some GitHub data didn't load.",
+      justNow: "just now", noCommits: "No commits on main yet.",
+      commitsErr: "Couldn't load the latest commits. Try Refresh now, or open them on GitHub.",
+      peopleErr: "Couldn't load contributors. ", seeGitHub: "See them on GitHub",
+      noPeople: "No contributors recorded yet.", commit: "commit", commits: "commits",
+      downloads: "downloads", downloadFor: "Download for ", pick: "Choose a system",
+      metaFree: "GPL-3.0, free", metaPick: "For Windows, macOS and Linux computers", unknown: "unknown",
+      title: "FluxCode: a 16 MB native code editor with AI agents built in",
+      desc: "FluxCode is a native code editor for Windows, macOS and Linux. One 16 MB program written in Rust and drawn by the GPU, with an ACP agent panel, Source Control, Live share and no telemetry.",
+      better: "lower is better", byHand: "*"
     },
-    "windows-zip": {
-      name: "FluxCode-BuildDev-2026-11-13-23-10-32-windows-x64.zip",
-      url: "https://github.com/MuaraAI/FluxCode/releases/download/BuildDev-2026-11-13-23-10-32/FluxCode-BuildDev-2026-11-13-23-10-32-windows-x64.zip",
-      size: "7.3 MB"
+    id: {
+      loading: "Memuat data dari GitHub...",
+      updated: "Diperbarui", auto: "Otomatis tiap 2 menit.", rechecking: "Memeriksa ulang...",
+      last: "Data terakhir:", limit: "Batas API GitHub untuk jaringanmu habis sampai",
+      offline: "Kamu sedang offline.", failedAll: "GitHub belum bisa dihubungi.", failedSome: "Sebagian data GitHub gagal dimuat.",
+      justNow: "baru saja", noCommits: "Belum ada commit di main.",
+      commitsErr: "Commit terbaru belum bisa dimuat. Coba Perbarui sekarang, atau buka di GitHub.",
+      peopleErr: "Kontributor belum bisa dimuat. ", seeGitHub: "Lihat di GitHub",
+      noPeople: "Belum ada kontributor yang tercatat.", commit: "commit", commits: "commit",
+      downloads: "unduhan", downloadFor: "Unduh untuk ", pick: "Pilih sistem untuk diunduh",
+      metaFree: "GPL-3.0, gratis", metaPick: "Untuk komputer Windows, macOS, dan Linux", unknown: "tanpa nama",
+      title: "FluxCode: editor kode native 16 MB dengan agen AI di dalamnya",
+      desc: "FluxCode adalah editor kode native untuk Windows, macOS, dan Linux. Satu program 16 MB yang ditulis dalam Rust dan digambar GPU, dengan panel agen ACP, Source Control, Live share, dan tanpa telemetri.",
+      better: "makin kecil makin baik", byHand: "*"
+    }
+  };
+
+  var LANG = "en";
+  var LANG_KEY = "fluxcode-lang";
+  var nf, rtf, dtf, tf;
+  function setFormatters() {
+    var loc = LANG === "id" ? "id-ID" : "en-US";
+    nf = new Intl.NumberFormat(loc);
+    rtf = new Intl.RelativeTimeFormat(LANG, { numeric: "auto" });
+    dtf = new Intl.DateTimeFormat(loc, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    tf = new Intl.DateTimeFormat(loc, { hour: "2-digit", minute: "2-digit" });
+  }
+  function t(k) { return STR[LANG][k]; }
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function el(tag, attrs, text) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  // Remember the English that ships in the HTML so switching back needs no second table.
+  $all("[data-i18n]").forEach(function (n) { n._en = n.textContent; });
+  $all("[data-i18n-html]").forEach(function (n) { n._enHtml = n.innerHTML; });
+  $all("[data-i18n-attr]").forEach(function (n) {
+    n._enAttr = {};
+    n.getAttribute("data-i18n-attr").split(";").forEach(function (pair) {
+      var attr = pair.split(":")[0];
+      n._enAttr[attr] = n.getAttribute(attr);
+    });
+  });
+
+  function applyStatic() {
+    var id = LANG === "id";
+    $all("[data-i18n]").forEach(function (n) {
+      var k = n.getAttribute("data-i18n");
+      n.textContent = id && ID[k] != null ? ID[k] : n._en;
+    });
+    $all("[data-i18n-html]").forEach(function (n) {
+      var k = n.getAttribute("data-i18n-html");
+      n.innerHTML = id && ID[k] != null ? ID[k] : n._enHtml;
+    });
+    $all("[data-i18n-attr]").forEach(function (n) {
+      n.getAttribute("data-i18n-attr").split(";").forEach(function (pair) {
+        var p = pair.split(":"), attr = p[0], k = p[1];
+        n.setAttribute(attr, id && ID[k] != null ? ID[k] : n._enAttr[attr]);
+      });
+    });
+    document.documentElement.lang = LANG;
+    document.title = t("title");
+    var d = $('meta[name="description"]');
+    if (d) d.setAttribute("content", t("desc"));
+    $all(".lang button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lang") === LANG ? "true" : "false"); });
+  }
+
+  function setLang(lang, save) {
+    LANG = lang === "id" ? "id" : "en";
+    if (save) { try { localStorage.setItem(LANG_KEY, LANG); } catch (e) { /* no storage */ } }
+    setFormatters();
+    applyStatic();
+    renderCharts();
+    selectShot(currentShot, false);
+    renderAll();
+  }
+
+  /* ---------- Data ---------- */
+  var REPO = "MuaraAI/FluxCode";
+  var API = "https://api.github.com/repos/" + REPO;
+  var REFRESH_MS = 120000;
+  var CACHE_KEY = "fluxcode-site-v2";
+
+  // The newest build when this page was written, so downloads work before GitHub
+  // answers, offline, or when the API's hourly limit is used up.
+  var TAG = "BuildDev-2026-11-15-16-50-41";
+  function fallbackAsset(suffix, size) {
+    var name = "FluxCode-" + TAG + "-" + suffix;
+    return { name: name, url: "https://github.com/" + REPO + "/releases/download/" + TAG + "/" + name, size: size, downloads: null };
+  }
+  var state = {
+    fetchedAt: null,
+    repo: null,
+    release: {
+      tag: TAG,
+      published: "2026-11-15T10:01:21Z",
+      assets: {
+        "windows-setup": fallbackAsset("windows-x64-setup.exe", 5929431),
+        "windows-zip": fallbackAsset("windows-x64.zip", 7829769),
+        "macos-dmg": fallbackAsset("macos-universal.dmg", 13024006),
+        "linux-tar": fallbackAsset("linux-x64.tar.gz", 12379740)
+      },
+      builds: null,
+      downloads: null
     },
-    "macos-dmg": {
-      name: "FluxCode-BuildDev-2026-11-13-23-10-32-macos-universal.dmg",
-      url: "https://github.com/MuaraAI/FluxCode/releases/download/BuildDev-2026-11-13-23-10-32/FluxCode-BuildDev-2026-11-13-23-10-32-macos-universal.dmg",
-      size: "12.4 MB"
-    },
-    "linux-tar": {
-      name: "FluxCode-BuildDev-2026-11-13-23-10-32-linux-x64.tar.gz",
-      url: "https://github.com/MuaraAI/FluxCode/releases/download/BuildDev-2026-11-13-23-10-32/FluxCode-BuildDev-2026-11-13-23-10-32-linux-x64.tar.gz",
-      size: "11.6 MB"
+    contributors: null,
+    commits: null
+  };
+
+  var ASSET_SUFFIX = {
+    "windows-setup": "-windows-x64-setup.exe",
+    "windows-zip": "-windows-x64.zip",
+    "macos-dmg": "-macos-universal.dmg",
+    "linux-tar": "-linux-x64.tar.gz"
+  };
+
+  function relative(iso) {
+    var s = (new Date(iso).getTime() - Date.now()) / 1000;
+    var a = Math.abs(s);
+    if (a < 45) return t("justNow");
+    if (a < 3600) return rtf.format(Math.round(s / 60), "minute");
+    if (a < 86400) return rtf.format(Math.round(s / 3600), "hour");
+    if (a < 86400 * 30) return rtf.format(Math.round(s / 86400), "day");
+    return dtf.format(new Date(iso));
+  }
+  function mb(bytes) {
+    return bytes ? (bytes / 1048576).toLocaleString(LANG === "id" ? "id-ID" : "en-US", { maximumFractionDigits: 1 }) + " MB" : "";
+  }
+
+  /* ---------- OS detection ---------- */
+  function detectOS() {
+    var ua = navigator.userAgent || "";
+    if (/Android|iPhone|iPad|iPod/i.test(ua)) return "mobile";
+    var p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+    if (/Mac/i.test(p) || /Macintosh/i.test(ua)) return "macos";
+    if (/Linux|X11/i.test(p) || /Linux/i.test(ua)) return "linux";
+    return "windows";
+  }
+  var OS = detectOS();
+  var OS_ASSET = { windows: "windows-setup", macos: "macos-dmg", linux: "linux-tar" };
+  var OS_NAME = { windows: "Windows", macos: "macOS", linux: "Linux" };
+
+  /* ---------- Rendering ---------- */
+  function setLive(key, value) {
+    $all('[data-live="' + key + '"]').forEach(function (n) {
+      if (n.textContent === value) return;
+      var had = n.textContent.trim() !== "";
+      n.textContent = value;
+      if (had) { n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); }
+    });
+  }
+  function setTime(n, iso) {
+    n.setAttribute("datetime", iso);
+    n.setAttribute("data-rel", "");
+    n.title = dtf.format(new Date(iso));
+    n.textContent = relative(iso);
+  }
+
+  function renderRelease() {
+    var r = state.release;
+    setLive("tag", r.tag);
+    $all('[data-live="published"]').forEach(function (n) { setTime(n, r.published); });
+
+    $all(".dl-row").forEach(function (row) {
+      var key = row.getAttribute("data-asset");
+      var a = r.assets[key];
+      var btn = $("[data-dl-btn]", row);
+      var file = $("[data-file]", row);
+      var mine = OS_ASSET[OS] === key;
+      row.classList.toggle("mine", mine);
+      var badge = $(".yours", row);
+      if (badge) badge.hidden = !mine;
+      btn.classList.toggle("btn-primary", mine);
+      btn.classList.toggle("btn-ghost", !mine);
+      if (a) {
+        btn.href = a.url;
+        btn.setAttribute("download", a.name);
+        btn.dataset.name = a.name;
+        var bits = [a.name, mb(a.size)];
+        if (a.downloads != null) bits.push(nf.format(a.downloads) + " " + t("downloads"));
+        file.textContent = bits.filter(Boolean).join("  /  ");
+      }
+    });
+
+    var asset = OS_ASSET[OS] && r.assets[OS_ASSET[OS]];
+    $all('[data-dl="primary"]').forEach(function (b) {
+      if (asset) {
+        b.href = asset.url;
+        b.setAttribute("download", asset.name);
+        b.dataset.name = asset.name;
+      } else {
+        b.href = "#download";
+        b.removeAttribute("download");
+        delete b.dataset.name;
+      }
+    });
+    $("[data-dl-label]").textContent = asset ? t("downloadFor") + OS_NAME[OS] : t("pick");
+    $("[data-dl-meta]").textContent = asset ? mb(asset.size) + ", " + t("metaFree") : t("metaPick");
+  }
+
+  function renderRepo() {
+    if (state.repo) {
+      setLive("stars", nf.format(state.repo.stars));
+      setLive("forks", nf.format(state.repo.forks));
+      if (state.repo.pushed) setTime($('[data-live="pushed"]'), state.repo.pushed);
+    }
+    if (state.release.downloads != null) setLive("downloads", nf.format(state.release.downloads));
+    if (state.release.builds != null) setLive("builds", nf.format(state.release.builds));
+    if (state.contributors) setLive("people", nf.format(state.contributors.length));
+  }
+
+  function renderCommits() {
+    var list = $("#commits");
+    if (!state.commits) return;
+    list.setAttribute("aria-busy", "false");
+    list.textContent = "";
+    if (!state.commits.length) {
+      list.appendChild(el("li", { "class": "placeholder" }, t("noCommits")));
+      return;
+    }
+    state.commits.forEach(function (c) {
+      var li = el("li");
+      li.appendChild(el("img", { src: c.avatar || "img/icon.svg", width: "28", height: "28", alt: "", loading: "lazy", decoding: "async" }));
+      var body = el("div");
+      body.appendChild(el("a", { "class": "msg", href: c.url, target: "_blank", rel: "noopener" }, c.title));
+      var by = el("div", { "class": "by" });
+      by.appendChild(document.createTextNode((c.author || t("unknown")) + ", "));
+      var time = el("time");
+      setTime(time, c.date);
+      by.appendChild(time);
+      by.appendChild(document.createTextNode(", "));
+      by.appendChild(el("span", { "class": "mono" }, c.sha));
+      body.appendChild(by);
+      li.appendChild(body);
+      list.appendChild(li);
+    });
+  }
+
+  function renderPeople() {
+    var list = $("#people");
+    if (!state.contributors) return;
+    list.setAttribute("aria-busy", "false");
+    list.textContent = "";
+    if (!state.contributors.length) {
+      list.appendChild(el("li", { "class": "placeholder" }, t("noPeople")));
+      return;
+    }
+    var top = state.contributors[0].count || 1;
+    state.contributors.forEach(function (p) {
+      var li = el("li", { "class": "person" });
+      var a = el("a", { href: p.url, target: "_blank", rel: "noopener" });
+      a.appendChild(el("img", { src: p.avatar, width: "52", height: "52", alt: "", loading: "lazy", decoding: "async" }));
+      var info = el("div");
+      info.appendChild(el("div", { "class": "login" }, p.login));
+      info.appendChild(el("div", { "class": "count" }, nf.format(p.count) + " " + (p.count === 1 ? t("commit") : t("commits"))));
+      var mini = el("div", { "class": "bar-mini", "aria-hidden": "true" });
+      var fill = el("span");
+      fill.style.width = Math.max(4, Math.round(p.count / top * 100)) + "%";
+      mini.appendChild(fill);
+      info.appendChild(mini);
+      a.appendChild(info);
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+  }
+
+  var status = { kind: "loading" };
+  function renderStatus() {
+    var s = $("#live-state");
+    s.classList.toggle("err", status.kind === "error");
+    if (!state.fetchedAt) {
+      s.textContent = status.kind === "error" ? statusMessage() : t("loading");
+      return;
+    }
+    var at = new Date(state.fetchedAt);
+    if (status.kind === "error") s.textContent = statusMessage() + " " + t("last") + " " + tf.format(at) + ".";
+    else if (status.kind === "loading") s.textContent = t("updated") + " " + relative(at.toISOString()) + " (" + tf.format(at) + "). " + t("rechecking");
+    else s.textContent = t("updated") + " " + relative(at.toISOString()) + " (" + tf.format(at) + "). " + t("auto");
+  }
+  function statusMessage() {
+    if (status.reason === "limit") return t("limit") + " " + tf.format(new Date(status.reset)) + ".";
+    if (status.reason === "offline") return t("offline");
+    return status.reason === "all" ? t("failedAll") : t("failedSome");
+  }
+
+  function showEmptyErrors() {
+    if (!state.commits) {
+      var c = $("#commits");
+      c.setAttribute("aria-busy", "false");
+      c.textContent = "";
+      c.appendChild(el("li", { "class": "placeholder err" }, t("commitsErr")));
+    }
+    if (!state.contributors) {
+      var p = $("#people");
+      p.setAttribute("aria-busy", "false");
+      p.textContent = "";
+      var li = el("li", { "class": "placeholder err" }, t("peopleErr"));
+      li.appendChild(el("a", { "class": "text-link", href: "https://github.com/" + REPO + "/graphs/contributors", target: "_blank", rel: "noopener" }, t("seeGitHub")));
+      p.appendChild(li);
     }
   }
-};
 
-let userOS = "windows";
-
-function detectUserOS() {
-  const ua = navigator.userAgent || "";
-  const platform = navigator.platform || (navigator.userAgentData && navigator.userAgentData.platform) || "";
-  if (/Mac/i.test(platform) || /Macintosh/i.test(ua)) return "macos";
-  if (/Linux/i.test(platform) || /Linux/i.test(ua)) return "linux";
-  return "windows";
-}
-
-function formatBytes(bytes) {
-  if (!bytes || isNaN(bytes)) return "";
-  const mb = (bytes / (1024 * 1024)).toFixed(1);
-  return mb + " MB";
-}
-
-function updateUI() {
-  userOS = detectUserOS();
-
-  // Reset highlight cards
-  document.querySelectorAll(".dl-card").forEach(c => c.classList.remove("recommended"));
-  document.getElementById("rec-windows-badge").style.display = "none";
-  document.getElementById("rec-mac-badge").style.display = "none";
-  document.getElementById("rec-linux-badge").style.display = "none";
-
-  const primaryBtnText = document.getElementById("primary-dl-label");
-  const primarySize = document.getElementById("primary-dl-filesize");
-  const navBtnText = document.getElementById("nav-dl-text");
-
-  if (userOS === "macos") {
-    document.getElementById("card-macos").classList.add("recommended");
-    document.getElementById("rec-mac-badge").style.display = "block";
-    primaryBtnText.textContent = "Unduh untuk macOS (Universal .dmg)";
-    primarySize.textContent = "Apple Silicon & Intel • " + currentRelease.assets["macos-dmg"].size;
-    navBtnText.textContent = "Unduh macOS";
-  } else if (userOS === "linux") {
-    document.getElementById("card-linux").classList.add("recommended");
-    document.getElementById("rec-linux-badge").style.display = "block";
-    primaryBtnText.textContent = "Unduh untuk Linux (x64 .tar.gz)";
-    primarySize.textContent = "glibc 2.35+ • " + currentRelease.assets["linux-tar"].size;
-    navBtnText.textContent = "Unduh Linux";
-  } else {
-    document.getElementById("card-windows-setup").classList.add("recommended");
-    document.getElementById("rec-windows-badge").style.display = "block";
-    primaryBtnText.textContent = "Unduh untuk Windows (x64 setup.exe)";
-    primarySize.textContent = "Installer Windows • " + currentRelease.assets["windows-setup"].size;
-    navBtnText.textContent = "Unduh Windows";
+  function renderAll() {
+    renderRelease(); renderRepo(); renderCommits(); renderPeople(); renderStatus();
+    if (status.kind === "error") showEmptyErrors();
   }
 
-  // Update sizes in cards
-  document.getElementById("win-setup-size").textContent = "Setup .exe • " + currentRelease.assets["windows-setup"].size;
-  document.getElementById("win-zip-size").textContent = "Arsip .zip • " + currentRelease.assets["windows-zip"].size;
-  document.getElementById("mac-dmg-size").textContent = "Universal • " + currentRelease.assets["macos-dmg"].size;
-  document.getElementById("linux-tar-size").textContent = "glibc 2.35+ • " + currentRelease.assets["linux-tar"].size;
-
-  // Release labels: the exact build tag (for example
-  // BuildDev-2026-11-15-09-12-33), never a human date.
-  const buildTag = (currentRelease && currentRelease.tag_name) || "BuildDev-2026-11-13-23-10-32";
-  document.getElementById("hero-build-tag").textContent = buildTag;
-  document.getElementById("active-release-tag").textContent = buildTag;
-
-  // "Pilihan lain" lists only the systems that are not the detected one.
-  const otherOs = document.getElementById("other-os-link");
-  if (userOS === "macos") {
-    otherOs.textContent = "Windows, Linux, Portable ZIP";
-  } else if (userOS === "linux") {
-    otherOs.textContent = "Windows, macOS, Portable ZIP";
-  } else {
-    otherOs.textContent = "macOS, Linux, Portable ZIP";
+  /* ---------- GitHub API ---------- */
+  // cache: "no-cache" makes the browser revalidate with the ETag it stored; GitHub
+  // answers 304 for unchanged data, which does not count against the hourly limit.
+  var pausedUntil = 0;
+  function RateLimit(reset) { this.reset = reset; }
+  function getJSON(path) {
+    return fetch(API + path, { cache: "no-cache", headers: { Accept: "application/vnd.github+json" } }).then(function (res) {
+      var remaining = res.headers.get("x-ratelimit-remaining");
+      var reset = Number(res.headers.get("x-ratelimit-reset")) * 1000;
+      if ((res.status === 403 || res.status === 429) && remaining === "0") throw new RateLimit(reset);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (remaining !== null && Number(remaining) < 4 && reset) pausedUntil = reset;
+      return res.json().then(function (data) { return { data: data, link: res.headers.get("link") || "" }; });
+    });
   }
 
-  // The recommended card carries the only yellow download button, so the
-  // badge and the primary button never point at different systems.
-  document.querySelectorAll(".dl-card").forEach(card => {
-    const btn = card.querySelector(".btn");
-    if (!btn) return;
-    const isRec = card.classList.contains("recommended");
-    btn.classList.toggle("primary", isRec);
-    btn.classList.toggle("outline", !isRec);
-  });
-}
-
-function triggerDirectDownload(type) {
-  const asset = currentRelease.assets[type];
-  if (!asset || !asset.url) return;
-
-  // Eksekusi pengunduhan langsung di peramban tanpa membuka halaman GitHub
-  const link = document.createElement("a");
-  link.href = asset.url;
-  link.setAttribute("download", asset.name);
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // Munculkan notifikasi toast konfirmasi unduh
-  const toast = document.getElementById("download-toast");
-  document.getElementById("toast-filename").textContent = asset.name;
-  const directLink = document.getElementById("toast-direct-link");
-  directLink.href = asset.url;
-  directLink.setAttribute("download", asset.name);
-
-  toast.classList.add("show");
-  clearTimeout(window._toastTimeout);
-  window._toastTimeout = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 9000);
-}
-
-function downloadRecommended() {
-  if (userOS === "macos") {
-    triggerDirectDownload("macos-dmg");
-  } else if (userOS === "linux") {
-    triggerDirectDownload("linux-tar");
-  } else {
-    triggerDirectDownload("windows-setup");
+  function getAllReleases() {
+    var all = [];
+    function page(n) {
+      return getJSON("/releases?per_page=100&page=" + n).then(function (r) {
+        all = all.concat(r.data);
+        if (/rel="next"/.test(r.link) && n < 5) return page(n + 1);
+        return all;
+      });
+    }
+    return page(1);
   }
-}
 
-async function syncWithGitHub() {
+  function matchAsset(name) {
+    return Object.keys(ASSET_SUFFIX).filter(function (k) { return name.slice(-ASSET_SUFFIX[k].length) === ASSET_SUFFIX[k]; })[0];
+  }
+  function applyReleases(list) {
+    list = list.filter(function (r) { return !r.draft; });
+    if (!list.length) return;
+    var total = 0;
+    list.forEach(function (rel) {
+      (rel.assets || []).forEach(function (a) { if (matchAsset(a.name)) total += a.download_count || 0; });
+    });
+    var latest = list[0];
+    var assets = {};
+    (latest.assets || []).forEach(function (a) {
+      var k = matchAsset(a.name);
+      if (k) assets[k] = { name: a.name, url: a.browser_download_url, size: a.size, downloads: a.download_count };
+    });
+    state.release = {
+      tag: latest.tag_name,
+      published: latest.published_at || latest.created_at,
+      assets: Object.keys(assets).length ? assets : state.release.assets,
+      builds: list.length,
+      downloads: total
+    };
+  }
+
+  var inFlight = false;
+  function refresh(manual) {
+    if (inFlight) return;
+    if (!manual && Date.now() < pausedUntil) return;
+    inFlight = true;
+    status = { kind: "loading" };
+    renderStatus();
+    var btn = $("#live-refresh");
+    btn.disabled = true;
+
+    var jobs = [
+      getJSON("").then(function (r) {
+        state.repo = { stars: r.data.stargazers_count, forks: r.data.forks_count, pushed: r.data.pushed_at };
+      }),
+      getAllReleases().then(applyReleases),
+      getJSON("/commits?per_page=6").then(function (r) {
+        state.commits = r.data.map(function (c) {
+          return {
+            sha: c.sha.slice(0, 7),
+            url: c.html_url,
+            title: (c.commit.message || "").split("\n")[0],
+            author: (c.author && c.author.login) || (c.commit.author && c.commit.author.name) || null,
+            avatar: c.author && c.author.avatar_url ? c.author.avatar_url + "&s=56" : null,
+            date: (c.commit.committer && c.commit.committer.date) || c.commit.author.date
+          };
+        });
+      }),
+      getJSON("/contributors?per_page=100").then(function (r) {
+        state.contributors = (Array.isArray(r.data) ? r.data : []).map(function (p) {
+          return { login: p.login, url: p.html_url, avatar: p.avatar_url + (p.avatar_url.indexOf("?") > -1 ? "&" : "?") + "s=104", count: p.contributions };
+        });
+      })
+    ];
+
+    Promise.allSettled(jobs).then(function (results) {
+      inFlight = false;
+      btn.disabled = false;
+      var failed = results.filter(function (r) { return r.status === "rejected"; });
+      if (failed.length < results.length) state.fetchedAt = Date.now();
+      if (!failed.length) {
+        status = { kind: "ok" };
+      } else {
+        var limit = failed.map(function (f) { return f.reason; }).filter(function (e) { return e instanceof RateLimit; })[0];
+        if (limit) { pausedUntil = limit.reset; status = { kind: "error", reason: "limit", reset: limit.reset }; }
+        else if (!navigator.onLine) status = { kind: "error", reason: "offline" };
+        else status = { kind: "error", reason: failed.length === results.length ? "all" : "some" };
+      }
+      renderAll();
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(state)); } catch (e) { /* private mode */ }
+    });
+  }
+
+  /* ---------- Benchmark charts ---------- */
+  var BENCH = [
+    { en: "Window open", id: "Jendela tampil", unit: "ms", dec: 0, rows: [["FluxCode", 50, true], ["Zed", 818], ["VS Code", 3000]] },
+    { en: "Idle RAM", id: "RAM saat idle", unit: "MB", dec: 1, rows: [["FluxCode", 1.4], ["Zed", 66.2], ["VS Code", 929.2]] },
+    { en: "Reserved memory", id: "Memori dicadangkan", unit: "MB", dec: 0, rows: [["FluxCode", 72], ["Zed", 154], ["VS Code", 1315]] },
+    { en: "Idle CPU", id: "CPU saat idle", unit: "%", dec: 2, rows: [["FluxCode", 0.05], ["Zed", 1.46], ["VS Code", 5.89]] },
+    { en: "Disk size", id: "Ukuran di disk", unit: "MB", dec: 0, rows: [["FluxCode", 16], ["Zed", 261], ["VS Code", 1044]] }
+  ];
+  function renderCharts() {
+    var root = $("#charts");
+    var method = $(".method", root);
+    $all(".chart", root).forEach(function (c) { c.remove(); });
+    var loc = LANG === "id" ? "id-ID" : "en-US";
+    BENCH.forEach(function (m) {
+      var max = Math.max.apply(null, m.rows.map(function (r) { return r[1]; }));
+      var box = el("div", { "class": "chart" });
+      box.appendChild(el("h3", null, m[LANG]));
+      box.appendChild(el("p", { "class": "unit" }, m.unit + ", " + t("better")));
+      m.rows.forEach(function (r) {
+        var num = r[1].toLocaleString(loc, { minimumFractionDigits: m.dec, maximumFractionDigits: m.dec });
+        var label = (r[2] ? "~" : "") + num + (m.unit === "%" ? "%" : " " + m.unit) + (r[2] ? "*" : "");
+        var row = el("div", { "class": "bar-row" + (r[0] === "FluxCode" ? " me" : "") });
+        row.appendChild(el("span", { "class": "n" }, r[0]));
+        var track = el("div", { "class": "bar-track" });
+        var bar = el("span", { "class": "bar", "aria-hidden": "true" });
+        bar.style.width = "calc((100% - 92px) * " + (r[1] / max).toFixed(4) + ")";
+        track.appendChild(bar);
+        track.appendChild(el("span", { "class": "val" }, label));
+        row.appendChild(track);
+        box.appendChild(row);
+      });
+      root.insertBefore(box, method);
+    });
+  }
+
+  /* ---------- Screenshot viewer ---------- */
+  var SHOTS = {
+    "agent": {
+      key: "Ctrl+L",
+      en: { cap: "The agent asks before it runs a command. Every change can be undone.", k: " opens the agent", alt: "FluxCode with main.py open. In the agent panel, OpenCode added a docstring to greet(), the Changes card lists main.py, and the agent asks before running a Python command." },
+      id: { cap: "Agen minta izin sebelum menjalankan perintah. Setiap perubahan bisa di-undo.", k: " membuka agen", alt: "FluxCode dengan main.py terbuka. Di panel agen, OpenCode menambahkan docstring ke greet(), kartu Changes mencatat main.py, dan agen minta izin sebelum menjalankan perintah Python." }
+    },
+    "source-control": {
+      key: "Ctrl+Shift+G",
+      en: { cap: "Stays fast with thousands of new files.", k: " opens Source Control", alt: "FluxCode's Source Control view listing changed files, offering to ignore a folder full of new files." },
+      id: { cap: "Tetap cepat dengan ribuan berkas baru.", k: " membuka Source Control", alt: "Tampilan Source Control FluxCode berisi berkas yang berubah dan tawaran mengabaikan folder berisi banyak berkas baru." }
+    },
+    "sqlite": {
+      key: null,
+      en: { cap: "SQLite opens as tables, SQL and row counts.", alt: "A SQLite database open in FluxCode as a list of tables, their SQL and row counts." },
+      id: { cap: "SQLite terbuka sebagai tabel, SQL, dan jumlah baris.", alt: "Basis data SQLite terbuka di FluxCode sebagai daftar tabel, SQL-nya, dan jumlah baris." }
+    },
+    "python-error": {
+      key: "F5",
+      en: { cap: "An error becomes a card with the file, line and fix.", k: " runs the file", alt: "A Python error in FluxCode shown as a card with the file name, line number and a hint." },
+      id: { cap: "Error jadi kartu: berkas, baris, dan perbaikannya.", k: " menjalankan berkas", alt: "Error Python di FluxCode ditampilkan sebagai kartu berisi nama berkas, nomor baris, dan petunjuk." }
+    },
+    "go-to-file": {
+      key: "Ctrl+P",
+      en: { cap: "Find any file from a few letters.", k: " opens Go to File", alt: "FluxCode's Go to File box listing files that match a few typed letters." },
+      id: { cap: "Temukan berkas dari beberapa huruf.", k: " membuka Go to File", alt: "Kotak Go to File di FluxCode menampilkan berkas yang cocok dengan beberapa huruf." }
+    },
+    "themes": {
+      key: "Ctrl+K Ctrl+T",
+      en: { cap: "Six themes, three UI sizes, your own background.", k: " next theme", alt: "FluxCode's Settings page with the FluxDark, FluxCream, FluxMono and FluxRed themes, language, interface size and background image." },
+      id: { cap: "Enam tema, tiga ukuran UI, latar sendiri.", k: " tema berikutnya", alt: "Halaman Settings FluxCode dengan tema FluxDark, FluxCream, FluxMono, dan FluxRed, bahasa, ukuran antarmuka, dan gambar latar." }
+    },
+    "update-indonesian": {
+      key: null,
+      en: { cap: "The whole interface in Indonesian. Updates in one click.", alt: "FluxCode with its interface in Indonesian and the build update card, in the FluxCream theme." },
+      id: { cap: "Seluruh antarmuka dalam Bahasa Indonesia. Update sekali klik.", alt: "FluxCode dengan antarmuka Bahasa Indonesia dan kartu update build, dalam tema FluxCream." }
+    }
+  };
+  var currentShot = $('.viewer-tabs [aria-selected="true"]');
+  function selectShot(tab, focus) {
+    currentShot = tab;
+    var id = tab.getAttribute("data-shot");
+    var s = SHOTS[id], txt = s[LANG];
+    $all('.viewer-tabs [role="tab"]').forEach(function (b) {
+      var on = b === tab;
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+    });
+    $("#shot").setAttribute("aria-labelledby", tab.id);
+    var img = $("#shot-img");
+    if (img.getAttribute("src") !== "img/" + id + ".webp") {
+      img.srcset = "img/" + id + "-800.webp 800w, img/" + id + ".webp 1600w";
+      img.src = "img/" + id + ".webp";
+    }
+    img.alt = txt.alt;
+    $("#shot-caption").textContent = txt.cap;
+    var key = $("#shot-key");
+    key.textContent = "";
+    if (s.key) {
+      key.appendChild(el("kbd", null, s.key));
+      key.appendChild(document.createTextNode(txt.k));
+    }
+    if (focus) { tab.focus(); tab.scrollIntoView({ block: "nearest", inline: "nearest" }); }
+  }
+  function initViewer() {
+    var tabs = $all('.viewer-tabs [role="tab"]');
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener("click", function () { selectShot(tab, false); });
+      tab.addEventListener("keydown", function (e) {
+        var j = null;
+        if (e.key === "ArrowRight") j = (i + 1) % tabs.length;
+        if (e.key === "ArrowLeft") j = (i - 1 + tabs.length) % tabs.length;
+        if (e.key === "Home") j = 0;
+        if (e.key === "End") j = tabs.length - 1;
+        if (j !== null) { e.preventDefault(); selectShot(tabs[j], true); }
+      });
+      // Fetch a screenshot while the pointer is on its tab, so the swap is instant.
+      tab.addEventListener("pointerenter", function () {
+        var pre = new Image();
+        pre.src = "img/" + tab.getAttribute("data-shot") + (window.innerWidth < 900 ? "-800" : "") + ".webp";
+      }, { once: true });
+    });
+  }
+
+  /* ---------- Download feedback ---------- */
+  var toastTimer;
+  function initDownloads() {
+    var toast = $("#toast");
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("a[download]");
+      if (!a || !a.dataset.name) return;
+      $("#toast-file").textContent = a.dataset.name;
+      $("#toast-link").href = a.href;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 8000);
+    });
+    $("#toast-close").addEventListener("click", function () { toast.classList.remove("show"); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") toast.classList.remove("show"); });
+  }
+
+  /* ---------- Header and section highlighting ---------- */
+  function initNav() {
+    var header = $(".site-header");
+    var onScroll = function () { header.classList.toggle("scrolled", window.scrollY > 8); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    $all(".lang button").forEach(function (b) {
+      b.addEventListener("click", function () { setLang(b.getAttribute("data-lang"), true); });
+    });
+    if (!("IntersectionObserver" in window)) return;
+    var links = $all(".top-nav a, .tabbar a");
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var id = en.target.id;
+        links.forEach(function (l) { l.setAttribute("aria-current", l.getAttribute("href") === "#" + id ? "true" : "false"); });
+      });
+    }, { rootMargin: "-25% 0px -70% 0px" });
+    ["benchmark", "features", "compare", "download", "contributors"].forEach(function (id) { var s = document.getElementById(id); if (s) io.observe(s); });
+  }
+
+  /* ---------- Start ---------- */
   try {
-    const res = await fetch(REPO_RELEASES_URL);
-    if (!res.ok) return;
-    const releases = await res.json();
-    if (!Array.isArray(releases) || releases.length === 0) return;
+    var cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    if (cached && cached.release && cached.release.tag) state = cached;
+  } catch (e) { /* no storage */ }
 
-    const latest = releases[0];
-    currentRelease.tag_name = latest.tag_name;
-    currentRelease.published_at = latest.published_at;
+  var start = "en";
+  var fromUrl = new URLSearchParams(location.search).get("lang");
+  if (fromUrl === "id" || fromUrl === "en") start = fromUrl;
+  else { try { start = localStorage.getItem(LANG_KEY) || "en"; } catch (e) { /* no storage */ } }
 
-    // Parse assets
-    latest.assets.forEach(a => {
-      const name = a.name;
-      const url = a.browser_download_url;
-      const sizeStr = formatBytes(a.size);
+  initViewer();
+  initDownloads();
+  initNav();
+  setLang(start, false);
+  refresh(true);
 
-      if (name.endsWith("windows-x64-setup.exe")) {
-        currentRelease.assets["windows-setup"] = { name, url, size: sizeStr };
-      } else if (name.endsWith("windows-x64.zip")) {
-        currentRelease.assets["windows-zip"] = { name, url, size: sizeStr };
-      } else if (name.endsWith("macos-universal.dmg")) {
-        currentRelease.assets["macos-dmg"] = { name, url, size: sizeStr };
-      } else if (name.endsWith("linux-x64.tar.gz")) {
-        currentRelease.assets["linux-tar"] = { name, url, size: sizeStr };
-      }
-    });
-
-    // Fetch star count
-    try {
-      const repoRes = await fetch("https://api.github.com/repos/MuaraAI/FluxCode");
-      if (repoRes.ok) {
-        const repoData = await repoRes.json();
-        document.getElementById("gh-stars-count").textContent = repoData.stargazers_count.toLocaleString();
-      }
-    } catch (e) { /* ignore */ }
-
-    updateUI();
-  } catch (err) {
-    console.warn("Sinkronisasi GitHub Releases menggunakan fallback:", err);
-  }
-}
-
-// Mockup: the agent panel is a toggleable view, not a permanent column,
-// so it never squeezes the code pane. The code view is the default.
-function toggleAgentPane() {
-  const code = document.getElementById("code-pane");
-  const agent = document.getElementById("agent-pane");
-  const btn = document.getElementById("agent-toggle");
-  if (!code || !agent || !btn) return;
-  const showAgent = agent.hidden;
-  agent.hidden = !showAgent;
-  code.hidden = showAgent;
-  btn.setAttribute("aria-pressed", showAgent ? "true" : "false");
-}
-
-// Mockup: the file tabs switch the shown sample, so the tabs do what
-// they look like they do.
-function switchMockupTab(name) {
-  // A file tab always shows the code view first.
-  const code = document.getElementById("code-pane");
-  const agent = document.getElementById("agent-pane");
-  const btn = document.getElementById("agent-toggle");
-  if (code && agent && btn) {
-    code.hidden = false;
-    agent.hidden = true;
-    btn.setAttribute("aria-pressed", "false");
-  }
-  document.querySelectorAll(".tab-item").forEach(t => {
-    const active = t.dataset.tab === name;
-    t.classList.toggle("active", active);
-    t.setAttribute("aria-selected", active ? "true" : "false");
+  $("#live-refresh").addEventListener("click", function () { refresh(true); });
+  setInterval(function () { if (document.visibilityState === "visible") refresh(false); }, REFRESH_MS);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && (!state.fetchedAt || Date.now() - state.fetchedAt > 60000)) refresh(false);
   });
-  document.querySelectorAll(".code-sample").forEach(s => {
-    s.hidden = s.dataset.sample !== name;
-  });
-}
-
-// Mockup: the agent confirm buttons answer in the chat instead of
-// doing nothing.
-function respondAgent(allowed) {
-  const box = document.getElementById("agent-confirm");
-  if (!box) return;
-  const done = document.createElement("div");
-  done.className = "agent-status";
-  done.textContent = allowed
-    ? "Pemeriksaan kargo diizinkan. Menjalankan cargo test."
-    : "Pemeriksaan ditolak. Agen menunggu perintah berikutnya.";
-  box.replaceWith(done);
-}
-
-// One gentle scroll reveal. The class is added by JS only, so without
-// JS everything stays visible, and reduced-motion users get no motion.
-function initReveal() {
-  if (!("IntersectionObserver" in window)) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const targets = document.querySelectorAll(".bench-card, .feature-row, .dl-card, .closing-inner, .section-title");
-  targets.forEach(el => el.classList.add("reveal"));
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("in");
-        io.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.15 });
-  targets.forEach(el => io.observe(el));
-}
-
-// Inisialisasi awal
-updateUI();
-syncWithGitHub();
-initReveal();
+  window.addEventListener("online", function () { refresh(true); });
+  // Keep "2 minutes ago" and similar labels true while the page stays open.
+  setInterval(function () {
+    $all("time[data-rel]").forEach(function (n) { n.textContent = relative(n.getAttribute("datetime")); });
+    renderStatus();
+  }, 30000);
+})();
 </script>
 </body>
 </html>
