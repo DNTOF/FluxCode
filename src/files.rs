@@ -524,7 +524,9 @@ gpui_kit::assets::icon_assets!(pub FileIcons, [
     // Agent panel: a folded group of steps, its own worktree, more than one account
     ListCollapse, GitFork, GitMerge, UserPlus,
     // Agent: token saver
-    Leaf
+    Leaf,
+    // Agent full screen: only the chat, and the limits card's way to the usage panel
+    Focus, Maximize2
 ]);
 
 #[cfg(test)]

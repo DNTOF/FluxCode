@@ -5,13 +5,16 @@
 //! gets the room for everything. Columns give way as the window narrows: the changes
 //! column goes first, then the chats, and each can be shown or hidden from the top bar.
 
-use super::{ago, Item, Status};
+use super::{ago, when_label, Item, Status, HISTORY_FILE};
 use crate::i18n::tr;
 use crate::theme::{self, c, GlassExt};
 use crate::workbench::{tool_button, Workbench};
+use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
-    h_flex, v_flex, Icon, IconName, Selectable, Sizable,
+    h_flex,
+    input::{Input, InputEvent, InputState},
+    v_flex, Icon, IconName, Selectable, Sizable,
 };
 use gpui_kit::{prelude::FluentBuilder, *};
 
@@ -23,11 +26,19 @@ pub struct FullState {
     /// The user hid (false) or showed the side columns from the top bar.
     pub left: bool,
     pub right: bool,
+    /// A chat's title being edited in the left column.
+    pub rename: Option<Rename>,
+}
+
+pub struct Rename {
+    pub id: u64,
+    pub input: Entity<InputState>,
+    _sub: Subscription,
 }
 
 impl Default for FullState {
     fn default() -> Self {
-        FullState { left: true, right: true }
+        FullState { left: true, right: true, rename: None }
     }
 }
 
@@ -80,10 +91,62 @@ impl Workbench {
             .child(div().flex_1())
             .child(self.render_agent_tools(cx))
             .child(self.render_agent_more(cx))
+            .child({
+                // Only the conversation: both side columns step aside (and come back).
+                let focused = !self.agent.full.left && !self.agent.full.right;
+                Button::new("agf-focus")
+                    .icon(Icon::new(Ico::Focus))
+                    .xsmall()
+                    .ghost()
+                    .selected(focused)
+                    .tooltip(if focused { tr("Show chats and changes") } else { tr("Only the chat") })
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.agent.full.left = focused;
+                        this.agent.full.right = focused;
+                        cx.notify();
+                    }))
+            })
             .child(toggle("agf-right", IconName::PanelRight, self.agent.full.right, w >= WIDE, tr("Changes")).on_click(cx.listener(|this, _, _, cx| {
                 this.agent.full.right = !this.agent.full.right;
                 cx.notify();
             })))
+    }
+
+    /// Edit a saved chat's title in place (Enter or clicking away keeps it, Esc doesn't).
+    fn agent_rename_start(&mut self, id: u64, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(title) = self.agent.history.iter().find(|c| c.id == id).map(|c| c.title.clone()) else { return };
+        let input = cx.new(|cx| InputState::new(window, cx).placeholder(tr("Chat name")));
+        input.update(cx, |s, cx| {
+            s.set_value(title, window, cx);
+            s.select_all(window, cx);
+        });
+        let sub = cx.subscribe_in(&input, window, |this: &mut Workbench, _, ev: &InputEvent, _, cx| {
+            if matches!(ev, InputEvent::PressEnter { .. } | InputEvent::Blur) {
+                this.agent_rename_done(true, cx);
+            }
+        });
+        input.focus_handle(cx).focus(window, cx);
+        self.agent.full.rename = Some(Rename { id, input, _sub: sub });
+        cx.notify();
+    }
+
+    fn agent_rename_done(&mut self, keep: bool, cx: &mut Context<Self>) {
+        let Some(r) = self.agent.full.rename.take() else { return };
+        let text: String = r.input.read(cx).value().trim().chars().take(120).collect();
+        if keep {
+            if let Some(chat) = self.agent.history.iter_mut().find(|c| c.id == r.id) {
+                if text.is_empty() {
+                    // Cleared: back to the first message's line.
+                    chat.renamed = false;
+                    chat.title = chat.messages.iter().find(|m| m.0 == "user").map(|m| m.1.lines().next().unwrap_or("").chars().take(70).collect()).unwrap_or_default();
+                } else {
+                    chat.renamed = true;
+                    chat.title = text;
+                }
+                crate::settings::save_json(HISTORY_FILE, &self.agent.history);
+            }
+        }
+        cx.notify();
     }
 
     /// Left column: new chat and the saved chats, the open one marked.
@@ -99,9 +162,52 @@ impl Workbench {
         for (i, chat) in a.history.iter().enumerate() {
             let id = chat.id;
             let current = a.chat_id == Some(id);
+            if let Some(r) = a.full.rename.as_ref().filter(|r| r.id == id) {
+                list = list.child(
+                    div()
+                        .id(("agf-rn", i))
+                        .w_full()
+                        .px_1()
+                        .py_1()
+                        .on_key_down(cx.listener(|this, e: &KeyDownEvent, _, cx| {
+                            if e.keystroke.key == "escape" {
+                                cx.stop_propagation();
+                                this.agent_rename_done(false, cx);
+                            }
+                        }))
+                        .child(Input::new(&r.input).small()),
+                );
+                continue;
+            }
+            // A clock time, and how long ago while that is still today.
+            let clock = when_label(chat.updated);
+            let when = if clock.contains(' ') { clock } else { format!("{clock} · {}", ago(chat.updated)) };
             list = list.child(
-                chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), ago(chat.updated).into(), current, current && busy)
-                    .on_click(cx.listener(move |this, _, _, cx| this.agent_open_chat(id, cx))),
+                chat_row(SharedString::from(format!("agf-c-{i}")), chat.title.clone(), when.into(), current, current && busy)
+                    .on_mouse_down(MouseButton::Left, cx.listener(move |this, e: &MouseDownEvent, w, cx| {
+                        if e.click_count >= 2 {
+                            cx.stop_propagation();
+                            this.agent_rename_start(id, w, cx);
+                        }
+                    }))
+                    .on_click(cx.listener(move |this, _, _, cx| this.agent_open_chat(id, cx)))
+                    .child(
+                        div()
+                            .id(("agf-rename", i))
+                            .flex_none()
+                            .p_1()
+                            .rounded(px(6.))
+                            .invisible()
+                            .group_hover("agf-row", |s| s.visible())
+                            .text_color(c(theme::FG_DIM))
+                            .hover(|s| s.bg(c(theme::BG_ELEVATED)).text_color(c(theme::FG_STRONG)))
+                            .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Rename (or double-click)")).build(w, cx))
+                            .on_click(cx.listener(move |this, _, w, cx| {
+                                cx.stop_propagation();
+                                this.agent_rename_start(id, w, cx)
+                            }))
+                            .child(Icon::new(Ico::Pencil).size(theme::u(13.))),
+                    ),
             );
         }
         if a.history.is_empty() && !fresh {
@@ -130,7 +236,18 @@ impl Workbench {
                         .child(tr("New chat")),
                 ),
             )
-            .child(div().px_4().pt_1().pb_1().text_xs().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_DIM)).child(tr("Chats")))
+            .child(
+                h_flex()
+                    .pl_4()
+                    .pr_2()
+                    .pt_1()
+                    .pb_1()
+                    .child(div().flex_1().text_xs().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_DIM)).child(tr("Chats")))
+                    .child(tool_button("agf-left-hide", IconName::PanelLeftClose, tr("Hide chats"), cx, |this, _, cx| {
+                        this.agent.full.left = false;
+                        cx.notify();
+                    })),
+            )
             .child(list)
     }
 
@@ -217,12 +334,18 @@ impl Workbench {
                     .when(!a.changes.is_empty(), |h| {
                         h.child(div().text_xs().text_color(c(theme::GREEN)).child(format!("+{add}"))).child(div().text_xs().text_color(c(theme::DANGER)).child(format!("−{del}")))
                     })
+                    .child(tool_button("agf-right-hide", IconName::PanelRightClose, tr("Hide changes"), cx, |this, _, cx| {
+                        this.agent.full.right = false;
+                        cx.notify();
+                    }))
                     .child(tool_button("agf-exit", IconName::Minimize, tr("Back beside the editor"), cx, |this, _, cx| {
                         this.agent_full = false;
                         cx.notify();
                     })),
             )
+            // The list scrolls; the limits stay at the foot however many files changed.
             .child(list.pt_1())
+            .child(self.render_limits_card(cx))
     }
 }
 
@@ -230,6 +353,7 @@ impl Workbench {
 fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, current: bool, busy: bool) -> Stateful<Div> {
     h_flex()
         .id(id)
+        .group("agf-row")
         .w_full()
         .px_2()
         .py_1p5()

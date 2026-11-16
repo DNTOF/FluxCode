@@ -5,7 +5,7 @@
 use crate::i18n::tr;
 use crate::agent_ctx::{self, RemoteSession};
 use crate::core;
-use crate::theme::{self, c};
+use crate::theme::{self, c, GlassExt};
 use crate::workbench::{tool_button, SideView, Workbench};
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
@@ -142,10 +142,31 @@ pub struct Permission {
 pub struct Chat {
     pub id: u64,
     pub title: String,
+    /// The user renamed it: new messages keep that title.
+    #[serde(default)]
+    pub renamed: bool,
     /// Unix time in ms of the last message.
     pub updated: u64,
     /// (role, text) with role "user", "agent" or "note".
     pub messages: Vec<(String, String)>,
+}
+
+/// When a chat last changed, as a clock time: "14.32" today, "Yesterday 09.10",
+/// "12 Nov 14.32" this year, "12 Nov 2025" before.
+fn when_label(ms: u64) -> String {
+    use chrono::{Datelike, Local, TimeZone};
+    let Some(t) = Local.timestamp_millis_opt(ms as i64).single() else { return String::new() };
+    let now = Local::now();
+    let days = (now.date_naive() - t.date_naive()).num_days();
+    if days == 0 {
+        t.format("%H.%M").to_string()
+    } else if days == 1 {
+        format!("{} {}", crate::i18n::tr("Yesterday"), t.format("%H.%M"))
+    } else if t.year() == now.year() {
+        t.format("%d %b %H.%M").to_string()
+    } else {
+        t.format("%d %b %Y").to_string()
+    }
 }
 
 const HISTORY_FILE: &str = "agent-history.json";
@@ -243,6 +264,8 @@ pub struct AgentState {
     /// The chat's own git worktree, when it has one (worktree.rs).
     pub worktree: Option<worktree::Worktree>,
     pub worktree_busy: bool,
+    /// An account whose sign-in console is open: it joins the list only once signed in.
+    pub account_wait: Option<worktree::Account>,
     pub(crate) input: Entity<TextareaState>,
     /// The chat log as a virtual list: only the messages on screen are laid out, so a
     /// chat of a million items costs a frame what one of twenty does. It follows the
@@ -521,6 +544,7 @@ impl AgentState {
             open_groups: HashSet::new(),
             worktree: None,
             worktree_busy: false,
+            account_wait: None,
             input,
             list: {
                 let l = ListState::new(0, ListAlignment::Top, px(600.));
@@ -596,13 +620,23 @@ impl AgentState {
             return;
         }
         let id = *self.chat_id.get_or_insert_with(now_ms);
-        let title = messages
-            .iter()
-            .find(|m| m.0 == "user")
-            .map(|m| m.1.lines().next().unwrap_or("").chars().take(70).collect::<String>())
-            .unwrap_or_default();
+        let old = self.history.iter().find(|c| c.id == id);
+        // Only switching away from a chat: it keeps its place and its time (moving it to
+        // the top would shift the list under the pointer and stamp every chat "just now").
+        if old.is_some_and(|c| c.messages == messages) {
+            return;
+        }
+        let renamed = old.map(|c| (c.renamed, c.title.clone())).filter(|(r, _)| *r);
+        let title = match &renamed {
+            Some((_, t)) => t.clone(),
+            None => messages
+                .iter()
+                .find(|m| m.0 == "user")
+                .map(|m| m.1.lines().next().unwrap_or("").chars().take(70).collect::<String>())
+                .unwrap_or_default(),
+        };
         self.history.retain(|c| c.id != id);
-        self.history.insert(0, Chat { id, title, updated: now_ms(), messages });
+        self.history.insert(0, Chat { id, title, renamed: renamed.is_some(), updated: now_ms(), messages });
         self.history.truncate(HISTORY_MAX);
         crate::settings::save_json(HISTORY_FILE, &self.history);
     }
@@ -1897,14 +1931,7 @@ impl Workbench {
                         .ghost()
                         .selected(self.agent.usage.open)
                         .tooltip(if self.agent_model_free().is_some() { crate::i18n::tr("Usage: context (free model, no limits)") } else { crate::i18n::tr("Usage: limits, context and cost") })
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            if this.agent.usage.open {
-                                this.agent.usage.open = false;
-                                cx.notify();
-                            } else {
-                                this.agent_usage_open(cx);
-                            }
-                        })),
+                        .on_click(cx.listener(|this, _, _, cx| this.agent_usage_toggle(cx))),
                 )
             })
             .child(
@@ -3186,8 +3213,54 @@ impl Workbench {
             .children(self.render_edit_strip(cx))
             .children(self.render_mention_popup(cx))
             .children(self.render_limit_banner(cx))
+            .children(self.render_install_strip(window))
             .child(self.render_composer(window, cx))
             .into_any_element()
+    }
+
+    /// An agent installing while a chat is on screen (the welcome, which shows the big
+    /// animation, is gone): its name, the step and a bar, right above the message box.
+    fn render_install_strip(&self, window: &mut Window) -> Option<AnyElement> {
+        if self.agent.items.is_empty() {
+            return None;
+        }
+        let (id, tracker, _) = self.agent.installing.as_ref()?;
+        let snap = tracker.get();
+        // The tracker is written off the UI thread: draw again until the install ends.
+        window.request_animation_frame();
+        let frac = snap.fraction().filter(|_| matches!(snap.phase, crate::acp::Phase::Download | crate::acp::Phase::Unpack));
+        let bar = div().relative().w_full().h(px(4.)).rounded_full().bg(c(theme::BG_HOVER)).overflow_hidden().child(match frac {
+            Some(f) => div().absolute().left_0().top_0().bottom_0().rounded_full().bg(c(theme::ACCENT)).w(relative(f)).into_any_element(),
+            // Unknown amount: a short piece sliding along the track.
+            None => div()
+                .absolute()
+                .top_0()
+                .bottom_0()
+                .w(relative(0.3))
+                .rounded_full()
+                .bg(c(theme::ACCENT))
+                .with_animation("ag-inst-slide", Animation::new(std::time::Duration::from_millis(1300)).repeat(), |d, t| d.left(relative(-0.3 + 1.3 * t)))
+                .into_any_element(),
+        });
+        Some(
+            v_flex()
+                .mx_3()
+                .mb_2()
+                .px_3()
+                .py_2()
+                .gap_1p5()
+                .glass()
+                .child(
+                    h_flex()
+                        .gap_2()
+                        .text_sm()
+                        .child(div().flex_none().size(theme::u(16.)).flex().items_center().justify_center().child(agent_glyph(id, 14.)))
+                        .child(div().flex_none().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_STRONG)).child(crate::trf!("Installing {name}"; name => crate::acp::display_name(id))))
+                        .child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(crate::flux_anim::detail(&snap))),
+                )
+                .child(bar)
+                .into_any_element(),
+        )
     }
 
 

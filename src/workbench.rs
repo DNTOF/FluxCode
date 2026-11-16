@@ -281,6 +281,9 @@ pub struct Workbench {
     pub(crate) agent_width: f32,
     /// The agent chat fills the window (the editor steps aside until it is turned off).
     pub(crate) agent_full: bool,
+    /// A click outside just closed this popover (its key, when): the same click landing
+    /// on the popover's own button must not open it again.
+    pub(crate) pop_shut: Option<(&'static str, std::time::Instant)>,
     /// The view the right side bar shows (the agent, or any view moved there).
     pub(crate) right_view: SideView,
     pub(crate) sidebar_width: f32,
@@ -477,7 +480,9 @@ impl Workbench {
         })
         .detach();
 
-        let settings = crate::settings::Settings::load();
+        let mut settings = crate::settings::Settings::load();
+        // Accounts added before sign-in was checked, never signed in to: drop them.
+        crate::agent::worktree::prune_accounts(&mut settings);
         crate::i18n::set(&settings.language);
         crate::remote::set_helper_enabled(settings.wsl_helper);
         let copilot_enabled = settings.copilot;
@@ -526,6 +531,7 @@ impl Workbench {
             agent_open: false,
             agent_width: 380.,
             agent_full: false,
+            pop_shut: None,
             right_view: SideView::Agent,
             sidebar_width: 260.,
             resizing: 0,

@@ -97,6 +97,11 @@ pub fn known(id: &str) -> Option<&'static Known> {
     KNOWN.iter().find(|k| k.id == id)
 }
 
+/// Agents still being built: the picker marks them "Experimental".
+pub fn experimental(id: &str) -> bool {
+    id == "mura"
+}
+
 /// A setting an agent takes on its command line because it doesn't offer it over ACP.
 /// FluxCode shows it like the agent's own settings and restarts the agent to change it.
 pub struct FlagOpt {

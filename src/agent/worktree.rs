@@ -60,6 +60,40 @@ pub fn family(id: &str) -> Option<&'static str> {
     }
 }
 
+/// The account's folder holds a sign-in: Claude's credentials file (or an OAuth account
+/// or API key in its config), OpenCode's auth database with at least one provider.
+pub fn signed_in(a: &Account) -> bool {
+    let has = |p: PathBuf, any: &[&str]| std::fs::read_to_string(p).is_ok_and(|s| any.iter().any(|k| s.contains(k)));
+    match a.family.as_str() {
+        "claude" => a.dir.join(".credentials.json").is_file() || has(a.dir.join(".claude.json"), &["\"oauthAccount\"", "\"primaryApiKey\""]),
+        _ => has(a.dir.join("opencode").join("auth.json"), &["\"type\""]),
+    }
+}
+
+/// Drop added accounts that were never signed in to (their folders too), and a choice
+/// that pointed at one.
+pub fn prune_accounts(s: &mut crate::settings::Settings) {
+    let (keep, gone): (Vec<Account>, Vec<Account>) = s.agent_accounts.drain(..).partition(signed_in);
+    s.agent_accounts = keep;
+    if gone.is_empty() {
+        return;
+    }
+    for a in &gone {
+        forget_dir(a);
+    }
+    let accounts = s.agent_accounts.clone();
+    s.agent_account.retain(|f, name| accounts.iter().any(|a| &a.family == f && &a.name == name));
+    s.save();
+}
+
+/// Delete an added account's sign-in folder: only one FluxCode made itself (under its
+/// `accounts` folder), never a folder a hand-edited setting points at.
+fn forget_dir(a: &Account) {
+    if a.dir.parent().and_then(Path::file_name).is_some_and(|n| n == "accounts") {
+        let _ = std::fs::remove_dir_all(&a.dir);
+    }
+}
+
 /// The environment that makes a run use `a`.
 pub fn account_env(a: &Account) -> (&'static str, PathBuf) {
     match a.family.as_str() {
@@ -268,18 +302,87 @@ impl Workbench {
         cx.notify();
     }
 
-    /// A new sign-in folder, chosen at once, with a console to sign in to it.
+    /// A new sign-in folder with a console to sign in to it. It joins the list (and is
+    /// used) only once the sign-in lands in the folder; a console closed without signing
+    /// in leaves nothing behind.
     fn agent_add_account(&mut self, cx: &mut Context<Self>) {
         let Some(f) = family(&agent_id()) else { return };
+        if self.agent.account_wait.is_some() {
+            return;
+        }
+        prune_accounts(&mut self.settings);
         let n = self.settings.agent_accounts.iter().filter(|a| a.family == f).count() + 2;
         let name = crate::trf!("Account {n}"; n => n);
         let base = std::env::var_os("APPDATA").or_else(|| std::env::var_os("HOME")).map(PathBuf::from).unwrap_or_default();
         let dir = base.join("FluxCode").join("accounts").join(format!("{f}-{n}"));
         let _ = std::fs::create_dir_all(&dir);
-        let acc = Account { name: name.clone(), family: f.into(), dir };
+        let acc = Account { name, family: f.into(), dir };
         open_login(&acc);
-        self.settings.agent_accounts.push(acc);
-        self.agent_use_account(Some(name), cx);
+        self.agent.account_wait = Some(acc.clone());
+        cx.notify();
+        cx.spawn(async move |this, cx| {
+            // Up to 15 minutes for the browser sign-in, looked at every 2 seconds.
+            for _ in 0..450 {
+                cx.background_executor().timer(std::time::Duration::from_secs(2)).await;
+                let Ok(waiting) = this.update(cx, |this, _| this.agent.account_wait.as_ref() == Some(&acc)) else { return };
+                if !waiting {
+                    return;
+                }
+                let a = acc.clone();
+                if cx.background_spawn(async move { signed_in(&a) }).await {
+                    _ = this.update(cx, |this, cx| {
+                        this.agent.account_wait = None;
+                        this.settings.agent_accounts.push(acc.clone());
+                        this.agent_use_account(Some(acc.name.clone()), cx);
+                        this.agent.items.push(Item::Branch(crate::trf!("Signed in: {name} added and in use."; name => acc.name)));
+                    });
+                    return;
+                }
+            }
+            _ = this.update(cx, |this, cx| this.agent_cancel_account(cx));
+        })
+        .detach();
+    }
+
+    /// Stop waiting for a sign-in: the folder goes, the account never joins the list.
+    fn agent_cancel_account(&mut self, cx: &mut Context<Self>) {
+        let Some(a) = self.agent.account_wait.take() else { return };
+        if signed_in(&a) {
+            // Signed in after all, just now: keep it.
+            self.settings.agent_accounts.push(a.clone());
+            return self.agent_use_account(Some(a.name), cx);
+        }
+        forget_dir(&a);
+        self.agent.items.push(Item::Branch(crate::trf!("{name} wasn't signed in, so it wasn't added."; name => a.name)));
+        cx.notify();
+    }
+
+    /// Sign out of an added account: its sign-in folder is deleted and the default
+    /// account is used again.
+    fn agent_sign_out(&mut self, name: String, cx: &mut Context<Self>) {
+        let Some(f) = family(&agent_id()) else { return };
+        let Some(pos) = self.settings.agent_accounts.iter().position(|a| a.family == f && a.name == name) else { return };
+        let a = self.settings.agent_accounts.remove(pos);
+        let was_current = self.settings.agent_account.get(f) == Some(&name);
+        if was_current {
+            self.settings.agent_account.remove(f);
+        }
+        self.settings.save();
+        if was_current {
+            self.agent.items.push(Item::Branch(crate::trf!("Signed out of {name}; using the default account."; name => name)));
+            self.agent_restart_here(cx);
+            // The agent that ran as it may still hold files in the folder: delete it
+            // once that process is gone.
+            cx.background_spawn(async move {
+                std::thread::sleep(std::time::Duration::from_secs(4));
+                forget_dir(&a);
+            })
+            .detach();
+        } else {
+            forget_dir(&a);
+            self.agent.items.push(Item::Branch(crate::trf!("Signed out of {name}."; name => name)));
+        }
+        cx.notify();
     }
 
     /// The header's one "more" button: the harness's mode (Claude's permission modes:
@@ -290,6 +393,7 @@ impl Workbench {
         let on = self.agent.worktree.is_some();
         let (fam, accounts) = self.agent_accounts();
         let current = self.agent_account().map(|a| a.name);
+        let waiting = self.agent.account_wait.as_ref().map(|a| a.name.clone());
         let mode = self.agent_config_view().into_iter().find(|o| o.category == "mode").filter(|o| o.choices.len() > 1);
         let right = self.settings.agent_right;
         // A mode that skips the questions shows on the button, so it is never on unnoticed.
@@ -336,7 +440,14 @@ impl Workbench {
                         let name = a.name.clone();
                         m = m.item(act(a.name.clone(), current.as_deref() == Some(a.name.as_str()), Box::new(move |this, _, cx| this.agent_use_account(Some(name.clone()), cx))));
                     }
-                    m = m.item(act(tr("Add account and sign in…").into(), false, Box::new(|this, _, cx| this.agent_add_account(cx))));
+                    m = match &waiting {
+                        Some(w) => m.item(act(crate::trf!("Waiting for {name} to sign in… (cancel)"; name => w), false, Box::new(|this, _, cx| this.agent_cancel_account(cx)))),
+                        None => m.item(act(tr("Add account and sign in…").into(), false, Box::new(|this, _, cx| this.agent_add_account(cx)))),
+                    };
+                    for a in &accounts {
+                        let name = a.name.clone();
+                        m = m.item(act(crate::trf!("Sign out of {name}"; name => a.name), false, Box::new(move |this, _, cx| this.agent_sign_out(name.clone(), cx))));
+                    }
                 }
                 m.separator()
                     .item(act(
@@ -417,8 +528,29 @@ fn open_login(a: &Account) {
 
 #[cfg(test)]
 mod tests {
-    use super::{account_env, family, Account};
+    use super::{account_env, family, signed_in, Account};
     use std::path::PathBuf;
+
+    #[test]
+    fn an_account_counts_only_once_signed_in() {
+        let dir = std::env::temp_dir().join(format!("fluxcode-acct-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("opencode")).unwrap();
+        let claude = Account { name: "A".into(), family: "claude".into(), dir: dir.clone() };
+        let open = Account { family: "opencode".into(), ..claude.clone() };
+        assert!(!signed_in(&claude));
+        assert!(!signed_in(&open));
+        // Claude writes its config before the login finishes; only an account in it counts.
+        std::fs::write(dir.join(".claude.json"), r#"{"numStartups":1}"#).unwrap();
+        assert!(!signed_in(&claude));
+        std::fs::write(dir.join(".claude.json"), r#"{"oauthAccount":{"emailAddress":"x"}}"#).unwrap();
+        assert!(signed_in(&claude));
+        std::fs::write(dir.join("opencode").join("auth.json"), "{}").unwrap();
+        assert!(!signed_in(&open));
+        std::fs::write(dir.join("opencode").join("auth.json"), r#"{"anthropic":{"type":"oauth"}}"#).unwrap();
+        assert!(signed_in(&open));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn families_and_env() {
