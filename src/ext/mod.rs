@@ -8,13 +8,16 @@
 //! manifest is data, so installing one costs a few KB and nothing runs until you
 //! click a task.
 //!
-//! The catalog ships inside FluxCode (`extensions/*.json`, compiled in). More can be
-//! installed from a file into `~/.fluxcode/extensions/<id>/extension.json`. Installed
-//! ids are kept in the settings.
+//! The catalog ships inside FluxCode (`extensions/*.json`, compiled in), plus any
+//! manifest placed in `~/.fluxcode/extensions/<id>/extension.json`; all of them are
+//! always on. The Extensions view lists VS Code extensions instead: they come from
+//! its Marketplace (`market`) and live apart, in `~/.fluxcode/vscode-extensions`.
 
 pub mod bedrock;
 pub mod compile;
 pub mod java;
+pub mod market;
+mod market_view;
 pub mod view;
 pub mod zip;
 
@@ -191,19 +194,6 @@ pub fn catalog() -> Vec<Manifest> {
         }
     }
     all
-}
-
-/// Copy a manifest file into the extensions folder; returns its id.
-pub fn install_file(path: &Path) -> Result<String, String> {
-    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-    let m = parse(&text)?;
-    if BUILTIN.iter().any(|t| parse(t).map(|b| b.id == m.id).unwrap_or(false)) {
-        return Err(format!("{} is built in already", m.id));
-    }
-    let dir = user_dir().join(&m.id);
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    std::fs::write(dir.join("extension.json"), text).map_err(|e| e.to_string())?;
-    Ok(m.id)
 }
 
 pub fn remove_file(m: &Manifest) {
@@ -592,13 +582,17 @@ pub struct Ext {
     pub fold_scan: usize,
     pub fold_count: usize,
     pub fold_line: Option<usize>,
+    /// The VS Code Marketplace list and the extensions installed from it.
+    pub market: market::Market,
+    /// Searches the Marketplace as the query changes.
+    pub _query_sub: gpui_kit::Subscription,
 }
 
+/// The Extensions view's tabs.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Filter {
+    Market,
     Installed,
-    Here,
-    All,
 }
 
 #[cfg(test)]

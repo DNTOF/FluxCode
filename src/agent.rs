@@ -44,6 +44,9 @@ enum Req {
 
 mod activity;
 mod follow;
+mod full;
+mod limit;
+mod saver;
 mod tidy;
 pub(crate) mod worktree;
 mod catalog;
@@ -326,6 +329,10 @@ pub struct AgentState {
     pub web_open: HashSet<String>,
     /// When each step (tool call, thought) started and how long it took.
     pub times: activity::Times,
+    /// Usage limit banner (limit.rs), token saver (saver.rs), full-screen columns (full.rs).
+    pub limit: limit::LimitState,
+    pub saver: saver::SaverState,
+    pub full: full::FullState,
     /// The thought being written now (its key in `times`).
     open_thought: Option<String>,
     /// Where the effort slider's handle was before the last change (it slides from there).
@@ -508,6 +515,9 @@ impl AgentState {
             replay: None,
             replay_gen: 0,
             changes_folded: false,
+            limit: Default::default(),
+            saver: Default::default(),
+            full: Default::default(),
             open_groups: HashSet::new(),
             worktree: None,
             worktree_busy: false,
@@ -1043,8 +1053,15 @@ impl Workbench {
             prompt.push(json!({ "type": "text", "text": format!("Earlier messages of this conversation, for context:\n\n{earlier}\n\n---\n") }));
         }
         prompt.push(json!({ "type": "text", "text": text.clone() }));
+        if let Some(style) = self.agent_saver_block() {
+            prompt.push(json!({ "type": "text", "text": style }));
+        }
         prompt.extend(self.agent_attachment_blocks(&files));
         prompt.extend(self.agent_context_blocks(cx));
+        if !text.starts_with("(Your previous answer stopped at a usage limit.") {
+            self.agent.limit.last = Some((text, files));
+        }
+        self.agent.limit.hit = None;
         self.agent.status = Status::Busy;
         self.agent_request(Req::Prompt, "session/prompt", json!({ "sessionId": session, "prompt": prompt }));
     }
@@ -1132,6 +1149,7 @@ impl Workbench {
                     let model_problem = ["credential", "api key", "apikey", "unauthorized", "401", "403", "quota", "rate limit", "model"]
                         .iter()
                         .any(|k| low.contains(k));
+                    self.agent_check_limit(&m, cx);
                     self.agent.items.push(Item::Note(m, true));
                     let models = self.agent.config.iter().find(|o| o.category == "model").map_or(0, |o| o.choices.len());
                     if model_problem && models > 1 {
@@ -1236,6 +1254,10 @@ impl Workbench {
                 self.agent.permission = None;
                 self.agent.perm_queue.clear();
                 self.agent.status = Status::Ready;
+                let last = self.agent.items.iter().rev().take_while(|i| !matches!(i, Item::User(_))).find_map(|i| if let Item::Text(t) = i { Some(t.clone()) } else { None });
+                if let Some(t) = last {
+                    self.agent_check_limit(&t, cx);
+                }
                 self.agent.save_chat();
                 self.agent_schedule_idle(cx);
                 self.refresh_tree(cx);
@@ -1444,6 +1466,7 @@ impl Workbench {
                 // The agent waits for this: make sure it is seen.
                 if self.settings.agent_right {
                     self.agent_open = true;
+                    self.right_view = SideView::Agent;
                 } else if !(self.sidebar_open && self.view == SideView::Agent) {
                     self.view = SideView::Agent;
                     self.sidebar_open = true;
@@ -1590,6 +1613,7 @@ impl Workbench {
         self.settings.save();
         if self.settings.agent_right {
             self.agent_open = true;
+            self.right_view = SideView::Agent;
             if self.view == SideView::Agent {
                 self.view = SideView::Explorer;
             }
@@ -1628,6 +1652,7 @@ impl Workbench {
                     .child(div().flex_1())
                     .child(self.render_agent_tools(cx))
                     .child(self.render_agent_more(cx))
+                    .children(self.render_right_tabs(cx))
                     .child(tool_button("ag-dock-close", IconName::Close, crate::i18n::tr("Hide (Ctrl+L)"), cx, |this, _, cx| {
                         this.agent_open = false;
                         cx.notify();
@@ -2905,6 +2930,7 @@ impl Workbench {
             // The agent menu opens under the panel title, inside the panel.
             .children(self.render_agent_menu(true, window, cx).map(|m| div().absolute().top_1().left_2().right_2().child(m)))
             .children(self.render_usage_modal(cx))
+            .children(self.render_saver_panel(cx).map(|p| div().absolute().right_3().bottom(theme::u(118.)).child(p)))
             .into_any_element()
     }
 
@@ -3117,11 +3143,12 @@ impl Workbench {
             )
             .children(self.render_agent_ask(cx))
             .when_some(permission, |v, p| v.child(p))
-            .when_some(changes, |v, ch| v.child(ch))
+            .when_some(changes.filter(|_| !(self.agent_full && self.agent_docked_visible())), |v, ch| v.child(ch))
             .children(self.render_queue(cx))
             .children(self.render_slash_popup(cx))
             .children(self.render_edit_strip(cx))
             .children(self.render_mention_popup(cx))
+            .children(self.render_limit_banner(cx))
             .child(self.render_composer(window, cx))
             .into_any_element()
     }
@@ -3706,6 +3733,7 @@ impl Workbench {
                         )
                     })
                     .child(self.render_access_menu(narrow, cx))
+                    .child(self.render_saver_button(cx))
                     .children(self.render_context_meter(tight, cx))
                     .child(if busy && !has_text {
                         // A solid square in the accent: the one action while the agent works.

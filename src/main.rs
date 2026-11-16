@@ -39,6 +39,8 @@ mod remote;
 mod scm;
 mod scm_incoming;
 mod search;
+mod scene;
+mod sidedock;
 mod settings;
 mod term;
 mod theme;
@@ -112,7 +114,7 @@ fn main() {
         // The saved theme is active before the first frame, so the window never flashes another one.
         let saved = settings::Settings::load();
         theme::set_ui_size(saved.ui_size);
-        theme::set(&saved.theme, saved.background().map(|_| saved.bg_visibility));
+        saved.apply_backdrop();
         theme::apply(cx);
         boot::mark("settings + theme");
         workbench::bind_keys(cx);
@@ -133,7 +135,8 @@ fn main() {
         boot::mark("open window");
         gpui_kit::open_window(options, cx, move |window, cx| {
             boot::mark("window created");
-            cx.new(|cx| workbench::Workbench::new(root.clone(), files.clone(), window, cx))
+            let wb = cx.new(|cx| workbench::Workbench::new(root.clone(), files.clone(), window, cx));
+            cx.new(|cx| scene::Shell::new(wb, cx))
         })
         .expect("failed to open the FluxCode window");
     });
