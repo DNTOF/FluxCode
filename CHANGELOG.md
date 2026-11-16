@@ -12,6 +12,17 @@ page, and installed copies offer it on their own. Newest first.
   log in with `cmd login`, and FluxCode finds `commandcode` on PATH and starts
   it over the Agent Client Protocol when you pick it. Its Get button opens
   Command Code's quickstart instead of a download.
+## One-click Copilot setup (15 November 2026)
+
+- The Copilot ghost text is built in, but until now setting it up meant running
+  `npm install -g @github/copilot-language-server` by hand in a terminal. When
+  the server is missing and Node.js is present, Settings shows an
+  **Install server** button that runs that install in the background, then
+  starts the server so the sign-in step shows right away. Without Node.js, a **Get Node.js** button
+  opens the download page instead.
+- While suggestions cannot work yet, the status bar shows a small **Copilot**
+  chip that says what is missing (the server or the sign-in) and opens
+  Settings on click. It disappears on its own once suggestions are ready.
 
 ## HTML preview says it runs a WebView (15 November 2026)
 

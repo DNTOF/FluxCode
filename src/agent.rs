@@ -1627,6 +1627,18 @@ impl Workbench {
         cx.notify();
     }
 
+    /// Full screen from either side: the workspace belongs to the right dock, so the agent
+    /// moves there first when it sits in the left side bar.
+    fn agent_fill_window(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.settings.agent_right {
+            self.agent_move_dock(window, cx);
+        }
+        self.agent_open = true;
+        self.right_view = SideView::Agent;
+        self.agent_full = true;
+        cx.notify();
+    }
+
     pub(crate) fn agent_input_focus(&self, cx: &App) -> FocusHandle {
         self.agent.input.focus_handle(cx)
     }
@@ -1909,6 +1921,26 @@ impl Workbench {
                         cx.notify();
                     })),
             )
+            // In the left side bar the agent says where else it can go: the right side
+            // bar beside the code, or the whole window.
+            .when(!right, |h| {
+                h.child(
+                    Button::new("ag-move-right")
+                        .icon(IconName::PanelRight)
+                        .xsmall()
+                        .ghost()
+                        .tooltip(crate::i18n::tr("Move to the right side bar"))
+                        .on_click(cx.listener(|this, _, w, cx| this.agent_move_dock(w, cx))),
+                )
+                .child(
+                    Button::new("ag-full-left")
+                        .icon(IconName::Maximize)
+                        .xsmall()
+                        .ghost()
+                        .tooltip(crate::i18n::tr("Fill the window"))
+                        .on_click(cx.listener(|this, _, w, cx| this.agent_fill_window(w, cx))),
+                )
+            })
             .when(right, |h| {
                 let full = self.agent_full;
                 h.child(
@@ -4120,9 +4152,41 @@ impl Workbench {
                             }))
                     })))
             });
+            let room = (!self.settings.agent_right).then(|| {
+                let link = |id: &'static str, icon: IconName, label: &'static str| {
+                    h_flex()
+                        .id(id)
+                        .gap_1()
+                        .px_2()
+                        .py_0p5()
+                        .rounded(px(6.))
+                        .border_1()
+                        .border_color(c(theme::BORDER))
+                        .cursor_pointer()
+                        .text_xs()
+                        .text_color(c(theme::FG))
+                        .hover(|st| st.border_color(c(theme::BORDER_STRONG)).bg(c(theme::BG_HOVER)))
+                        .child(Icon::new(icon).size(theme::u(12.)).text_color(c(theme::FG_MUTED)))
+                        .child(tr(label))
+                };
+                v_flex()
+                    .pt_3()
+                    .gap_1p5()
+                    .items_center()
+                    .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(tr("Need more room?")))
+                    .child(
+                        h_flex()
+                            .flex_wrap()
+                            .justify_center()
+                            .gap_1()
+                            .child(link("ag-room-full", IconName::Maximize, "Fill the window").on_click(cx.listener(|this, _, w, cx| this.agent_fill_window(w, cx))))
+                            .child(link("ag-room-right", IconName::PanelRight, "Move to the right").on_click(cx.listener(|this, _, w, cx| this.agent_move_dock(w, cx)))),
+                    )
+            });
             return col
                 .child(div().text_base().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(crate::trf!("Ask {name}"; name => name)))
                 .child(div().text_xs().text_center().text_color(c(theme::FG_DIM)).child(hint))
+                .children(room)
                 .children(chips)
                 .children(err_box)
                 .into_any_element();

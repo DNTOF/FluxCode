@@ -370,6 +370,8 @@ pub struct Workbench {
     pub(crate) github_input: Entity<InputState>,
     /// The Copilot language server client (a handle; the server runs in its own process).
     pub(crate) copilot: crate::copilot::Copilot,
+    /// True while the one-click Copilot server install is running.
+    pub(crate) copilot_installing: bool,
     #[cfg(feature = "embedded-preview")]
     pub(crate) preview: Option<(Entity<gpui_webview::WebView>, String)>,
     #[cfg(not(feature = "embedded-preview"))]
@@ -591,6 +593,7 @@ impl Workbench {
             github: crate::github::load(),
             github_input,
             copilot: crate::copilot::Copilot::new(copilot_enabled),
+            copilot_installing: false,
             preview: None,
             #[cfg(feature = "embedded-preview")]
             preview_ask: false,
@@ -2544,7 +2547,7 @@ impl Workbench {
             .child(div().px_2().flex_1().truncate().text_color(c(theme::FG)).child(self.status.clone()))
             .child(self.render_agent_hint(cx))
             .when(!pos.is_empty(), |h| {
-                h.child(seg(pos.into())).when(!is_image, |h| h.child(seg(crlf.into())).child(seg("UTF-8".into()))).child(seg(lang.into()))
+                h.child(self.render_copilot_hint(cx)).child(seg(pos.into())).when(!is_image, |h| h.child(seg(crlf.into())).child(seg("UTF-8".into()))).child(seg(lang.into()))
             })
             .child(self.render_theme_button(cx))
     }
@@ -3317,6 +3320,31 @@ impl Workbench {
             },
         )
         .into_any_element()
+    }
+
+    /// "Copilot: install server" / "Copilot: sign in" in the status bar while
+    /// suggestions cannot work yet. Click opens Settings; it disappears by
+    /// itself once the status is Ready (or Copilot is switched off).
+    fn render_copilot_hint(&self, cx: &mut Context<Self>) -> AnyElement {
+        use crate::copilot::Status;
+        let label = match self.copilot.status() {
+            Status::NotInstalled if self.settings.copilot => tr("Copilot: install server"),
+            Status::NotSignedIn(_) if self.settings.copilot => tr("Copilot: sign in"),
+            _ => return div().into_any_element(),
+        };
+        h_flex()
+            .id("sb-copilot")
+            .h_full()
+            .px_2()
+            .gap_1p5()
+            .cursor_pointer()
+            .text_color(c(theme::FG_DIM))
+            .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
+            .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Copilot suggestions are not set up yet. Click to open Settings.")).build(w, cx))
+            .on_click(cx.listener(|_, _, w, cx| w.dispatch_action(Box::new(ShowSettings), cx)))
+            .child(Icon::new(gpui_kit::assets::IconName::Bot).size(theme::u(13.)))
+            .child(label)
+            .into_any_element()
     }
 }
 
