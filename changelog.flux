@@ -11,6 +11,24 @@
 // Lines starting with // before the first @release are comments.
 
 @release 2026-11-15
+@title en: One-click Copilot setup
+@title id: Setup Copilot satu klik
+@en
+Setting up the built-in **Copilot ghost text** no longer needs a terminal:
+when the language server is missing, Settings shows an **Install server**
+button that installs it in the background (a **Get Node.js** button opens the
+download page when Node.js itself is missing). While suggestions cannot work
+yet, the status bar shows a small **Copilot** chip that says what is missing
+and opens Settings on click; it disappears once suggestions are ready.
+@id
+Menyiapkan **ghost text Copilot** bawaan tidak lagi butuh terminal: kalau
+language server-nya belum ada, Settings menampilkan tombol **Pasang server**
+yang memasangnya di latar belakang (tombol **Unduh Node.js** membuka halaman
+unduhan kalau Node.js-nya sendiri belum ada). Selama saran belum bisa jalan,
+status bar menampilkan chip **Copilot** kecil yang menyebutkan apa yang
+kurang dan membuka Settings saat diklik; chip itu hilang sendiri setelah
+saran siap.
+
 @title en: HTML preview says it runs a WebView
 @title id: Pratinjau HTML bilang ia menjalankan WebView
 @en
