@@ -22,19 +22,19 @@
 <link rel="apple-touch-icon" href="img/icon.png">
 <link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://api.github.com" crossorigin>
-<link rel="preload" href="fonts/bbh-bogle-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/schibsted-grotesk-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/plus-jakarta-sans-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="img/sky/cloud-mid.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /*
-  Design read: product download page for developers, a dark editor-tool language following
-  kiwstudio.com's structure (left-aligned titles, live data panels), dial ENERGY 2 /
-  RHYTHM 3 / MOTION 1.
-  Dark because FluxCode is a developer tool that ships dark by default; yellow #F0D55B is the
-  only accent (primary button, FluxCode's numbers, active tab); ivory and clay come from the
-  meander logo. Fonts: BBH Bogle for titles and big numbers (the owner's pick); Schibsted
-  Grotesk for text, a newspaper grotesk that stays readable small; Spline Sans Mono only for
-  technical data; Playwrite AU SA Guides only for handwritten notes.
+  Design read: product download page for developers. The top is a dusk sky: the title sits
+  among clouds that drift at their own depths as the page scrolls, and the screenshot rises
+  out of a cloud bank that parts as it reaches the middle. Below, a dark editor-tool
+  language with live data panels, dial ENERGY 2 / RHYTHM 3 / MOTION 2.
+  Yellow #F0D55B is the only accent (primary button, FluxCode's numbers, active tab); ivory
+  and clay come from the meander logo. Fonts: Plus Jakarta Sans for titles and text (drawn
+  for Jakarta, readable from 13 px to display sizes); Spline Sans Mono only for technical
+  data; Playwrite AU SA Guides only for handwritten notes.
 */
 :root {
   color-scheme: dark;
@@ -53,12 +53,16 @@
   --clay: #b98a5e;
   --bar-other: #4b4a50;
   --danger: #f2a38f;
-  --display: "BBH Bogle", "Arial Narrow", Impact, sans-serif;
-  --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--sans);
   --mono: "Spline Sans Mono", ui-monospace, "Cascadia Mono", monospace;
   --hand: "Playwrite AU SA Guides", "Segoe Script", cursive;
+  --glass: rgba(18, 20, 32, 0.58);
+  --glass-line: rgba(235, 228, 214, 0.12);
   --wrap: 1120px;
-  --header-h: 64px;
+  --header-h: 60px;
+  /* Room the floating header takes at the top: its bar plus the gap above it. */
+  --header-space: calc(var(--header-h) + 12px);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -71,7 +75,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 1rem/1.6 var(--sans);
+  font: 400 1rem/1.65 var(--sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -94,35 +98,60 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .skip:focus { top: 12px; }
 .hand { font-family: var(--hand); font-weight: 400; color: var(--clay); letter-spacing: 0; }
 
-/* Header */
+/* Header: a frosted bar floating over the sky, 12px from the top. It turns more opaque
+   once the page has scrolled past the sky. */
 .site-header {
   position: sticky; top: 0; z-index: 60;
-  background: rgba(14, 14, 16, 0.94);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s ease;
+  padding: 12px 0 0; pointer-events: none;
 }
-.site-header.scrolled { border-bottom-color: var(--line); }
-.site-header .wrap { height: var(--header-h); display: flex; align-items: center; gap: 20px; }
+.site-header .wrap { pointer-events: auto; }
+.topbar {
+  position: relative;
+  height: var(--header-h); display: flex; align-items: center; gap: 16px;
+  padding: 0 8px 0 16px; border-radius: 16px;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: 0 10px 30px rgba(4, 6, 14, 0.28);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+.site-header.scrolled .topbar { background: rgba(16, 17, 22, 0.82); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45); }
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
-  text-decoration: none; font: 400 1.2rem/1 var(--display); letter-spacing: 0.01em;
+  text-decoration: none; font: 700 1.12rem/1 var(--sans); letter-spacing: -0.02em;
   margin-right: auto; min-height: 44px;
 }
-.brand img { width: 30px; height: 30px; }
-.brand small { font: 500 0.8rem var(--sans); color: var(--faint); }
+.brand img { width: 28px; height: 28px; }
+.brand small { font: 500 0.8rem var(--sans); color: var(--faint); letter-spacing: 0; }
 .top-nav { display: flex; gap: 2px; }
 .top-nav a {
-  text-decoration: none; color: var(--muted); font-weight: 500; font-size: 0.95rem;
-  padding: 8px 12px; border-radius: 8px;
+  text-decoration: none; color: var(--muted); font-weight: 500; font-size: 0.94rem;
+  padding: 8px 12px; border-radius: 10px; transition: color 0.15s ease, background-color 0.15s ease;
 }
-.top-nav a:hover { color: var(--ink); background: var(--surface-2); }
+.top-nav a:hover { color: var(--ink); background: rgba(235, 228, 214, 0.07); }
 .top-nav a[aria-current="true"] { color: var(--ink); }
+.top-nav .nav-gh { display: none; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
+/* Menu button: only on screens too narrow for the links. Three lines that fold into an X. */
+.menu-btn {
+  display: none; width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+  border: 1px solid var(--glass-line); background: transparent; color: var(--ink);
+  align-items: center; justify-content: center;
+}
+.menu-btn span { position: relative; display: block; width: 18px; height: 1.6px; background: currentColor; border-radius: 1px; transition: background-color 0.2s ease; }
+.menu-btn span::before, .menu-btn span::after {
+  content: ""; position: absolute; left: 0; width: 18px; height: 1.6px; background: currentColor; border-radius: 1px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.menu-btn span::before { transform: translateY(-6px); }
+.menu-btn span::after { transform: translateY(6px); }
+.menu-btn[aria-expanded="true"] span { background: transparent; }
+.menu-btn[aria-expanded="true"] span::before { transform: rotate(45deg); }
+.menu-btn[aria-expanded="true"] span::after { transform: rotate(-45deg); }
 
 /* Language switch: two buttons, the pressed one filled. */
-.lang { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.lang { display: inline-flex; border: 1px solid var(--glass-line); border-radius: 10px; overflow: hidden; }
 .lang button {
-  min-width: 44px; min-height: 42px; padding: 0 8px; border: none; border-radius: 0;
+  min-width: 42px; min-height: 42px; padding: 0 8px; border: none; border-radius: 0;
   background: transparent; color: var(--muted); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em;
 }
 .lang button:hover { color: var(--ink); }
@@ -138,12 +167,12 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .lang.is-id .lang-ind { transform: translateX(100%); }
 /* Language swap: text fades out, changes, fades back in, while the switch's thumb slides. */
 .lang-swapping main, .lang-swapping .top-nav, .lang-swapping .brand small, .lang-swapping .header-dl,
-.lang-swapping footer, .lang-swapping .tabbar span { opacity: 0; }
-main, .top-nav, .brand small, .header-dl, footer, .tabbar span { transition: opacity 0.15s ease; }
+.lang-swapping footer { opacity: 0; }
+main, .top-nav, .brand small, .header-dl, footer { transition: opacity 0.15s ease; }
 
 .stars {
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
-  padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px;
+  padding: 0 12px; border: 1px solid var(--glass-line); border-radius: 10px;
   text-decoration: none; font-weight: 600; font-size: 0.9rem; color: var(--ink);
 }
 .stars:hover { border-color: var(--muted); }
@@ -153,7 +182,7 @@ main, .top-nav, .brand small, .header-dl, footer, .tabbar span { transition: opa
 /* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  min-height: 44px; padding: 0 20px; border-radius: 8px;
+  min-height: 46px; padding: 0 22px; border-radius: 12px;
   font: 600 0.98rem var(--sans); text-decoration: none; white-space: nowrap;
   border: 1px solid transparent;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -169,11 +198,11 @@ main, .top-nav, .brand small, .header-dl, footer, .tabbar span { transition: opa
 
 /* Section heads. The hook above each title is the meander from the logo: a line that
    turns at a right angle, in the logo's clay colour. */
-section { scroll-margin-top: calc(var(--header-h) + 16px); }
+section { scroll-margin-top: calc(var(--header-space) + 16px); }
 .head { max-width: 640px; margin-bottom: 36px; }
 .head h2 {
-  font-family: var(--display); font-weight: 400;
-  font-size: clamp(1.8rem, 3.4vw, 2.5rem); line-height: 1; letter-spacing: 0.012em;
+  font-family: var(--sans); font-weight: 700;
+  font-size: clamp(1.85rem, 3.6vw, 2.75rem); line-height: 1.08; letter-spacing: -0.03em;
   margin: 0 0 12px; text-wrap: balance;
 }
 .head h2::before {
@@ -183,70 +212,101 @@ section { scroll-margin-top: calc(var(--header-h) + 16px); }
 .head p { margin: 0; color: var(--muted); font-size: 1.05rem; }
 .head p.hand { margin-top: 10px; font-size: 1.05rem; line-height: 2.1; color: var(--clay); }
 
-/* Hero: the app itself is the backdrop. Two real screenshots sit at different depths and
-   move at different speeds on scroll (parallax), so the product is the first thing seen.
-   The gradient keeps the copy on a solid-enough ground for contrast. */
+/* Sky: the hero and the screenshot viewer share one dusk sky. It starts under the floating
+   header (negative margin), so the bar is frosted over sky, not over a flat strip.
+   Layers, back to front: stars, a warm glow on the horizon, far streaks, a mid cloud bank
+   behind the title's feet, then two front banks the screenshot rises out of. JS moves each
+   at its own speed as the page scrolls (transform only); the front banks part sideways as
+   the screenshot reaches the middle. `overflow: clip` keeps the wide clouds from causing
+   a sideways scroll without making a scroll container. */
+.sky {
+  position: relative; isolation: isolate; overflow: clip;
+  margin-top: calc(-1 * var(--header-space)); padding-top: var(--header-space);
+  --sky-h: 100svh;
+  background: linear-gradient(180deg, #05070f 0, #0a0e1f calc(var(--sky-h) * 0.22), #141a36 calc(var(--sky-h) * 0.5),
+    #2a2a4c calc(var(--sky-h) * 0.76), #4a3a4f var(--sky-h), #231f31 calc(var(--sky-h) + 22svh), var(--bg) calc(var(--sky-h) + 52svh));
+}
+.sky-layer { position: absolute; pointer-events: none; z-index: -1; will-change: transform; }
+.sky-stars {
+  inset: 0 0 auto; height: 70svh; opacity: 0.8;
+  background-image:
+    radial-gradient(1.2px 1.2px at 12% 18%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 27% 8%, #dfe4ff 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 41% 26%, #fff6dc 50%, transparent 51%),
+    radial-gradient(1px 1px at 58% 12%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 73% 22%, #dfe4ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 86% 9%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 93% 31%, #fff6dc 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 38%, #dfe4ff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 64% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 33% 44%, #fff 50%, transparent 51%);
+}
+.sky-glow {
+  left: 50%; top: calc(var(--sky-h, 100svh) - 46svh); width: 160vw; height: 80svh; margin-left: -80vw;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(255, 196, 128, 0.32), rgba(240, 150, 110, 0.12) 45%, transparent 70%);
+}
+.cloud { display: block; max-width: none; height: auto; }
+.cloud.far { --cw: max(1300px, 115vw); width: var(--cw); left: 50%; margin-left: calc(var(--cw) / -2); top: 9svh; opacity: 0.5; }
+.cloud.mid { --cw: max(1800px, 150vw); width: var(--cw); left: 50%; margin-left: calc(var(--cw) / -2); top: calc(var(--sky-h, 100svh) - 30svh); opacity: 0.9; }
+/* Ambient drift on the separate `translate` property, so it adds to the scroll transform. */
+.cloud.far { animation: drift 90s ease-in-out infinite alternate; }
+.cloud.mid { animation: drift 70s ease-in-out infinite alternate-reverse; }
+@keyframes drift { from { translate: -3vw 0; } to { translate: 3vw 0; } }
+
 .hero {
-  position: relative; isolation: isolate; overflow: hidden;
-  min-height: min(calc(100vh - var(--header-h)), 820px);
-  display: flex; align-items: center; padding: 72px 0 96px;
+  position: relative;
+  min-height: calc(var(--sky-h, 100svh) - var(--header-space) - 120px);
+  display: flex; align-items: center; justify-content: center; padding: 64px 0 40px; text-align: center;
 }
-.hero-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; perspective: 1800px; }
-.hero-layer {
-  position: absolute; border-radius: 14px; overflow: hidden;
-  border: 1px solid var(--line-strong); background: #141416;
-  transform-origin: 0 50%; will-change: transform;
-}
-.hero-layer img { width: 100%; height: auto; aspect-ratio: 1600 / 938; }
-.hero-layer.back { top: 4%; left: calc(50% + 200px); width: min(52vw, 760px); opacity: 0.35;
-  transform: rotateY(-18deg) rotateX(8deg); }
-.hero-layer.front { top: 16%; left: calc(50% + 16px); width: min(72vw, 1180px);
-  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.65);
-  transform: rotateY(-14deg) rotateX(6deg); }
-.hero-bg::after {
-  content: ""; position: absolute; inset: 0;
-  background:
-    linear-gradient(90deg, var(--bg) 0%, var(--bg) 44%, rgba(14, 14, 16, 0.6) 62%, rgba(14, 14, 16, 0.15) 100%),
-    linear-gradient(0deg, var(--bg) 0%, rgba(14, 14, 16, 0) 30%);
-}
-/* The hero is a flex row, so its .wrap would shrink to the copy's width and be centred by
-   its auto margins, leaving the title far right of the logo. Full width keeps them aligned. */
-.hero-copy { width: 100%; will-change: transform, opacity; }
-.hero-copy > * { max-width: min(540px, 100%); }
-.hero-copy > .release-line { max-width: min(520px, 100%); }
+.hero-copy { width: 100%; display: flex; flex-direction: column; align-items: center; will-change: transform, opacity; }
 .hero h1 {
-  font-family: var(--display); font-weight: 400;
-  font-size: clamp(2.2rem, 4.6vw, 3.7rem); line-height: 1; letter-spacing: 0.012em;
-  margin: 0 0 20px; max-width: 15ch; text-wrap: balance;
+  font-family: var(--sans); font-weight: 700;
+  font-size: clamp(2.5rem, 6.6vw, 5.1rem); line-height: 1.02; letter-spacing: -0.045em;
+  margin: 0 0 22px; max-width: 17ch; text-wrap: balance;
+  text-shadow: 0 2px 40px rgba(5, 7, 15, 0.55);
 }
 .hero h1 .accent { color: var(--yellow); white-space: nowrap; }
-.hero .lead { font-size: 1.12rem; color: var(--muted); max-width: 30em; margin: 0 0 30px; }
+.hero .lead { font-size: clamp(1.05rem, 1.6vw, 1.2rem); color: #c9c6d6; max-width: 34em; margin: 0 0 32px; text-wrap: pretty; }
 .hero .lead strong { color: var(--ink); font-weight: 600; }
-.cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
-.release-line { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: 0.9rem; color: var(--faint); margin: 0; }
-.release-line a { color: var(--muted); text-underline-offset: 3px; }
+.cta-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 20px; }
+.hero .btn-ghost { background: rgba(10, 12, 24, 0.4); border-color: rgba(235, 228, 214, 0.22); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.hero .btn-ghost:hover { background: rgba(10, 12, 24, 0.6); border-color: rgba(235, 228, 214, 0.4); }
+.release-line { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; align-items: center; font-size: 0.88rem; color: #a7a3b8; margin: 0; }
+.release-line a { color: #cfcbe0; text-underline-offset: 3px; }
 .release-line a:hover { color: var(--ink); }
-.release-line .sep { color: var(--line-strong); }
+.release-line .sep { color: rgba(235, 228, 214, 0.25); }
 
-/* Screenshot viewer: real screenshots of the app, switched by tabs. */
-.viewer { padding: 32px 0 96px; }
+/* Screenshot viewer: real screenshots of the app, switched by tabs. It sits in the sky:
+   the frame rises out of two cloud banks that part as it reaches the middle. */
+.viewer { position: relative; padding: 24px 0 96px; }
+.viewer .wrap { position: relative; }
+.cloud-bank {
+  position: absolute; z-index: 2; top: 150px; width: min(1500px, 92vw); height: auto; max-width: none;
+  pointer-events: none; will-change: transform, opacity; display: none;
+}
+.cloud-bank.l { left: calc(50% - min(1500px, 92vw) + 20vw); }
+.cloud-bank.r { right: calc(50% - min(1500px, 92vw) + 20vw); }
+.cloud-bank.r > img { transform: scaleX(-1); }
+.cloud-bank img { display: block; width: 100%; height: auto; max-width: none; }
+/* Only JS can part the banks, so without it (or with reduced motion) they stay away. */
+.sky.live .cloud-bank { display: block; }
 .viewer-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -24px 14px; padding: 2px 24px; }
 .viewer-tabs::-webkit-scrollbar { display: none; }
 .viewer-tabs button {
-  flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 8px;
-  border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 500; font-size: 0.92rem;
+  flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 10px;
+  border: 1px solid var(--glass-line); background: rgba(10, 12, 24, 0.38); color: #c9c6d6; font-weight: 500; font-size: 0.92rem;
 }
-.viewer-tabs button:hover { color: var(--ink); border-color: var(--line-strong); }
+.viewer-tabs button:hover { color: var(--ink); border-color: rgba(235, 228, 214, 0.3); }
 .viewer-tabs button[aria-selected="true"] { color: var(--on-yellow); background: var(--yellow); border-color: var(--yellow); font-weight: 600; }
 /* With JS a yellow pill slides to the picked tab instead of jumping. */
 .viewer-tabs { position: relative; }
 .tab-ind {
-  position: absolute; top: 2px; left: 0; height: 40px; width: 0; border-radius: 8px; background: var(--yellow);
+  position: absolute; top: 2px; left: 0; height: 40px; width: 0; border-radius: 10px; background: var(--yellow);
   transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .viewer-tabs.has-ind button { position: relative; z-index: 1; transition: color 0.2s ease, border-color 0.2s ease; }
 .viewer-tabs.has-ind button[aria-selected="true"] { background: transparent; border-color: transparent; }
-.shot { margin: 0; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.shot { position: relative; z-index: 1; margin: 0; border: 1px solid rgba(235, 228, 214, 0.16); border-radius: 16px; overflow: hidden; background: var(--surface); box-shadow: 0 40px 120px rgba(4, 5, 12, 0.6), 0 0 0 6px rgba(235, 228, 214, 0.04); }
 .shot img { width: 100%; height: auto; aspect-ratio: 1600 / 938; background: #141416; transition: opacity 0.22s ease, transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .shot img.fading { opacity: 0; transform: scale(0.985); }
 .shot figcaption > span { transition: opacity 0.2s ease; }
@@ -263,10 +323,10 @@ kbd {
 
 /* Benchmark */
 .bench { padding: 96px 0; border-top: 1px solid var(--line); }
-.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 48px; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 48px; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .stat { background: var(--bg); padding: 22px 20px; }
-.stat .v { font: 400 clamp(2.4rem, 5vw, 3.4rem)/1 var(--display); letter-spacing: 0.01em; color: var(--yellow); }
-.stat .v small { font-size: 0.42em; color: var(--muted); margin-left: 6px; }
+.stat .v { font: 700 clamp(2.3rem, 4.6vw, 3.2rem)/1 var(--sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--yellow); }
+.stat .v small { font-size: 0.4em; font-weight: 600; letter-spacing: 0; color: var(--muted); margin-left: 6px; }
 .stat .l { margin-top: 10px; font-size: 0.92rem; color: var(--muted); }
 .stat .hand { display: block; margin-top: 6px; font-size: 0.86rem; line-height: 1.9; }
 .charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 48px; align-items: start; }
@@ -280,7 +340,7 @@ kbd {
 .bar-row.me .bar { background: var(--yellow); }
 .bar-track .val { font: 500 0.82rem var(--mono); color: var(--muted); white-space: nowrap; }
 .bar-row.me .val { color: var(--ink); }
-.method { border: 1px solid var(--line); border-radius: 12px; padding: 4px 18px; color: var(--muted); font-size: 0.9rem; }
+.method { border: 1px solid var(--line); border-radius: 16px; padding: 4px 18px; color: var(--muted); font-size: 0.9rem; }
 .method[open] { grid-column: 1 / -1; padding-bottom: 14px; }
 .method summary { color: var(--ink); font-weight: 600; min-height: 48px; display: flex; align-items: center; }
 .method summary:hover { color: var(--yellow); }
@@ -295,8 +355,8 @@ kbd {
 .features-intro .head { margin-bottom: 20px; }
 .text-link { color: var(--ink); font-weight: 600; text-underline-offset: 4px; text-decoration-color: var(--clay); }
 .text-link:hover { color: var(--yellow); }
-.flagship { border: 1px solid var(--line-strong); border-radius: 12px; padding: 26px 28px; margin-bottom: 8px; background: var(--surface); }
-.flagship h3 { font: 400 1.9rem/1.05 var(--display); letter-spacing: 0.01em; margin: 0 0 8px; }
+.flagship { border: 1px solid var(--line-strong); border-radius: 16px; padding: 26px 28px; margin-bottom: 8px; background: var(--surface); }
+.flagship h3 { font: 700 1.75rem/1.1 var(--sans); letter-spacing: -0.03em; margin: 0 0 8px; }
 .flagship > p { color: var(--muted); margin: 0 0 16px; }
 .agents { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding: 0; list-style: none; }
 .agents li { font: 500 0.8rem var(--mono); padding: 4px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ivory); }
@@ -310,7 +370,7 @@ kbd {
 
 /* Comparison */
 .compare { padding: 96px 0; border-top: 1px solid var(--line); }
-.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
 table { width: 100%; border-collapse: collapse; min-width: 620px; font-size: 0.94rem; }
 th, td { text-align: left; vertical-align: top; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
@@ -322,7 +382,7 @@ td { color: var(--muted); }
 
 /* Download */
 .download { padding: 96px 0; border-top: 1px solid var(--line); }
-.dl-list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.dl-list { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .dl-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 4fr) auto; gap: 20px; align-items: center; padding: 20px 22px; border-bottom: 1px solid var(--line); }
 .dl-row:last-child { border-bottom: none; }
 .dl-row.mine { background: var(--surface); }
@@ -345,7 +405,7 @@ td { color: var(--muted); }
 /* Two panels of equal height: the stats grid stretches to match the commit list, so the
    pair ends on one line. */
 .open-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: stretch; }
-.panel { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+.panel { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; border-bottom: 1px solid var(--line); }
 .panel-head h3 { font-size: 0.98rem; margin: 0; }
 .panel-head a { font-size: 0.86rem; color: var(--muted); text-underline-offset: 3px; }
@@ -354,14 +414,14 @@ td { color: var(--muted); }
    then a quiet footer line. Three levels instead of six equal boxes. */
 .repo-body { flex: 1; display: flex; flex-direction: column; }
 .repo-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 18px 16px; }
-.repo-top .big { font: 400 2.6rem/1 var(--display); letter-spacing: 0.01em; color: var(--yellow); }
+.repo-top .big { font: 700 2.5rem/1 var(--sans); letter-spacing: -0.04em; color: var(--yellow); }
 .repo-top .big small { font: 600 0.9rem var(--sans); color: var(--muted); margin-left: 8px; letter-spacing: 0; }
 .repo-sub { margin-top: 4px; font-size: 0.86rem; color: var(--faint); }
 .repo-top .btn svg { width: 16px; height: 16px; }
 .repo-top .btn:hover svg { color: var(--yellow); }
 .repo-dl { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 16px 18px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .repo-dl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 0.92rem; color: var(--muted); }
-.repo-dl-head b { font: 400 1.5rem/1 var(--display); color: var(--ink); letter-spacing: 0.01em; margin-right: 2px; }
+.repo-dl-head b { font: 700 1.45rem/1 var(--sans); color: var(--ink); letter-spacing: -0.03em; margin-right: 2px; }
 .repo-dl-head .muted { font-size: 0.84rem; color: var(--faint); }
 .repo-dl-cap { margin: 12px 0 8px; font-size: 0.8rem; color: var(--faint); }
 .split { display: flex; height: 10px; border-radius: 3px; overflow: hidden; background: var(--line); gap: 2px; }
@@ -407,7 +467,7 @@ td { color: var(--muted); }
 .people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; list-style: none; margin: 0; padding: 0; }
 .person a {
   display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; align-items: center;
-  padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; background: var(--surface);
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; background: var(--surface);
   transition: border-color 0.15s ease;
 }
 .person a:hover { border-color: var(--line-strong); }
@@ -439,8 +499,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
    fills the space beside the about text instead of taking a row of its own. */
 .foot-side { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
 .wordmark {
-  display: flex; font-family: var(--display); font-weight: 400;
-  font-size: clamp(2.2rem, 5vw, 4.2rem); line-height: 0.86; letter-spacing: 0.01em;
+  display: flex; font-family: var(--sans); font-weight: 800;
+  font-size: clamp(2.2rem, 5vw, 4.2rem); line-height: 0.9; letter-spacing: -0.04em;
   user-select: none; cursor: default;
 }
 .wordmark span {
@@ -485,34 +545,48 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 .toast button { grid-row: 1 / span 2; grid-column: 2; align-self: start; width: 40px; height: 40px; border: none; background: transparent; color: var(--muted); border-radius: 8px; font-size: 1.2rem; line-height: 1; }
 .toast button:hover { background: var(--surface); color: var(--ink); }
 
-/* Mobile tab bar, as on kiwstudio.com: the four sections a phone visitor jumps to. */
-.tabbar { display: none; }
-
 @media (max-width: 960px) {
-  .top-nav { display: none; }
+  /* The section links fold into a menu under the bar. */
+  .menu-btn { display: inline-flex; }
+  .top-nav {
+    position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 1;
+    flex-direction: column; gap: 2px; padding: 8px; border-radius: 16px;
+    background: rgba(16, 17, 26, 0.97); border: 1px solid var(--glass-line);
+    -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    opacity: 0; visibility: hidden; transform: translateY(-6px) scale(0.98); transform-origin: 50% 0;
+    transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.25s;
+  }
+  .site-header.menu-open .top-nav { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+  .top-nav a { display: flex; align-items: center; min-height: 48px; padding: 0 14px; font-size: 1rem; color: var(--ink); }
+  .top-nav a[aria-current="true"] { background: rgba(235, 228, 214, 0.07); }
+  .top-nav a[aria-current="true"]::after { content: ""; width: 6px; height: 6px; margin-left: auto; border-radius: 50%; background: var(--yellow); }
   .features-layout, .open-layout { grid-template-columns: 1fr; gap: 32px; }
   .stat-grid, .charts { grid-template-columns: 1fr 1fr; }
   .features-intro { position: static; }
   .open-layout { gap: 16px; }
 }
 @media (max-width: 720px) {
-  :root { --header-h: 60px; }
-  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  :root { --header-h: 58px; }
   .wrap { padding: 0 16px; }
-  .site-header .wrap { gap: 10px; }
+  .site-header { padding-top: 10px; }
+  .site-header .wrap { padding: 0 10px; }
+  .topbar { gap: 8px; padding: 0 6px 0 12px; }
   .viewer-tabs { margin: 0 -16px 12px; padding: 2px 16px; }
   .brand small, .header-dl { display: none; }
-  .hero { min-height: 0; align-items: flex-start; padding: 36px 0 calc(66vw + 16px); }
-  .hero-layer.back { top: auto; bottom: 26vw; left: 34%; width: 86vw; }
-  .hero-layer.front { top: auto; bottom: -4vw; left: 6%; width: 120vw; transform: rotateY(-10deg) rotateX(8deg); }
-  .hero-bg::after {
-    background: linear-gradient(180deg, var(--bg) 0%, var(--bg) calc(100% - 68vw), rgba(14, 14, 16, 0.3) calc(100% - 48vw), rgba(14, 14, 16, 0.1) calc(100% - 20vw), var(--bg) 100%);
-  }
-  .hero .lead { font-size: 1.05rem; }
+  .hero { min-height: 0; padding: 44px 0 28px; }
+  .hero h1 { font-size: clamp(2.3rem, 10.5vw, 3.2rem); letter-spacing: -0.04em; }
+  .hero .lead { font-size: 1.02rem; margin-bottom: 26px; }
+  .cta-row { width: 100%; }
   .cta-row .btn { flex: 1 1 100%; }
-  .release-line { flex-direction: column; align-items: flex-start; }
+  .release-line { flex-direction: column; gap: 2px; font-size: 0.84rem; }
   .release-line .sep { display: none; }
-  .viewer { padding: 20px 0 64px; }
+  .cloud.far { --cw: 240vw; top: 6svh; }
+  .cloud.mid { --cw: 300vw; }
+  .cloud-bank { top: 96px; width: 150vw; }
+  .cloud-bank.l { left: -44vw; }
+  .cloud-bank.r { right: -44vw; }
+  .viewer { padding: 8px 0 64px; }
   .shot figcaption { padding: 12px 14px; }
   .bench, .features, .compare, .download, .open { padding: 64px 0; }
   footer { padding-top: 36px; }
@@ -520,7 +594,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   .foot nav { gap: 0 18px; }
   .foot-side { align-items: flex-start; gap: 18px; }
   .frieze { margin: 24px 0 20px; }
-  .foot-bar { flex-direction: column; gap: 4px; padding-bottom: 20px; }
+  .foot-bar { flex-direction: column; gap: 4px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   .feature-list, .checks, .charts { grid-template-columns: 1fr; }
   .charts { gap: 32px; }
   .stat-grid { margin-bottom: 36px; }
@@ -531,19 +605,13 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   .people-actions .btn { flex: 1 1 auto; }
   .commits li { padding: 0 14px; gap: 10px; }
   .commits .meta .author, .commits .meta .sha { display: none; }
-  .toast { left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); max-width: none; }
-  .tabbar {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
-    background: #121214; border-top: 1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .tabbar a {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-    min-height: 60px; text-decoration: none; color: var(--faint); font-size: 0.72rem; font-weight: 600;
-  }
-  .tabbar a svg { width: 20px; height: 20px; }
-  .tabbar a[aria-current="true"] { color: var(--yellow); }
+  .toast { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); max-width: none; }
+}
+/* Phones: the star count moves into the menu as a GitHub link, so the bar keeps the
+   logo, the language switch and the menu button on one line down to 320px. */
+@media (max-width: 520px) {
+  .header-actions .stars { display: none; }
+  .top-nav .nav-gh { display: flex; }
 }
 @media (max-width: 340px) {
   .stat-grid { grid-template-columns: 1fr; }
@@ -580,7 +648,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 @media (max-width: 720px) { .depth-glyph { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .hero-copy, .hero-layer, [data-speed], .depth-glyph, .wordmark span { will-change: auto; }
+  .hero-copy, .sky-layer, .cloud-bank, [data-speed], .depth-glyph, .wordmark span { will-change: auto; }
+  .sky.live .cloud-bank { display: none; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
@@ -606,16 +675,18 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 
 <header class="site-header" id="top">
   <div class="wrap">
+   <div class="topbar">
     <a class="brand" href="#top" data-i18n-attr="aria-label:brand.label" aria-label="FluxCode, back to top">
       <img src="img/icon.svg" width="30" height="30" alt="">
       <span>FluxCode</span>
       <small data-i18n="brand.by">by MuaraAI</small>
     </a>
-    <nav class="top-nav" data-i18n-attr="aria-label:nav.label" aria-label="Page sections">
+    <nav class="top-nav" id="top-nav" data-i18n-attr="aria-label:nav.label" aria-label="Page sections">
       <a href="#benchmark">Benchmark</a>
       <a href="#features" data-i18n="nav.features">Features</a>
       <a href="#download" data-i18n="nav.download">Download</a>
       <a href="#contributors" data-i18n="nav.contributors">Contributors</a>
+      <a class="nav-gh" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener" data-i18n="nav.github">FluxCode on GitHub</a>
     </nav>
     <div class="header-actions">
       <div class="lang" role="group" data-i18n-attr="aria-label:lang.label" aria-label="Language">
@@ -627,16 +698,19 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         <span class="count" data-live="stars">80</span>
       </a>
       <a class="btn btn-primary btn-sm header-dl" data-dl="primary" href="#download" data-i18n="nav.download">Download</a>
+      <button type="button" class="menu-btn" aria-expanded="false" aria-controls="top-nav" data-i18n-attr="aria-label:nav.menu" aria-label="Menu"><span></span></button>
     </div>
+   </div>
   </div>
 </header>
 
 <main id="content">
+  <div class="sky">
+  <div class="sky-layer sky-stars" aria-hidden="true"></div>
+  <div class="sky-layer sky-glow" aria-hidden="true"></div>
+  <img class="sky-layer cloud far" src="img/sky/cloud-far.webp" width="2000" height="360" alt="" aria-hidden="true" decoding="async">
+  <img class="sky-layer cloud mid" src="img/sky/cloud-mid.webp" width="2400" height="560" alt="" aria-hidden="true" decoding="async">
   <section class="hero" aria-labelledby="hero-title">
-    <div class="hero-bg" aria-hidden="true">
-      <div class="hero-layer back"><img src="img/themes-800.webp" width="800" height="469" alt="" decoding="async"></div>
-      <div class="hero-layer front"><img src="img/agent.webp" srcset="img/agent-800.webp 800w, img/agent.webp 1600w" sizes="(max-width: 720px) 120vw, 72vw" width="1600" height="938" alt="FluxCode's agent panel filling the window: chats on the left, the conversation in the middle, the files it changed on the right" fetchpriority="high" decoding="async"></div>
-    </div>
     <div class="wrap hero-copy">
       <h1 id="hero-title" data-i18n-html="hero.title">A <span class="accent">16 MB</span> code editor with AI agents built in</h1>
       <p class="lead" data-i18n-html="hero.lead">Rust, drawn by the GPU. Opens in <strong>about 50 ms</strong>, idles at <strong>1.4 MB RAM</strong>, sends no telemetry.</p>
@@ -661,6 +735,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 
   <section class="viewer" data-i18n-attr="aria-label:viewer.label" aria-label="FluxCode screenshots">
     <div class="wrap">
+      <div class="cloud-bank l" aria-hidden="true"><img src="img/sky/cloud-front.webp" width="1500" height="820" alt="" decoding="async"></div>
+      <div class="cloud-bank r" aria-hidden="true"><img src="img/sky/cloud-front.webp" width="1500" height="820" alt="" decoding="async"></div>
       <div class="viewer-tabs" role="tablist" data-i18n-attr="aria-label:viewer.tabs" aria-label="Pick a screenshot">
         <button type="button" role="tab" id="tab-agent" aria-controls="shot" aria-selected="true" data-shot="agent" data-i18n="shot.agent.tab">AI agent</button>
         <button type="button" role="tab" id="tab-token-saver" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="token-saver" data-i18n="shot.token-saver.tab">Token saver</button>
@@ -685,6 +761,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       </figure>
     </div>
   </section>
+  </div>
 
   <section class="bench" id="benchmark" aria-labelledby="bench-title">
     <div class="wrap">
@@ -920,25 +997,6 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   </div>
 </footer>
 
-<nav class="tabbar" data-i18n-attr="aria-label:tabbar.label" aria-label="Quick navigation">
-  <a href="#benchmark">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M4 12h16M4 17h6"/></svg>
-    <span>Benchmark</span>
-  </a>
-  <a href="#features">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
-    <span data-i18n="nav.features">Features</span>
-  </a>
-  <a href="#download">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
-    <span data-i18n="nav.download">Download</span>
-  </a>
-  <a href="#contributors">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>
-    <span data-i18n="nav.contributors">Contributors</span>
-  </a>
-</nav>
-
 <div class="toast" id="toast" role="status" aria-live="polite">
   <strong data-i18n="toast.title">Download started</strong>
   <p><span id="toast-file">FluxCode</span>. <span data-i18n="toast.q">Not starting?</span> <a id="toast-link" href="#" data-i18n="toast.link">Direct link</a>.</p>
@@ -960,6 +1018,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     "nav.features": "Fitur",
     "nav.download": "Unduh",
     "nav.contributors": "Kontributor",
+    "nav.github": "FluxCode di GitHub",
+    "nav.menu": "Menu",
     "lang.label": "Bahasa",
     "stars.label": "FluxCode di GitHub, jumlah bintang",
     "hero.title": "Editor kode <span class=\"accent\">16 MB</span> dengan agen AI di dalamnya",
@@ -1091,7 +1151,6 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     "foot.changelog": "Catatan perubahan",
     "foot.license": "Lisensi",
     "foot.tag": "Dibangun terbuka, untuk developer.",
-    "tabbar.label": "Navigasi cepat",
     "toast.title": "Unduhan dimulai",
     "toast.q": "Belum mulai?",
     "toast.link": "Unduh langsung",
@@ -1841,7 +1900,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   /* ---------- Header and section highlighting ---------- */
   function initNav() {
     var header = $(".site-header");
-    var onScroll = function () { header.classList.toggle("scrolled", window.scrollY > 8); };
+    var sky = $(".sky");
+    var onScroll = function () { header.classList.toggle("scrolled", window.scrollY > (sky ? sky.offsetHeight - 80 : 8)); };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     var langBox = $(".lang");
@@ -1850,8 +1910,30 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     $all(".lang button").forEach(function (b) {
       b.addEventListener("click", function () { switchLang(b.getAttribute("data-lang")); });
     });
+    // Menu: on narrow screens the section links fold under the bar. Closes on a link,
+    // Escape, a tap outside, or when the screen grows wide enough for the links.
+    var menuBtn = $(".menu-btn"), wide = window.matchMedia("(min-width: 961px)");
+    function setMenu(open, focusBtn) {
+      header.classList.toggle("menu-open", open);
+      menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!open && focusBtn) menuBtn.focus();
+    }
+    menuBtn.addEventListener("click", function () {
+      var open = !header.classList.contains("menu-open");
+      setMenu(open);
+      if (open) { var first = $(".top-nav a"); if (first) first.focus({ preventScroll: true }); }
+    });
+    $all(".top-nav a").forEach(function (a) { a.addEventListener("click", function () { setMenu(false); }); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && header.classList.contains("menu-open")) setMenu(false, true);
+    });
+    document.addEventListener("click", function (e) {
+      if (header.classList.contains("menu-open") && !header.contains(e.target)) setMenu(false);
+    });
+    var onWide = function () { if (wide.matches) setMenu(false); };
+    if (wide.addEventListener) wide.addEventListener("change", onWide);
     if (!("IntersectionObserver" in window)) return;
-    var links = $all(".top-nav a, .tabbar a");
+    var links = $all(".top-nav a");
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
@@ -1885,7 +1967,9 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     var narrow = window.matchMedia("(max-width: 720px)");
     var fine = window.matchMedia("(hover: hover) and (pointer: fine)");
-    var hero = $(".hero"), copy = $(".hero-copy"), front = $(".hero-layer.front"), back = $(".hero-layer.back");
+    var hero = $(".hero"), copy = $(".hero-copy"), sky = $(".sky");
+    var stars = $(".sky-stars"), glow = $(".sky-glow"), far = $(".cloud.far"), mid = $(".cloud.mid");
+    var banks = $all(".cloud-bank"), skyLayers = [stars, glow, far, mid].concat(banks);
     var shot = $(".viewer .shot");
     var conn = navigator.connection || {};
     var light = narrow.matches || conn.saveData || (navigator.hardwareConcurrency || 8) <= 4;
@@ -1922,35 +2006,41 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       watch.forEach(function (n) { visible.add(n); });
     }
 
-    // Pointer lean on the hero: the target follows the mouse, the shown value eases to it.
+    // Pointer depth in the sky: with a mouse, the cloud layers shift against the pointer by
+    // their depth. The target follows the mouse, the shown value eases to it.
     var tx = 0, ty = 0, px = 0, py = 0;
-    if (!light && hero) {
-      hero.addEventListener("pointermove", function (e) {
+    if (!light && sky) {
+      sky.addEventListener("pointermove", function (e) {
         if (e.pointerType !== "mouse" || !fine.matches) return;
-        var r = hero.getBoundingClientRect();
-        tx = (e.clientX - r.left) / r.width * 2 - 1;
-        ty = (e.clientY - r.top) / r.height * 2 - 1;
+        tx = e.clientX / window.innerWidth * 2 - 1;
+        ty = e.clientY / window.innerHeight * 2 - 1;
         queue();
       });
-      hero.addEventListener("pointerleave", function () { tx = 0; ty = 0; queue(); });
+      sky.addEventListener("pointerleave", function () { tx = 0; ty = 0; queue(); });
     }
+    function tr(n, x, y) { n.style.transform = "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0)"; }
 
     function frame() {
       ticking = false;
       if (reduce.matches) {
-        [copy, front, back, shot].concat(drift).forEach(function (n) { if (n) { n.style.transform = ""; n.style.opacity = ""; } });
+        if (sky) sky.classList.remove("live");
+        [copy, shot].concat(skyLayers, drift).forEach(function (n) { if (n) { n.style.transform = ""; n.style.opacity = ""; } });
         return;
       }
-      var y = window.scrollY, h = hero.offsetHeight, vh = window.innerHeight;
-      px += (tx - px) * 0.12; py += (ty - py) * 0.12;
+      if (sky) sky.classList.add("live");
+      var y = window.scrollY, h = hero.offsetHeight, vh = window.innerHeight, vw = window.innerWidth;
+      px += (tx - px) * 0.08; py += (ty - py) * 0.08;
       var easing = Math.abs(tx - px) > 0.002 || Math.abs(ty - py) > 0.002;
-      if (y < h + 200) {
+      // The sky: each layer slides down a share of the scroll, so it seems to move slower
+      // the further away it is; stars barely move, the mid bank most of the cloud layers.
+      if (sky && y < sky.offsetHeight + 200) {
         var p = Math.min(1, Math.max(0, y / h));
-        var ry = narrow.matches ? -10 : -14, rx = narrow.matches ? 8 : 6;
-        front.style.transform = "translate3d(" + (px * -10).toFixed(1) + "px," + (y * 0.28 + py * -6).toFixed(1) + "px,0) rotateY(" + (ry * (1 - p * 0.6) + px * 5).toFixed(2) + "deg) rotateX(" + (rx * (1 - p) - py * 4).toFixed(2) + "deg) scale(" + (1 + p * 0.04).toFixed(3) + ")";
-        back.style.transform = "translate3d(" + (px * 14).toFixed(1) + "px," + (y * 0.5 + py * 8).toFixed(1) + "px,0) rotateY(" + (-18 - px * 3).toFixed(2) + "deg) rotateX(" + (8 + py * 2).toFixed(2) + "deg)";
-        copy.style.transform = "translate3d(0," + (y * 0.18).toFixed(1) + "px,0)";
-        copy.style.opacity = String(Math.max(0, 1 - p * 1.1).toFixed(3));
+        tr(stars, px * -4, y * 0.85 + py * -3);
+        tr(glow, 0, y * 0.6);
+        tr(far, px * -12 - y * 0.05, y * 0.62 + py * -5);
+        tr(mid, px * -22 + y * 0.06, y * 0.34 + py * -8);
+        copy.style.transform = "translate3d(0," + (y * 0.24).toFixed(1) + "px,0)";
+        copy.style.opacity = String(Math.max(0, 1 - p * 1.15).toFixed(3));
       }
       // All reads first, then all writes, so the browser never lays out mid-frame.
       var moves = [], settle = null;
@@ -1967,6 +2057,16 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         var max = n._max || 36;
         moves.push([n, Math.max(-max, Math.min(max, center * parseFloat(n.getAttribute("data-speed")))), center]);
       });
+      // Front banks: they cover the screenshot while it sits low on the screen and part to
+      // the sides as it rises to the middle, fading out on the way.
+      var part = settle === null ? (shot && shot.getBoundingClientRect().top < 0 ? 1 : 0) : settle;
+      if (banks.length) {
+        var dx = part * part * vw * (narrow.matches ? 0.9 : 0.7);
+        var fade = part < 0.6 ? 1 : Math.max(0, 1 - (part - 0.6) / 0.38);
+        tr(banks[0], -dx + px * -34, -part * 50 + py * -10);
+        tr(banks[1], dx + px * -34, -part * 50 + py * -10);
+        banks[0].style.opacity = banks[1].style.opacity = fade.toFixed(3);
+      }
       if (settle !== null) {
         var k = 1 - settle;
         shot.style.transform = light
