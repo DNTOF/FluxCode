@@ -116,7 +116,8 @@ jobs:
           strip "$RUNNER_TEMP/fluxcode-base" "$RUNNER_TEMP/fluxcode-head"
           if cmp -s "$RUNNER_TEMP/fluxcode-base" "$RUNNER_TEMP/fluxcode-head"; then
             echo "the two binaries are identical"
-            if ! git -C pr diff --quiet HEAD^1 HEAD -- src build.rs Cargo.toml Cargo.lock vendor; then
+            # The Windows-only platform crate doesn't reach this Linux binary.
+            if ! git -C pr diff --quiet HEAD^1 HEAD -- src build.rs Cargo.toml Cargo.lock vendor ':(exclude)vendor/gpui-fast-windows'; then
               echo "::error::the code changed but the binary did not: the pull request was not rebuilt"; exit 1
             fi
           fi
