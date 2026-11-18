@@ -705,7 +705,7 @@ di atasnya.
   limit window has reset.
 - **Liquid glass and animated backgrounds.** Panels can turn translucent over the system's
   blur, with floating glass cards. Twelve animated backgrounds play behind them, drawn
-  live in the theme's colors (no video and no download), about 30 frames a second while
+  live in the theme's colors (no video and no download), 24 frames a second while
   the window is in front and a few behind other windows; Background animation stops them.
 @id
 ## Kemampuan lainnya
@@ -799,8 +799,8 @@ di atasnya.
   setelah jendela limitnya reset.
 - **Liquid glass dan latar beranimasi.** Panel bisa menjadi tembus pandang di atas blur
   sistem, dengan kartu kaca yang melayang. Dua belas latar beranimasi bergerak di
-  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), sekitar
-  30 frame per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
+  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), 24 frame
+  per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
   Background animation menghentikannya.
 
 @en

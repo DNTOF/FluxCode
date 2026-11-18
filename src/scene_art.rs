@@ -666,7 +666,7 @@ fn aurora(a: &mut Art) {
     let m = a.m;
     a.sky(&[(0., m.ink), (0.5, m.top), (0.8, mix(m.top, m.cool, 0.15))]);
     a.stars(150., 0.75, 90);
-    let step = (a.w / 360.).max(2.);
+    let step = (a.w / 240.).max(3.);
     let n = (a.w / step).ceil() as u32 + 1;
     let strength = if m.dark { 1. } else { 0.55 };
     for curtain in 0..2u32 {

@@ -438,7 +438,7 @@ FluxCode opens it drawn, with Preview and Source above it.
   limit window has reset.
 - **Liquid glass and animated backgrounds.** Panels can turn translucent over the system's
   blur, with floating glass cards. Twelve animated backgrounds play behind them, drawn
-  live in the theme's colors (no video and no download), about 30 frames a second while
+  live in the theme's colors (no video and no download), 24 frames a second while
   the window is in front and a few behind other windows; Background animation stops them.
 
 ## FluxCode, Zed and VS Code

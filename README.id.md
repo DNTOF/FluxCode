@@ -461,8 +461,8 @@ di atasnya.
   setelah jendela limitnya reset.
 - **Liquid glass dan latar beranimasi.** Panel bisa menjadi tembus pandang di atas blur
   sistem, dengan kartu kaca yang melayang. Dua belas latar beranimasi bergerak di
-  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), sekitar
-  30 frame per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
+  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), 24 frame
+  per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
   Background animation menghentikannya.
 
 ## FluxCode, Zed, dan VS Code

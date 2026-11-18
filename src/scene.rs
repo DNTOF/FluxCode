@@ -7,7 +7,7 @@
 //!
 //! The scene is its own view under the workbench, which is drawn as a cached view
 //! (`Shell`): a new frame repaints the backdrop and replays the workbench's last frame
-//! instead of rebuilding it. It moves about 30 times a second while the window is in
+//! instead of rebuilding it. It moves 24 times a second while the window is in
 //! front, a few times a second behind other windows, and not at all when the animation
 //! is off in Settings.
 
@@ -164,9 +164,9 @@ pub struct Backdrop {
     idle: bool,
 }
 
-/// About 30 frames a second in front: the slowest motions (clouds, fog) move less than
-/// a pixel a frame, so this reads as smooth.
-const FRAME: Duration = Duration::from_millis(33);
+/// 24 frames a second in front: the motions are slow (clouds, fog and stars move less
+/// than a pixel a frame), so this reads as smooth for about a fifth less work than 30.
+const FRAME: Duration = Duration::from_millis(42);
 const IDLE_FRAME: Duration = Duration::from_millis(400);
 
 impl Backdrop {
