@@ -16,7 +16,7 @@ pengembangan.
 [![Latest build](https://img.shields.io/github/v/release/MuaraAI/FluxCode?display_name=tag&label=latest%20build)](https://github.com/MuaraAI/FluxCode/releases/latest)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 
-<a href="assets/screenshots/agent-workspace.png"><img src="assets/screenshots/agent-workspace.png" width="100%" alt="Agent memenuhi jendela: daftar chat di kiri, percakapan di tengah, file yang diubahnya di kanan, sebagai kolom kaca yang melayang di atas latar laut."></a>
+<a href="assets/screenshots/agent-workspace.png"><img src="assets/screenshots/hero.id.jpg" width="100%" alt="Editor kode 16 MB dengan agen AI di dalamnya: judul di atas langit senja, dan di bawahnya FluxCode dengan agen memenuhi jendela, muncul dari balik awan. Daftar chat di kiri, percakapan di tengah, file yang diubahnya di kanan."></a>
 
 Workspace layar penuh milik agent: daftar chat di kiri, percakapan di tengah, dan file yang
 diubahnya di kanan, masing-masing kolom kaca yang melayang di atas latar pixel beranimasi.
