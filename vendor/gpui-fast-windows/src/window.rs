@@ -926,6 +926,12 @@ impl PlatformWindow for WindowsWindow {
 
         // using Dwm APIs for Mica and MicaAlt backdrops.
         // others follow the set_window_composition_attribute approach
+        //
+        // FluxCode: a system backdrop set earlier (acrylic below) is cleared first, or
+        // it would stay behind the new appearance.
+        if !matches!(background_appearance, WindowBackgroundAppearance::Blurred) {
+            dwm_set_window_composition_attribute(hwnd, DWMSBT_NONE);
+        }
         match background_appearance {
             WindowBackgroundAppearance::Opaque => {
                 set_window_composition_attribute(hwnd, None, 0);
@@ -933,8 +939,18 @@ impl PlatformWindow for WindowsWindow {
             WindowBackgroundAppearance::Transparent => {
                 set_window_composition_attribute(hwnd, None, 2);
             }
+            // FluxCode: the accent policy's acrylic (state 4) makes the window stutter
+            // and flicker while it is dragged (MuaraAI/FluxCode#94). From Windows 11
+            // 22H2 the compositor draws acrylic itself (DWMSBT_TRANSIENTWINDOW), which
+            // moves smoothly; older systems keep the accent policy, and the move/size
+            // loop swaps it for plain blur while the window moves (see events.rs).
             WindowBackgroundAppearance::Blurred => {
-                set_window_composition_attribute(hwnd, Some((0, 0, 0, 0)), 4);
+                if system_acrylic_available() {
+                    set_window_composition_attribute(hwnd, None, 0);
+                    dwm_set_window_composition_attribute(hwnd, DWMSBT_TRANSIENTWINDOW);
+                } else {
+                    set_window_composition_attribute(hwnd, Some((0, 0, 0, 0)), 4);
+                }
             }
             WindowBackgroundAppearance::MicaBackdrop => {
                 // DWMSBT_MAINWINDOW => MicaBase
@@ -1632,6 +1648,31 @@ fn retrieve_window_placement(
     let bounds = bounds.to_device_pixels(display.scale_factor());
     placement.rcNormalPosition = calculate_window_rect(bounds, border_offset);
     Ok(placement)
+}
+
+/// DWMWA_SYSTEMBACKDROP_TYPE values (FluxCode).
+const DWMSBT_NONE: u32 = 1;
+const DWMSBT_TRANSIENTWINDOW: u32 = 3;
+
+/// Windows 11 22H2 (build 22621) or later: the compositor can draw acrylic itself.
+pub(crate) fn system_acrylic_available() -> bool {
+    static AVAILABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *AVAILABLE.get_or_init(|| {
+        let mut version = unsafe { std::mem::zeroed() };
+        let status = unsafe { windows::Wdk::System::SystemServices::RtlGetVersion(&mut version) };
+        status.is_ok() && version.dwBuildNumber >= 22621
+    })
+}
+
+/// FluxCode: while an accent-policy acrylic window is moved or resized, plain blur
+/// (`moving`) stands in for acrylic, which stutters and flickers in the move loop;
+/// acrylic comes back when the move ends.
+pub(crate) fn acrylic_while_moving(hwnd: HWND, moving: bool) {
+    if moving {
+        set_window_composition_attribute(hwnd, Some((0, 0, 0, 0)), 3);
+    } else {
+        set_window_composition_attribute(hwnd, Some((0, 0, 0, 0)), 4);
+    }
 }
 
 fn dwm_set_window_composition_attribute(hwnd: HWND, backdrop_type: u32) {
