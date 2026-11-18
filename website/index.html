@@ -345,11 +345,15 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
 
 @media (max-width: 720px) {
   .fh.on { height: 360svh; }
-  .fh-copy { text-align: center; }
-  .fh-copy, .fh.on .fh-copy { align-items: center; }
-  .fh-eyebrow { justify-content: center; font-size: 0.7rem; letter-spacing: 0.16em; }
-  .fh h1 { margin-inline: auto; }
-  .fh .release-line { justify-content: center; }
+  /* Phones: the claim keeps to the left edge under the header, like the desktop one,
+     and the facts strip keeps the bottom, so the two never meet. */
+  .fh.on .fh-copy { justify-content: flex-start; padding-top: calc(var(--header-space) + 5svh); }
+  .fh-eyebrow { font-size: 0.7rem; letter-spacing: 0.16em; }
+  .fh h1 { font-size: clamp(2.3rem, 11vw, 3.4rem); margin-bottom: 16px; }
+  .fh .lead { font-size: 1.02rem; margin-bottom: 16px; }
+  .fh .release-line { flex-direction: row; justify-content: flex-start; gap: 2px 10px; font-size: 0.8rem; }
+  .fh .release-line .sep { display: inline; }
+  .fh .release-line [data-dl-meta], .fh .release-line [data-dl-meta] + .sep { display: none; }
   .fh-strip { grid-template-columns: 1fr 1fr; }
   .fh-strip li { padding: 12px 14px; }
   .fh-strip li + li { border-left: 0; }
@@ -2092,7 +2096,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   /* ---------- The flight (hero) ---------- */
   // The stage is pinned for the section's height; p (0..1) is how far through it the
   // page is, eased toward the scroll so the motion stays soft with a wheel.
-  //   0.00-0.32  zoom through the F of the wordmark (scale 1 + z^3 * 60), the dark
+  //   0.00-0.32  zoom through the x of the wordmark (scale 1 + z^3 * 60), the dark
   //              outside fades from z 0.55, so the sky fills the screen
   //   0.30-0.40  the claim comes in; 0.56-0.68 it leaves (rises, shrinks, blurs)
   //   0.60-0.92  the app rises from below and settles in the middle
@@ -2122,7 +2126,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       place(size);
       // Never wider than 90% of the screen (phones): shrink to fit the measured word.
       try {
-        var len = text.getComputedTextLength();
+        var len = edge.getComputedTextLength(); // the drawn copy: the one inside the mask may hold a stale layout
         if (len > w * 0.9) { size = size * (w * 0.9) / len; place(size); }
       } catch (e) { /* measured on the next layout */ }
       // The word and the claim under it are one group, centred in the room below the
@@ -2141,13 +2145,15 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         [text, edge].forEach(function (t) { t.setAttribute("y", base); });
         sec.style.setProperty("--it", Math.round(base + gap) + "px");
       } catch (e) { /* keep the default spot */ }
-      // The point the zoom flies into: the middle of the F's stem, low enough to miss its arms.
+      // The point the zoom flies into: where the strokes of the x cross, the middle of
+      // the word, half way up its x-height. The crossing is solid letter, so the sky
+      // fills the screen from the centre outwards.
       try {
-        var b = text.getExtentOfChar(0);
-        origin.x = b.x + b.width * 0.2;
-        origin.y = b.y + b.height * 0.74;
+        var b = edge.getExtentOfChar(3), g = glyphX(), base0 = parseFloat(edge.getAttribute("y"));
+        origin.x = b.x + g.mid * size;
+        origin.y = base0 - g.half * size;
       } catch (e) {
-        origin.x = w * 0.27; origin.y = h * 0.5;
+        origin.x = w * 0.5; origin.y = h * 0.42;
       }
     }
     // Height of a capital in the wordmark's font, as a share of the font size.
@@ -2162,6 +2168,21 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       } catch (e) { /* fall back below */ }
       return capCache || 0.72;
     }
+    // The x's ink, as shares of the font size: the middle of its strokes from the
+    // start of the letter, and half its height (where the strokes cross).
+    var xCache = null;
+    function glyphX() {
+      if (xCache) return xCache;
+      try {
+        var cs = getComputedStyle(text), c = document.createElement("canvas").getContext("2d");
+        c.font = cs.fontWeight + " 100px " + cs.fontFamily;
+        var m = c.measureText("x");
+        if (m.actualBoundingBoxAscent > 20) {
+          xCache = { mid: (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 200, half: m.actualBoundingBoxAscent / 200 };
+        }
+      } catch (e) { /* fall back below */ }
+      return xCache || { mid: 0.28, half: 0.26 };
+    }
     function set(n, k, v) { n.style.setProperty(k, v); }
     function frame() {
       raf = 0;
@@ -2173,7 +2194,11 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       var p = shown;
       var z = clamp(p / 0.32);
       var s = 1 + Math.pow(z, 3) * 60;
-      var tf = "translate(" + origin.x + " " + origin.y + ") scale(" + s.toFixed(4) + ") translate(" + (-origin.x) + " " + (-origin.y) + ")";
+      // The camera drifts as it dives: the crossing of the x slides to the middle of the
+      // screen, so the flight ends centred whatever the word's width.
+      var pan = ease(z), vw = window.innerWidth;
+      var cx = origin.x + (vw / 2 - origin.x) * pan, cy = origin.y + (vh / 2 - origin.y) * pan;
+      var tf = "translate(" + cx.toFixed(2) + " " + cy.toFixed(2) + ") scale(" + s.toFixed(4) + ") translate(" + (-origin.x) + " " + (-origin.y) + ")";
       word.setAttribute("transform", tf);
       edgeG.setAttribute("transform", tf);
       var mix = 1 - ease(clamp((z - 0.55) / 0.4));
@@ -2197,7 +2222,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     }
     function queue() { if (!raf) raf = requestAnimationFrame(frame); }
     layout();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { capCache = 0; layout(); queue(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { capCache = 0; xCache = null; layout(); queue(); });
     window.addEventListener("resize", function () { layout(); queue(); }, { passive: true });
     window.addEventListener("scroll", queue, { passive: true });
     frame();
