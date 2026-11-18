@@ -223,8 +223,7 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
   position: relative; isolation: isolate; overflow: clip;
   margin-top: calc(-1 * var(--header-space)); padding-top: var(--header-space);
   --sky-h: 100svh;
-  background: linear-gradient(180deg, #05070f 0, #0a0e1f calc(var(--sky-h) * 0.22), #141a36 calc(var(--sky-h) * 0.5),
-    #2a2a4c calc(var(--sky-h) * 0.76), #4a3a4f var(--sky-h), #231f31 calc(var(--sky-h) + 22svh), var(--bg) calc(var(--sky-h) + 52svh));
+  background: linear-gradient(180deg, #4a3a4f 0, #231f31 30svh, var(--bg) 70svh);
 }
 .sky-layer { position: absolute; pointer-events: none; z-index: -1; will-change: transform; }
 .sky-stars {
@@ -275,6 +274,96 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
 .release-line a { color: #cfcbe0; text-underline-offset: 3px; }
 .release-line a:hover { color: var(--ink); }
 .release-line .sep { color: rgba(235, 228, 214, 0.25); }
+
+/* ---------- The flight (hero) ----------
+   Base rules stack everything as a plain page (no JS, reduced motion); `.fh.on` turns it
+   into the pinned stage that initFlight drives with a few custom properties. */
+.fh { position: relative; }
+.fh-stage { position: relative; padding: 40px 0 56px; }
+.fh-scene { position: absolute; inset: 0; z-index: -1; overflow: hidden;
+  background: linear-gradient(180deg, #0a0f2c 0, #1d2554 24%, #4a3f74 44%, #a9708a 58%, #eda884 68%, #f6c991 73%, #8a5a6c 86%, #2c2238 100%); }
+.fh-scene .sky-layer { z-index: 0; }
+.fh-scene .sky-stars { height: 40%; }
+.fh-scene .sky-glow { top: 30%; height: 80%; }
+.fh-scene .cloud.far { top: 26%; opacity: 0.75; }
+.fh-scene .cloud.mid { top: 50%; }
+.fh-scene .cloud.near { --cw: max(1500px, 120vw); width: var(--cw); left: 50%; margin-left: calc(var(--cw) / -2); top: 78%; opacity: 0.85; }
+.fh-mask, .fh-hint { display: none; }
+.fh-intro { text-align: center; padding: 24px 20px 8px; }
+.fh-tag { margin: 0 0 22px; font-size: clamp(1.15rem, 0.7rem + 1.4vw, 1.9rem); font-weight: 500; letter-spacing: -0.02em; text-wrap: balance; text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6); }
+.fh-intro .cta-row { justify-content: center; }
+.fh-copy { padding-top: 28px; text-align: left; }
+.fh-eyebrow { display: flex; gap: 10px; margin: 0 0 14px; font: 500 0.78rem/1 var(--mono); letter-spacing: 0.22em; text-transform: uppercase; color: #b9b5c9; }
+.fh-eyebrow b { color: var(--yellow); font-weight: 500; }
+.fh-eyebrow b::after { content: " ·"; color: #6f6b80; }
+.fh h1 {
+  font-family: var(--sans); font-weight: 700; font-size: clamp(2.5rem, 1.4rem + 5vw, 6rem);
+  line-height: 1.0; letter-spacing: -0.045em; margin: 0 0 20px; max-width: 14ch; text-wrap: balance;
+  text-shadow: 0 2px 40px rgba(5, 7, 15, 0.55);
+}
+.fh h1 .accent { color: var(--yellow); white-space: nowrap; }
+.fh .lead { font-size: clamp(1.05rem, 0.9rem + 0.7vw, 1.4rem); color: #d4d1e0; max-width: 32em; margin: 0 0 22px; text-wrap: pretty; text-shadow: 0 1px 20px rgba(5, 7, 15, 0.6); }
+.fh .lead strong { color: var(--ink); font-weight: 600; }
+.fh .release-line { justify-content: flex-start; }
+.fh-copy::before { content: ""; position: absolute; z-index: -1; inset: -16% -30% -22% -40%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(6, 6, 12, 0.7), rgba(6, 6, 12, 0.35) 55%, transparent); }
+.fh-copy { position: relative; }
+.fh-strip { list-style: none; margin: 28px auto 0; padding: 0; width: min(1180px, calc(100% - 32px)); display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--glass-line); border-radius: 16px; overflow: hidden; background: rgba(10, 12, 24, 0.55); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.fh-strip li { padding: 18px 22px; display: flex; flex-direction: column; gap: 4px; }
+.fh-strip li + li { border-left: 1px solid var(--glass-line); }
+.fh-strip b { font-size: clamp(1.02rem, 0.8rem + 0.6vw, 1.35rem); font-weight: 600; letter-spacing: -0.02em; }
+.fh-strip span { font-size: 0.9rem; color: #a7a3b8; }
+.fh-screen { margin: 40px auto 0; width: min(1180px, calc(100% - 32px)); }
+.fh-screen img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid rgba(235, 228, 214, 0.16); box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55); }
+.fh-screen figcaption { margin-top: 12px; text-align: center; font-size: 0.85rem; color: #8f8ba2; }
+
+/* Pinned: a stage as tall as the screen, kept in place while the section scrolls by. It
+   starts under the floating header, like the sky did. */
+.fh.on { height: 430svh; margin-top: calc(-1 * var(--header-space)); }
+.fh.on .fh-stage { position: sticky; top: 0; height: 100svh; padding: 0; overflow: hidden; }
+.fh.on .fh-scene { inset: -4%; transform: translate3d(0, calc(var(--p, 0) * -5svh), 0) scale(calc(1.02 + var(--z, 0) * 0.08 + var(--p, 0) * 0.05)); will-change: transform; }
+.fh.on .cloud.far { transform: translate3d(calc(var(--p, 0) * -9vw), calc(var(--p, 0) * 6svh), 0); }
+.fh.on .cloud.mid { transform: translate3d(calc(var(--p, 0) * 6vw), calc(var(--z, 0) * -26svh), 0) scale(calc(1 + var(--z, 0) * 0.35)); }
+.fh.on .cloud.near { transform: translate3d(0, calc((1 - var(--z, 0)) * 30svh - var(--q, 0) * 20svh), 0) scale(calc(1 + var(--z, 0) * 0.25)); }
+.fh.on .sky-stars { transform: translate3d(0, calc(var(--p, 0) * 10svh), 0); }
+.fh.on .fh-mask { display: block; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+#fh-dim { fill: rgba(5, 6, 13, 0.82); }
+#fh-text, #fh-edge { font-family: var(--sans); font-weight: 800; letter-spacing: -0.05em; }
+#fh-edge { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.fh.on .fh-intro { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding: 0 20px max(6svh, 32px); opacity: var(--io, 1); transform: translate3d(0, var(--iy, 0), 0); }
+.fh.on .fh-hint { display: block; margin: clamp(18px, 3svh, 34px) 0 0; font: 500 11px/1 var(--mono); letter-spacing: 0.3em; text-transform: uppercase; color: #8f8ba2; }
+.fh.on .fh-hint::after { content: ""; display: block; width: 1px; height: 34px; margin: 10px auto 0; background: linear-gradient(#b9b5c9, transparent); transform-origin: top; animation: drip 1.8s ease-in-out infinite; }
+@keyframes drip { 0% { transform: scaleY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+.fh.on .fh-copy { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; justify-content: center; padding-top: 0;
+  opacity: var(--co, 0); transform: translate3d(0, var(--cy, 40px), 0) scale(var(--cs, 1)); transform-origin: 0 50%; filter: blur(var(--cb, 0px)); will-change: transform, opacity, filter; }
+.fh.on .fh-strip { position: absolute; left: 50%; bottom: 4svh; margin: 0; z-index: 3; opacity: var(--so, 0); transform: translate3d(-50%, var(--sy, 30px), 0); }
+.fh.on .fh-screen { position: absolute; left: 50%; top: 50%; margin: 0; z-index: 4; width: min(1180px, 90vw);
+  transform: translate3d(-50%, calc(-50% + var(--ry, 100svh)), 0) scale(var(--rs, 0.82)); will-change: transform; }
+.fh.on .fh-screen figcaption { opacity: var(--rc, 0); }
+
+@media (max-width: 720px) {
+  .fh.on { height: 360svh; }
+  .fh-copy { text-align: center; }
+  .fh-copy, .fh.on .fh-copy { align-items: center; }
+  .fh-eyebrow { justify-content: center; font-size: 0.7rem; letter-spacing: 0.16em; }
+  .fh h1 { margin-inline: auto; }
+  .fh .release-line { justify-content: center; }
+  .fh-strip { grid-template-columns: 1fr 1fr; }
+  .fh-strip li { padding: 12px 14px; }
+  .fh-strip li + li { border-left: 0; }
+  .fh-strip li:nth-child(even) { border-left: 1px solid var(--glass-line); }
+  .fh-strip li:nth-child(n + 3) { border-top: 1px solid var(--glass-line); }
+  .fh-strip span { font-size: 0.78rem; }
+  .fh.on .fh-strip { bottom: 2svh; }
+  .fh.on .fh-screen { width: 94vw; }
+  .fh-intro .cta-row .btn { width: 100%; max-width: 320px; justify-content: center; }
+}
+@media (max-height: 640px) {
+  .fh.on .fh-strip { display: none; }
+  .fh.on .fh-hint { display: none; }
+}
 
 /* Screenshot viewer: real screenshots of the app, switched by tabs. It sits in the sky:
    the frame rises out of two cloud banks that part as it reaches the middle. */
@@ -706,30 +795,65 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
 
 <main id="content">
   <div class="sky">
-  <div class="sky-layer sky-stars" aria-hidden="true"></div>
-  <div class="sky-layer sky-glow" aria-hidden="true"></div>
-  <img class="sky-layer cloud far" src="img/sky/cloud-far.webp" width="2000" height="360" alt="" aria-hidden="true" decoding="async">
-  <img class="sky-layer cloud mid" src="img/sky/cloud-mid.webp" width="2400" height="560" alt="" aria-hidden="true" decoding="async">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="wrap hero-copy">
-      <h1 id="hero-title" data-i18n-html="hero.title">A <span class="accent">16 MB</span> code editor with AI agents built in</h1>
-      <p class="lead" data-i18n-html="hero.lead">Rust, drawn by the GPU. Opens in <strong>about 50 ms</strong>, idles at <strong>1.4 MB RAM</strong>, sends no telemetry.</p>
-      <div class="cta-row">
-        <a class="btn btn-primary" data-dl="primary" href="#download">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
-          <span data-dl-label>Download FluxCode</span>
-        </a>
-        <a class="btn btn-ghost" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener" data-i18n="hero.source">Source on GitHub</a>
+  <!-- The flight: a pinned stage. The FluxCode wordmark is a window onto the dusk sky;
+       scrolling zooms through the F until the sky fills the screen, then the claim comes
+       in over it, leaves, and the real app rises. See initFlight. Without JS or with
+       reduced motion the same content simply stacks. -->
+  <section class="fh" aria-labelledby="hero-title">
+    <div class="fh-stage">
+      <div class="fh-scene" aria-hidden="true">
+        <div class="sky-layer sky-stars"></div>
+        <div class="sky-layer sky-glow"></div>
+        <img class="sky-layer cloud far" src="img/sky/cloud-far.webp" width="2000" height="360" alt="" decoding="async">
+        <img class="sky-layer cloud mid" src="img/sky/cloud-mid.webp" width="2400" height="560" alt="" decoding="async">
+        <img class="sky-layer cloud near" src="img/sky/cloud-front.webp" width="1500" height="820" alt="" decoding="async">
       </div>
-      <p class="release-line">
-        <span class="mono" data-live="tag">BuildDev-2026-11-15-16-50-41</span>
-        <span class="sep" aria-hidden="true">/</span>
-        <span><span data-i18n="release.released">released</span> <time data-live="published" datetime="2026-11-15T10:01:21Z">15 Nov 2026</time></span>
-        <span class="sep" aria-hidden="true">/</span>
-        <span data-dl-meta>GPL-3.0, free</span>
-        <span class="sep" aria-hidden="true">/</span>
-        <a href="#download" data-i18n="release.other">Other systems</a>
-      </p>
+      <svg class="fh-mask" aria-hidden="true" focusable="false">
+        <defs>
+          <mask id="fh-cut" maskUnits="userSpaceOnUse">
+            <rect class="fh-all" fill="#fff"/>
+            <g id="fh-word"><text id="fh-text" text-anchor="middle" fill="#000">FluxCode</text></g>
+          </mask>
+        </defs>
+        <rect class="fh-all" id="fh-dim" mask="url(#fh-cut)"/>
+        <g id="fh-edge-g"><text id="fh-edge" text-anchor="middle">FluxCode</text></g>
+      </svg>
+      <div class="fh-intro">
+        <p class="fh-tag" data-i18n="fh.tag">A 16 MB code editor with AI agents built in.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" data-dl="primary" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+            <span data-dl-label>Download FluxCode</span>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/MuaraAI/FluxCode" target="_blank" rel="noopener" data-i18n="hero.source">Source on GitHub</a>
+        </div>
+        <p class="fh-hint" data-i18n="fh.hint">Scroll</p>
+      </div>
+      <div class="wrap fh-copy">
+        <p class="fh-eyebrow"><b data-i18n="fh.eyebrow">Free and open source</b><span>GPL-3.0</span></p>
+        <h1 id="hero-title" data-i18n-html="hero.title">A <span class="accent">16 MB</span> code editor with AI agents built in</h1>
+        <p class="lead" data-i18n-html="hero.lead">Rust, drawn by the GPU. Opens in <strong>about 50 ms</strong>, idles at <strong>1.4 MB RAM</strong>, sends no telemetry.</p>
+        <p class="release-line">
+          <span class="mono" data-live="tag">BuildDev-2026-11-15-16-50-41</span>
+          <span class="sep" aria-hidden="true">/</span>
+          <span><span data-i18n="release.released">released</span> <time data-live="published" datetime="2026-11-15T10:01:21Z">15 Nov 2026</time></span>
+          <span class="sep" aria-hidden="true">/</span>
+          <span data-dl-meta>GPL-3.0, free</span>
+          <span class="sep" aria-hidden="true">/</span>
+          <a href="#download" data-i18n="release.other">Other systems</a>
+        </p>
+      </div>
+      <ul class="fh-strip" data-i18n-attr="aria-label:fh.strip" aria-label="At a glance">
+        <li><b data-i18n="fh.s1">Opens in ~50 ms</b><span data-i18n="fh.s1b">a window on screen, cold start</span></li>
+        <li><b data-i18n="fh.s2">1.4 MB idle</b><span data-i18n="fh.s2b">in Task Manager, one process</span></li>
+        <li><b data-i18n="fh.s3">16 MB on disk</b><span data-i18n="fh.s3b">Rust, drawn by the GPU</span></li>
+        <li><b data-i18n="fh.s4">AI agents built in</b><span>OpenCode · Claude · Copilot</span></li>
+      </ul>
+      <figure class="fh-screen">
+        <img src="img/agent.webp" srcset="img/agent-800.webp 800w, img/agent.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async"
+          data-i18n-attr="alt:fh.screen" alt="FluxCode with the agent filling the window: saved chats, the conversation and the files it changed.">
+        <figcaption data-i18n="fh.caption">A screenshot of the app, like every picture on this page.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -1025,6 +1149,19 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     "hero.title": "Editor kode <span class=\"accent\">16 MB</span> dengan agen AI di dalamnya",
     "hero.lead": "Rust, digambar GPU. Terbuka <strong>sekitar 50 ms</strong>, idle di <strong>1,4 MB RAM</strong>, tanpa telemetri.",
     "hero.source": "Kode sumber di GitHub",
+    "fh.tag": "Editor kode 16 MB dengan agen AI di dalamnya.",
+    "fh.hint": "Gulir",
+    "fh.eyebrow": "Gratis dan open source",
+    "fh.strip": "Sekilas",
+    "fh.s1": "Terbuka ~50 ms",
+    "fh.s1b": "jendela tampil, start dingin",
+    "fh.s2": "1,4 MB saat idle",
+    "fh.s2b": "di Task Manager, satu proses",
+    "fh.s3": "16 MB di disk",
+    "fh.s3b": "Rust, digambar GPU",
+    "fh.s4": "Agen AI bawaan",
+    "fh.screen": "FluxCode dengan agen memenuhi jendela: daftar chat, percakapan, dan file yang diubahnya.",
+    "fh.caption": "Tangkapan layar aplikasinya, seperti semua gambar di halaman ini.",
     "release.released": "dirilis",
     "release.other": "Sistem lain",
     "viewer.label": "Tangkapan layar FluxCode",
@@ -1944,6 +2081,92 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     ["benchmark", "features", "compare", "download", "contributors"].forEach(function (id) { var s = document.getElementById(id); if (s) io.observe(s); });
   }
 
+  /* ---------- The flight (hero) ---------- */
+  // The stage is pinned for the section's height; p (0..1) is how far through it the
+  // page is, eased toward the scroll so the motion stays soft with a wheel.
+  //   0.00-0.32  zoom through the F of the wordmark (scale 1 + z^3 * 60), the dark
+  //              outside fades from z 0.55, so the sky fills the screen
+  //   0.30-0.40  the claim comes in; 0.56-0.68 it leaves (rises, shrinks, blurs)
+  //   0.60-0.92  the app rises from below and settles in the middle
+  // The sky moves the whole way: clouds rise and part, the stars sink.
+  function initFlight() {
+    var sec = $(".fh");
+    if (!sec || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var svg = $(".fh-mask"), word = $("#fh-word"), edgeG = $("#fh-edge-g"), text = $("#fh-text"), edge = $("#fh-edge"), dim = $("#fh-dim");
+    if (!svg || !text) return;
+    sec.classList.add("on");
+    var all = $all(".fh-all");
+    var origin = { x: 0, y: 0 }, shown = 0, raf = 0;
+    function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+    function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function layout() {
+      var w = window.innerWidth, h = window.innerHeight;
+      svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+      all.forEach(function (r) { r.setAttribute("width", w); r.setAttribute("height", h); });
+      var size = Math.min(w * 0.2, h * 0.36);
+      function place(sz) {
+        [text, edge].forEach(function (t) {
+          t.setAttribute("x", w / 2);
+          t.setAttribute("y", h * 0.42 + sz * 0.35);
+          t.setAttribute("font-size", sz);
+        });
+      }
+      place(size);
+      // Never wider than 90% of the screen (phones): shrink to fit the measured word.
+      try {
+        var len = text.getComputedTextLength();
+        if (len > w * 0.9) { size = size * (w * 0.9) / len; place(size); }
+      } catch (e) { /* measured on the next layout */ }
+      // The point the zoom flies into: the middle of the F's stem, low enough to miss its arms.
+      try {
+        var b = text.getExtentOfChar(0);
+        origin.x = b.x + b.width * 0.2;
+        origin.y = b.y + b.height * 0.74;
+      } catch (e) {
+        origin.x = w * 0.27; origin.y = h * 0.5;
+      }
+    }
+    function set(n, k, v) { n.style.setProperty(k, v); }
+    function frame() {
+      raf = 0;
+      var vh = window.innerHeight, r = sec.getBoundingClientRect();
+      var span = Math.max(1, sec.offsetHeight - vh);
+      var target = clamp(-r.top / span);
+      shown += (target - shown) * 0.16;
+      if (Math.abs(target - shown) < 0.0004) shown = target; else queue();
+      var p = shown;
+      var z = clamp(p / 0.32);
+      var s = 1 + Math.pow(z, 3) * 60;
+      var tf = "translate(" + origin.x + " " + origin.y + ") scale(" + s.toFixed(4) + ") translate(" + (-origin.x) + " " + (-origin.y) + ")";
+      word.setAttribute("transform", tf);
+      edgeG.setAttribute("transform", tf);
+      var mix = 1 - ease(clamp((z - 0.55) / 0.4));
+      dim.style.opacity = mix.toFixed(3);
+      edge.style.opacity = (mix * (1 - z * 0.8)).toFixed(3);
+      var h = ease(clamp((p - 0.3) / 0.1)), hx = ease(clamp((p - 0.56) / 0.12)), q = ease(clamp((p - 0.6) / 0.32));
+      set(sec, "--p", p.toFixed(4));
+      set(sec, "--z", z.toFixed(4));
+      set(sec, "--q", q.toFixed(4));
+      set(sec, "--io", clamp(1 - p * 10).toFixed(3));
+      set(sec, "--iy", (-p * 12 * vh / 100).toFixed(1) + "px");
+      set(sec, "--co", Math.max(0, h * (1 - hx * 1.4)).toFixed(3));
+      set(sec, "--cy", ((1 - h) * 40 - hx * 0.24 * vh).toFixed(1) + "px");
+      set(sec, "--cs", (1 - hx * 0.14).toFixed(4));
+      set(sec, "--cb", (hx * 12).toFixed(1) + "px");
+      set(sec, "--so", Math.max(0, h * (1 - hx * 1.6)).toFixed(3));
+      set(sec, "--sy", ((1 - h) * 30 + hx * 40).toFixed(1) + "px");
+      set(sec, "--ry", ((1 - q) * 0.9 * vh).toFixed(1) + "px");
+      set(sec, "--rs", (0.82 + q * 0.18).toFixed(4));
+      set(sec, "--rc", clamp((q - 0.85) / 0.15).toFixed(3));
+    }
+    function queue() { if (!raf) raf = requestAnimationFrame(frame); }
+    layout();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(); queue(); });
+    window.addEventListener("resize", function () { layout(); queue(); }, { passive: true });
+    window.addEventListener("scroll", queue, { passive: true });
+    frame();
+  }
+
   /* ---------- Parallax ---------- */
   // One scroll-linked depth system: one rAF per frame, transforms and opacity only.
   // - Hero: two screenshots at different depths that straighten as you scroll, the copy
@@ -2028,12 +2251,12 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         return;
       }
       if (sky) sky.classList.add("live");
-      var y = window.scrollY, h = hero.offsetHeight, vh = window.innerHeight, vw = window.innerWidth;
+      var y = window.scrollY, h = hero ? hero.offsetHeight : 1, vh = window.innerHeight, vw = window.innerWidth;
       px += (tx - px) * 0.08; py += (ty - py) * 0.08;
       var easing = Math.abs(tx - px) > 0.002 || Math.abs(ty - py) > 0.002;
       // The sky: each layer slides down a share of the scroll, so it seems to move slower
       // the further away it is; stars barely move, the mid bank most of the cloud layers.
-      if (sky && y < sky.offsetHeight + 200) {
+      if (sky && hero && copy && y < sky.offsetHeight + 200) {
         var p = Math.min(1, Math.max(0, y / h));
         tr(stars, px * -4, y * 0.85 + py * -3);
         tr(glow, 0, y * 0.6);
@@ -2260,6 +2483,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   initDownloads();
   initNav();
   initReveal();
+  initFlight();
   initParallax();
   initFooter();
   setLang(start, false);
