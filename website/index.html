@@ -314,13 +314,19 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
 .fh-strip li + li { border-left: 1px solid var(--glass-line); }
 .fh-strip b { font-size: clamp(1.02rem, 0.8rem + 0.6vw, 1.35rem); font-weight: 600; letter-spacing: -0.02em; }
 .fh-strip span { font-size: 0.9rem; color: #a7a3b8; }
-.fh-screen { margin: 40px auto 0; width: min(1180px, calc(100% - 32px)); }
-.fh-screen img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid rgba(235, 228, 214, 0.16); box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55); }
-.fh-screen figcaption { margin-top: 12px; text-align: center; font-size: 0.85rem; color: #8f8ba2; }
+.fh-deck { margin: 40px auto 0; width: min(1180px, calc(100% - 32px)); }
+.fh-cards { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; }
+.fh-cards::-webkit-scrollbar { display: none; }
+.fh-card { flex: 0 0 100%; margin: 0; scroll-snap-align: center; }
+.fh-card img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid rgba(235, 228, 214, 0.16); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5); background: #121218; }
+.fh-card figcaption { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-top: 12px; text-align: center; font-size: 0.92rem; color: #a7a3b8; }
+.fh-card figcaption b { color: var(--ink); font-weight: 600; }
+.fh-count, .fh-night { display: none; }
+.fh-note { margin: 10px 0 0; text-align: center; font-size: 0.8rem; color: #77738a; }
 
 /* Pinned: a stage as tall as the screen, kept in place while the section scrolls by. It
    starts under the floating header, like the sky did. */
-.fh.on { height: 430svh; margin-top: calc(-1 * var(--header-space)); }
+.fh.on { height: 720svh; margin-top: calc(-1 * var(--header-space)); }
 .fh.on .fh-stage { position: sticky; top: 0; height: 100svh; padding: 0; overflow: hidden; }
 .fh.on .fh-scene { inset: -4%; transform: translate3d(0, calc(var(--p, 0) * -5svh), 0) scale(calc(1.02 + var(--z, 0) * 0.08 + var(--p, 0) * 0.05)); will-change: transform; }
 .fh.on .cloud.far { transform: translate3d(calc(var(--p, 0) * -9vw), calc(var(--p, 0) * 6svh), 0); }
@@ -339,12 +345,27 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
 .fh.on .fh-copy { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; justify-content: center; padding-top: 0;
   opacity: var(--co, 0); transform: translate3d(0, var(--cy, 40px), 0) scale(var(--cs, 1)); transform-origin: 0 50%; filter: blur(var(--cb, 0px)); will-change: transform, opacity, filter; }
 .fh.on .fh-strip { position: absolute; left: 50%; bottom: 4svh; margin: 0; z-index: 3; opacity: var(--so, 0); transform: translate3d(-50%, var(--sy, 30px), 0); }
-.fh.on .fh-screen { position: absolute; left: 50%; top: 50%; margin: 0; z-index: 4; width: min(1180px, 90vw);
+/* The deck: the cards share one spot; the script sets each one's place (--d: 0 on top,
+   0..1 still coming up from below, -1..0 sinking back as the next one covers it). */
+.fh.on .fh-deck { position: absolute; left: 50%; top: calc(50% + var(--header-space) / 2); margin: 0; z-index: 4;
+  width: min(1180px, 90vw, calc((100svh - var(--header-space) - 120px) * 1600 / 938));
   transform: translate3d(-50%, calc(-50% + var(--ry, 100svh)), 0) scale(var(--rs, 0.82)); will-change: transform; }
-.fh.on .fh-screen figcaption { opacity: var(--rc, 0); }
+.fh.on .fh-cards { display: block; position: relative; overflow: visible; aspect-ratio: 1600 / 938; padding: 0; }
+.fh.on .fh-card { position: absolute; inset: 0; transform-origin: 50% 0; will-change: transform, opacity; }
+.fh.on .fh-card img { height: 100%; object-fit: cover; box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.35), 0 40px 120px rgba(0, 0, 0, 0.55);
+  filter: brightness(var(--lit, 1)); }
+.fh.on .fh-card figcaption { position: absolute; left: 0; right: 0; top: 100%; margin-top: 14px; opacity: var(--cap, 0); }
+.fh.on .fh-count { display: flex; justify-content: center; gap: 6px; position: absolute; left: 0; right: 0; bottom: 100%; margin: 0 0 14px; opacity: var(--rc, 0); }
+.fh.on .fh-count i { width: 18px; height: 3px; border-radius: 2px; background: rgba(235, 228, 214, 0.22); transition: background-color 0.3s ease, width 0.3s ease; }
+.fh.on .fh-count i.on { width: 30px; background: var(--yellow); }
+.fh.on .fh-note { display: none; }
+/* Night falls at the end of the flight: the sky dims into the page, so the clouds go
+   with it instead of stopping at the section's edge. */
+.fh.on .fh-night { display: block; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: var(--e, 0);
+  background: linear-gradient(180deg, rgba(10, 10, 12, 0.55), var(--bg) 70%); }
 
 @media (max-width: 720px) {
-  .fh.on { height: 360svh; }
+  .fh.on { height: 640svh; }
   /* Phones: the claim keeps to the left edge under the header, like the desktop one,
      and the facts strip keeps the bottom, so the two never meet. */
   .fh.on .fh-copy { justify-content: flex-start; padding-top: calc(var(--header-space) + 5svh); }
@@ -360,8 +381,10 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
   .fh-strip li:nth-child(even) { border-left: 1px solid var(--glass-line); }
   .fh-strip li:nth-child(n + 3) { border-top: 1px solid var(--glass-line); }
   .fh-strip span { font-size: 0.78rem; }
+  .fh-card { flex-basis: 88%; }
   .fh.on .fh-strip { bottom: 2svh; }
-  .fh.on .fh-screen { width: 94vw; }
+  .fh.on .fh-deck { width: 94vw; }
+  .fh.on .fh-card figcaption { flex-direction: column; gap: 2px; font-size: 0.86rem; }
   .fh-intro .cta-row .btn { width: 100%; max-width: 320px; justify-content: center; }
 }
 @media (max-height: 640px) {
@@ -861,11 +884,38 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         <li><b data-i18n="fh.s3">16 MB on disk</b><span data-i18n="fh.s3b">Rust, drawn by the GPU</span></li>
         <li><b data-i18n="fh.s4">AI agents built in</b><span>OpenCode · Claude · Copilot</span></li>
       </ul>
-      <figure class="fh-screen">
-        <img src="img/agent.webp" srcset="img/agent-800.webp 800w, img/agent.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async"
-          data-i18n-attr="alt:fh.screen" alt="FluxCode with the agent filling the window: saved chats, the conversation and the files it changed.">
-        <figcaption data-i18n="fh.caption">A screenshot of the app, like every picture on this page.</figcaption>
-      </figure>
+      <div class="fh-deck" role="group" data-i18n-attr="aria-label:fh.deck" aria-label="What FluxCode looks like">
+        <div class="fh-cards">
+          <figure class="fh-card">
+            <img src="img/ui-agent.webp" srcset="img/ui-agent-800.webp 800w, img/ui-agent.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async"
+              data-i18n-attr="alt:fh.k1a" alt="The agent filling the window over an animated ocean: saved chats on the left, the conversation in the middle, the files it changed on the right.">
+            <figcaption><b data-i18n="fh.k1">AI agent</b> <span data-i18n="fh.k1b">Chats, the conversation and the files it changed, side by side in glass.</span></figcaption>
+          </figure>
+          <figure class="fh-card">
+            <img src="img/ui-saver.webp" srcset="img/ui-saver-800.webp 800w, img/ui-saver.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async" loading="lazy"
+              data-i18n-attr="alt:fh.k2a" alt="The token saver opened over the chat: answer style, lean code, quiet tools and automatic compact.">
+            <figcaption><b data-i18n="fh.k2">Token saver</b> <span data-i18n="fh.k2b">Shorter answers, quieter tools, and a compact before the context fills up.</span></figcaption>
+          </figure>
+          <figure class="fh-card">
+            <img src="img/ui-sidebar.webp" srcset="img/ui-sidebar-800.webp 800w, img/ui-sidebar.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async" loading="lazy"
+              data-i18n-attr="alt:fh.k3a" alt="The agent in full screen with the Explorer open beside it.">
+            <figcaption><b data-i18n="fh.k3">Side bars</b> <span data-i18n="fh.k3b">The Explorer next to the agent, every column resized with the mouse.</span></figcaption>
+          </figure>
+          <figure class="fh-card">
+            <img src="img/ui-extensions.webp" srcset="img/ui-extensions-800.webp 800w, img/ui-extensions.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async" loading="lazy"
+              data-i18n-attr="alt:fh.k4a" alt="The Extensions view searching the VS Code Marketplace for gitlens, with GitLens open: its details and its README, pictures included.">
+            <figcaption><b data-i18n="fh.k4">Extensions</b> <span data-i18n="fh.k4b">The VS Code Marketplace inside FluxCode, each README with its pictures.</span></figcaption>
+          </figure>
+          <figure class="fh-card">
+            <img src="img/ui-settings.webp" srcset="img/ui-settings-800.webp 800w, img/ui-settings.webp 1600w" sizes="(max-width: 720px) 94vw, 1180px" width="1600" height="938" decoding="async" loading="lazy"
+              data-i18n-attr="alt:fh.k5a" alt="Settings as one page: the sections listed on the left; on the right the theme, the interface language in five choices, liquid glass and the animated backgrounds.">
+            <figcaption><b data-i18n="fh.k5">Settings</b> <span data-i18n="fh.k5b">One page from Appearance to About: liquid glass, animated backgrounds and four languages.</span></figcaption>
+          </figure>
+        </div>
+        <p class="fh-count" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></p>
+        <p class="fh-note" data-i18n="fh.caption">A screenshot of the app, like every picture on this page.</p>
+      </div>
+      <div class="fh-night" aria-hidden="true"></div>
     </div>
   </section>
 
@@ -1174,6 +1224,22 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     "fh.s4": "Agen AI bawaan",
     "fh.screen": "FluxCode dengan agen memenuhi jendela: daftar chat, percakapan, dan file yang diubahnya.",
     "fh.caption": "Tangkapan layar aplikasinya, seperti semua gambar di halaman ini.",
+    "fh.deck": "Tampilan FluxCode",
+    "fh.k1": "Agen AI",
+    "fh.k1b": "Chat, percakapan, dan file yang diubahnya, berdampingan di atas kaca.",
+    "fh.k1a": "Agen memenuhi jendela di atas latar laut beranimasi: chat tersimpan di kiri, percakapan di tengah, file yang diubahnya di kanan.",
+    "fh.k2": "Hemat token",
+    "fh.k2b": "Jawaban lebih ringkas, tool lebih senyap, dan compact sebelum konteks penuh.",
+    "fh.k2a": "Panel hemat token terbuka di atas chat: gaya jawaban, kode ringkas, tool senyap, dan compact otomatis.",
+    "fh.k3": "Side bar",
+    "fh.k3b": "Explorer di samping agen, tiap kolom bisa digeser dengan mouse.",
+    "fh.k3a": "Agen dalam layar penuh dengan Explorer terbuka di sampingnya.",
+    "fh.k4": "Ekstensi",
+    "fh.k4b": "VS Code Marketplace di dalam FluxCode, tiap README lengkap dengan gambarnya.",
+    "fh.k4a": "Tampilan Ekstensi mencari gitlens di VS Code Marketplace, dengan GitLens terbuka: detail dan README-nya, lengkap dengan gambar.",
+    "fh.k5": "Pengaturan",
+    "fh.k5b": "Satu halaman dari Tampilan sampai Tentang: liquid glass, latar animasi, dan empat bahasa.",
+    "fh.k5a": "Pengaturan dalam satu halaman: daftar bagian di kiri; di kanan tema, bahasa antarmuka, liquid glass, dan latar animasi.",
     "release.released": "dirilis",
     "release.other": "Sistem lain",
     "viewer.label": "Tangkapan layar FluxCode",
@@ -1893,8 +1959,8 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     },
     "token-saver": {
       key: null,
-      en: { cap: "The token saver asks for shorter answers, diffs and quieter tools.", alt: "The token saver panel over the chat: Caveman on at the Full level, Lean code off, Quiet tools on, about 36 percent fewer output tokens." },
-      id: { cap: "Hemat token meminta jawaban lebih pendek, diff, dan tool seperlunya.", alt: "Panel hemat token di atas chat: Caveman aktif di level Full, Lean code mati, Quiet tools aktif, sekitar 36 persen lebih sedikit token keluaran." }
+      en: { cap: "The token saver: shorter answers, diffs, quieter tools, and a compact before the context fills up.", alt: "The token saver over the chat: Short answers, Lean code and Quiet tools as switches, and Auto compact on at 70 percent of the context." },
+      id: { cap: "Hemat token: jawaban lebih pendek, diff, tool seperlunya, dan compact sebelum konteks penuh.", alt: "Hemat token di atas chat: Short answers, Lean code, dan Quiet tools sebagai sakelar, dan Auto compact aktif di 70 persen konteks." }
     },
     "usage-limit": {
       key: null,
@@ -1902,14 +1968,14 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       id: { cap: "Limit memberi tahu kapan reset, dan pesannya bisa lanjut sendiri.", alt: "Banner di atas kotak pesan: Usage limit reached, reset sekitar 2 jam lagi, dengan centang Resume at reset dan tombol Continue now." }
     },
     "side-bars": {
-      key: "Ctrl+Shift+F",
-      en: { cap: "Any view in either side bar. Find in files searches as you type.", k: " finds in files", alt: "Search in the right side bar with the Explorer on the left: typing right_view lists 23 results in 4 files, each match tinted." },
-      id: { cap: "View mana pun di side bar kiri atau kanan. Find in files mencari sambil mengetik.", k: " mencari di berkas", alt: "Search di side bar kanan dengan Explorer di kiri: mengetik right_view menampilkan 23 hasil di 4 berkas, tiap kecocokan diberi warna." }
+      key: "Ctrl+B",
+      en: { cap: "The side bar opens next to the agent in full screen; every column resizes with the mouse.", k: " shows or hides the side bar", alt: "The agent in full screen with the Explorer open beside it: the project's files, the saved chats, the conversation and the files it changed." },
+      id: { cap: "Side bar terbuka di samping agen dalam layar penuh; tiap kolom bisa digeser dengan mouse.", k: " menampilkan atau menyembunyikan side bar", alt: "Agen dalam layar penuh dengan Explorer terbuka di sampingnya: berkas proyek, chat tersimpan, percakapan, dan berkas yang diubahnya." }
     },
     "extensions": {
       key: "Ctrl+Shift+X",
-      en: { cap: "The whole VS Code Marketplace, searched as you type, installed from the list.", k: " opens Extensions", alt: "The Extensions view searching the VS Code Marketplace for prettier: 256 results with installs, ratings and Install buttons, and Prettier's page with its details." },
-      id: { cap: "Seluruh VS Code Marketplace, dicari sambil mengetik, dipasang dari daftarnya.", k: " membuka Extensions", alt: "Tampilan Extensions mencari prettier di VS Code Marketplace: 256 hasil dengan jumlah pasang, rating, dan tombol Install, serta halaman Prettier beserta detailnya." }
+      en: { cap: "The whole VS Code Marketplace, searched as you type, installed from the list.", k: " opens Extensions", alt: "The Extensions view searching the VS Code Marketplace for gitlens: 78 results with installs and Install buttons, and GitLens' page with its README and pictures." },
+      id: { cap: "Seluruh VS Code Marketplace, dicari sambil mengetik, dipasang dari daftarnya.", k: " membuka Extensions", alt: "Tampilan Extensions mencari gitlens di VS Code Marketplace: 78 hasil dengan jumlah pasang dan tombol Install, serta halaman GitLens dengan README dan gambarnya." }
     },
     "backgrounds": {
       key: null,
@@ -2096,10 +2162,13 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
   /* ---------- The flight (hero) ---------- */
   // The stage is pinned for the section's height; p (0..1) is how far through it the
   // page is, eased toward the scroll so the motion stays soft with a wheel.
-  //   0.00-0.32  zoom through the x of the wordmark (scale 1 + z^3 * 60), the dark
+  //   0.00-0.20  zoom through the x of the wordmark (scale 1 + z^3 * 60), the dark
   //              outside fades from z 0.55, so the sky fills the screen
-  //   0.30-0.40  the claim comes in; 0.56-0.68 it leaves (rises, shrinks, blurs)
-  //   0.60-0.92  the app rises from below and settles in the middle
+  //   0.19-0.25  the claim comes in; 0.33-0.40 it leaves (rises, shrinks, blurs)
+  //   0.37-0.50  the app rises from below and settles in the middle
+  //   0.52-0.90  the cards change: each next one slides up over the last, which sinks
+  //              back and dims; each one holds for a while before the next comes
+  //   0.88-1.00  night falls: the sky dims into the page's own background
   // The sky moves the whole way: clouds rise and part, the stars sink.
   function initFlight() {
     var sec = $(".fh");
@@ -2192,7 +2261,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       shown += (target - shown) * 0.16;
       if (Math.abs(target - shown) < 0.0004) shown = target; else queue();
       var p = shown;
-      var z = clamp(p / 0.32);
+      var z = clamp(p / 0.2);
       var s = 1 + Math.pow(z, 3) * 60;
       // The camera drifts as it dives: the crossing of the x slides to the middle of the
       // screen, so the flight ends centred whatever the word's width.
@@ -2204,12 +2273,14 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       var mix = 1 - ease(clamp((z - 0.55) / 0.4));
       dim.style.opacity = mix.toFixed(3);
       edge.style.opacity = (mix * (1 - z * 0.8)).toFixed(3);
-      var h = ease(clamp((p - 0.3) / 0.1)), hx = ease(clamp((p - 0.56) / 0.12)), q = ease(clamp((p - 0.6) / 0.32));
+      var h = ease(clamp((p - 0.19) / 0.06)), hx = ease(clamp((p - 0.33) / 0.07)), q = ease(clamp((p - 0.37) / 0.13));
       set(sec, "--p", p.toFixed(4));
       set(sec, "--z", z.toFixed(4));
       set(sec, "--q", q.toFixed(4));
-      set(sec, "--io", clamp(1 - p * 10).toFixed(3));
-      set(sec, "--iy", (-p * 12 * vh / 100).toFixed(1) + "px");
+      set(sec, "--io", clamp(1 - p * 16).toFixed(3));
+      set(sec, "--iy", (-p * 20 * vh / 100).toFixed(1) + "px");
+      set(sec, "--e", ease(clamp((p - 0.88) / 0.12)).toFixed(3));
+      deal(p, vh);
       set(sec, "--co", Math.max(0, h * (1 - hx * 1.4)).toFixed(3));
       set(sec, "--cy", ((1 - h) * 40 - hx * 0.24 * vh).toFixed(1) + "px");
       set(sec, "--cs", (1 - hx * 0.14).toFixed(4));
@@ -2219,6 +2290,32 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       set(sec, "--ry", ((1 - q) * 0.9 * vh).toFixed(1) + "px");
       set(sec, "--rs", (0.82 + q * 0.18).toFixed(4));
       set(sec, "--rc", clamp((q - 0.85) / 0.15).toFixed(3));
+    }
+    // Where the deck is: k runs 0..n-1 between 0.52 and 0.90; each step holds still for
+    // its first and last quarter, so every card is read before the next comes.
+    var cards = $all(".fh-card"), ticks = $all(".fh-count i"), dealt = -1;
+    function deal(p, vh) {
+      var n = cards.length;
+      if (!n) return;
+      var t = clamp((p - 0.52) / 0.38) * (n - 1), i0 = Math.min(n - 2, Math.floor(t));
+      var k = n < 2 ? 0 : i0 + ease(clamp((t - i0 - 0.25) / 0.5));
+      cards.forEach(function (c, i) {
+        var d = i - k, y = 0, sc = 1, op = 1, lit = 1, cap = 0;
+        if (d > 0) { y = Math.min(d, 1.2) * vh * 0.9; cap = 0; }
+        else { sc = 1 + Math.max(d, -2) * 0.06; y = Math.max(d, -2) * vh * 0.035; lit = 1 + Math.max(d, -1.5) * 0.4; op = clamp(2 + d); }
+        if (d > -0.5 && d < 0.5) cap = 1 - Math.abs(d) * 2;
+        c.style.transform = "translate3d(0," + y.toFixed(1) + "px,0) scale(" + sc.toFixed(4) + ")";
+        c.style.opacity = op.toFixed(3);
+        c.style.zIndex = String(10 + i);
+        c.style.visibility = d > 1.15 || d < -2 ? "hidden" : "visible";
+        c.style.setProperty("--lit", lit.toFixed(3));
+        c.style.setProperty("--cap", cap.toFixed(3));
+      });
+      var on = Math.round(k);
+      if (on !== dealt) {
+        dealt = on;
+        ticks.forEach(function (t, i) { t.classList.toggle("on", i === on); });
+      }
     }
     function queue() { if (!raf) raf = requestAnimationFrame(frame); }
     layout();
