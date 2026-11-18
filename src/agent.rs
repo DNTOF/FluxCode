@@ -49,6 +49,7 @@ mod follow;
 mod full;
 mod limit;
 mod saver;
+pub(crate) mod updates;
 mod tidy;
 pub(crate) mod worktree;
 mod catalog;
@@ -303,6 +304,10 @@ pub struct AgentState {
     pub uninstall_inputs: [Entity<InputState>; 2],
     /// The last install that failed: the agent's id, why, and its stopped animation.
     pub install_err: Option<(String, String, Option<Entity<crate::flux_anim::InstallAnim>>)>,
+    /// Installed agents with a newer version in the registry (updates.rs).
+    pub(crate) updates: Vec<updates::Pending>,
+    /// The update cards were closed; a check that finds something new shows them again.
+    pub(crate) updates_hidden: bool,
     /// The agent, model, mode or permission menu that is open.
     pub menu: menu::MenuState,
     pub saver: saver::SaverState,
@@ -698,6 +703,8 @@ impl AgentState {
             editing: None,
             installing: None,
             install_err: None,
+            updates: Vec::new(),
+            updates_hidden: false,
             menu: menu::MenuState::new(window, cx),
             effort_from: std::cell::Cell::new(None),
             effort_drag: std::cell::Cell::new(None),
@@ -3390,9 +3397,10 @@ impl Workbench {
             .child(body)
             .child(probe)
             // The agent menu opens under the panel title, inside the panel.
-            .children(self.render_agent_menu(true, window, cx).map(|m| div().absolute().top_1().left_2().right_2().child(m)))
+            // Deferred: painted after the chat, so its text can't show through the glass.
+            .children(self.render_agent_menu(true, window, cx).map(|m| div().absolute().top_1().left_2().right_2().child(deferred(m))))
             .children(self.render_usage_modal(cx))
-            .children(self.render_saver_panel(cx).map(|p| div().absolute().right_3().bottom(theme::u(118.)).child(p)))
+            .children(self.render_saver_panel(cx).map(|p| div().absolute().right_3().bottom(theme::u(118.)).child(deferred(p))))
             .into_any_element()
     }
 
@@ -4289,7 +4297,7 @@ impl Workbench {
             .mx_3()
             .mb_3()
             .child(boxed.child(box_probe))
-            .when_some(menu, |d, m| d.child(div().absolute().left_0().right_0().bottom_full().mb_1p5().child(m)))
+            .when_some(menu, |d, m| d.child(div().absolute().left_0().right_0().bottom_full().mb_1p5().child(deferred(m))))
     }
 
     /// Which browser the agents drive, and where its tools stand.
@@ -4732,7 +4740,7 @@ impl Workbench {
 
 /// An agent's icon from the ACP registry, drawn in the theme's text color; agents
 /// without one (Mura, or before the icons arrive) get their initial in a square.
-fn agent_glyph(id: &str, size: f32) -> AnyElement {
+pub(crate) fn agent_glyph(id: &str, size: f32) -> AnyElement {
     let s = theme::u(size);
     match crate::acp::icon_asset(id) {
         Some(path) => svg().path(SharedString::from(path)).flex_none().size(s).text_color(c(theme::FG)).into_any_element(),

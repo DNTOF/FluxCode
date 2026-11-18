@@ -309,6 +309,8 @@ pub struct Workbench {
     pub(crate) settings: crate::settings::Settings,
     pub(crate) settings_open: bool,
     pub(crate) settings_section: crate::settings::SettingsSection,
+    /// The settings page's scroll: every section on one page, the left list jumps in it.
+    pub(crate) settings_scroll: ScrollHandle,
     /// The "What's new" page, when it is showing (whatsnew.rs).
     pub(crate) whats_new: Option<crate::whatsnew::Page>,
     /// Paths of closed tabs, newest last, for Ctrl+Shift+T.
@@ -567,6 +569,7 @@ impl Workbench {
             settings,
             settings_open: false,
             settings_section: crate::settings::SettingsSection::Appearance,
+            settings_scroll: ScrollHandle::new(),
             whats_new: None,
             closed_tabs: Vec::new(),
             last_switch: None,
@@ -667,6 +670,7 @@ impl Workbench {
         this.take_forwarded_files(window, cx);
         crate::boot::mark("  folder + session");
         this.start_update_checks(cx);
+        this.start_agent_update_checks(cx);
         crate::boot::mark("  update check scheduled");
         this.start_copilot(cx);
         cx.background_spawn(async { crate::agent::shots::prune_cache() }).detach();
@@ -2608,7 +2612,7 @@ impl Workbench {
                 .justify_center()
                 .overflow_hidden()
                 .when(!backdrop, |d| d.bg(theme::editor_wash()))
-                .when(backdrop, |d| d.child(wash_layer(false)))
+                .when(backdrop, |d| d.child(div().absolute().top_0().left_0().size_full().bg(theme::welcome_tint())).child(wash_layer(false)))
                 .child(self.welcome_probe(cx))
                 .when(self.welcome_w.get() >= 84., |d| d.child(ui::meander(48., c(theme::FG_STRONG), c(theme::ACCENT_TEXT))))
                 .into_any_element(),
@@ -2618,7 +2622,7 @@ impl Workbench {
                 .size_full()
                 .overflow_y_scroll()
                 .when(!backdrop, |d| d.bg(theme::editor_wash()))
-                .when(backdrop, |d| d.child(wash_layer(false)))
+                .when(backdrop, |d| d.child(div().absolute().top_0().left_0().size_full().bg(theme::welcome_tint())).child(wash_layer(false)))
                 .child(self.welcome_probe(cx))
                 .child(
                     // flex_none: taller than the window it grows (and scrolls) instead of
@@ -3053,7 +3057,7 @@ impl Render for Workbench {
             .into_any_element()
         };
         // Agent full screen fades over the editor (and back) instead of snapping.
-        let full = self.agent_docked_visible() && self.agent_full;
+        let full = self.agent_docked_visible() && self.agent_full && !self.settings_open;
         let (was_full, mut full_gen) = self.full_anim.get();
         if was_full != full {
             full_gen += 1;
@@ -3070,7 +3074,9 @@ impl Render for Workbench {
             )
             .into_any_element()
         };
-        let center: AnyElement = if full {
+        let center: AnyElement = if self.settings_open {
+            div().flex_1().min_w_0().h_full().overflow_hidden().child(self.render_settings(window, cx)).into_any_element()
+        } else if full {
             // Full width: the agent workspace (sessions, chat, changes) fills the window;
             // the side bar can still open beside it (explorer, search, ...).
             let agent = fade(div().flex_1().min_w_0().h_full().overflow_hidden().child(self.render_agent_full(window, cx)), "full-in");
@@ -3095,7 +3101,7 @@ impl Render for Workbench {
         };
         // The right dock is a fixed-width column (dragged by its left edge), so it always
         // fits in the window: the editor side gives up the space, never the dock.
-        let center: AnyElement = if full {
+        let center: AnyElement = if full || self.settings_open {
             center
         } else if self.right_dock_on() {
             h_flex()
@@ -3261,6 +3267,7 @@ impl Render for Workbench {
             .children(self.render_drop_ask(cx))
             .children(self.render_preview_ask(cx))
             .children(self.render_update(cx))
+            .children(self.render_agent_updates(window, cx))
             .children(self.render_theme_menu(cx))
             .children(self.render_agent_settings(window, cx))
             // A picture the agent took, full screen over everything.

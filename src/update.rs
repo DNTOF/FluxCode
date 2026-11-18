@@ -24,6 +24,11 @@ use crate::workbench::Workbench;
 /// This build, e.g. `BuildDev-2026-11-09-17-30-12` (set by build.rs).
 pub const BUILD: &str = env!("FLUXCODE_BUILD");
 const RELEASES: &str = "https://api.github.com/repos/MuaraAI/FluxCode/releases?per_page=20";
+/// The same releases as a feed on github.com: read when the API says no. The API answers
+/// 60 requests an hour per internet address, and many people can share one address
+/// (a mobile network, an office), so it runs out without anyone doing anything wrong.
+const FEED: &str = "https://github.com/MuaraAI/FluxCode/releases.atom";
+const DOWNLOAD: &str = "https://github.com/MuaraAI/FluxCode/releases/download";
 /// How often a running FluxCode looks again.
 const EVERY: Duration = Duration::from_secs(6 * 60 * 60);
 /// First look, after start-up work has settled.
@@ -86,17 +91,129 @@ fn curl() -> std::process::Command {
 /// Ask GitHub for the newest BuildDev release that has a file for this platform.
 /// `Ok(None)`: this build is the newest.
 pub fn check() -> Result<Option<Release>, String> {
-    let out = curl()
-        .args(["-s", "-S", "-f", "-L", "--max-time", "20"])
-        .args(["-H", "Accept: application/vnd.github+json", "-H", "User-Agent: FluxCode", RELEASES])
-        .output()
-        .map_err(|e| format!("curl could not start ({e})"))?;
+    match get(RELEASES, true).and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).map_err(|e| e.to_string())) {
+        Ok(list) => Ok(newest(&list, BUILD)),
+        // Refused (the hourly limit) or unreadable: the feed has the same releases.
+        Err(api) => check_feed().map_err(|feed| if feed == api { api } else { format!("{api}; {feed}") }),
+    }
+}
+
+/// One GET through curl; the body, or curl's own error line.
+fn get(url: &str, api: bool) -> Result<Vec<u8>, String> {
+    let mut cmd = curl();
+    cmd.args(["-s", "-S", "-f", "-L", "--max-time", "20", "-H", "User-Agent: FluxCode"]);
+    if api {
+        cmd.args(["-H", "Accept: application/vnd.github+json"]);
+    }
+    let out = cmd.arg(url).output().map_err(|e| format!("curl could not start ({e})"))?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
         return Err(if err.is_empty() { "GitHub did not answer".into() } else { err });
     }
-    let list: serde_json::Value = serde_json::from_slice(&out.stdout).map_err(|e| e.to_string())?;
-    Ok(newest(&list, BUILD))
+    Ok(out.stdout)
+}
+
+/// The check through the releases feed. The feed has no file list, but every build
+/// names its files the same way, so the file's address follows from the tag; its size
+/// comes from asking for the file's headers. A build without the xz file (made before
+/// it existed) falls back to the archive.
+fn check_feed() -> Result<Option<Release>, String> {
+    let body = get(FEED, false)?;
+    let list = feed_releases(&String::from_utf8_lossy(&body));
+    let Some(mut best) = newest(&list, BUILD) else { return Ok(None) };
+    match size_of(&best.url) {
+        Some(n) => best.size = n,
+        None => {
+            let archive = best.url.replace(XZ_SUFFIX, ASSET_SUFFIX);
+            best.size = size_of(&archive).ok_or("the build's file is not on GitHub yet")?;
+            best.url = archive;
+        }
+    }
+    Ok(Some(best))
+}
+
+/// The size of a file on GitHub, from its headers after the redirect to the download
+/// host. None: no such file.
+fn size_of(url: &str) -> Option<u64> {
+    let out = curl().args(["-s", "-f", "-I", "-L", "--max-time", "20", "-H", "User-Agent: FluxCode", url]).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    // Every hop prints its headers; the last Content-Length is the file's.
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| {
+            let (k, v) = l.split_once(':')?;
+            k.trim().eq_ignore_ascii_case("content-length").then(|| v.trim().parse::<u64>().ok()).flatten()
+        })
+        .last()
+        .filter(|n| *n > 0)
+}
+
+/// The feed's entries in the shape of the API's list, so `newest` reads both: the tag,
+/// the notes as Markdown bullets, the page, and this platform's xz file (size unknown).
+fn feed_releases(xml: &str) -> serde_json::Value {
+    let list: Vec<serde_json::Value> = xml
+        .split("<entry>")
+        .skip(1)
+        .filter_map(|e| {
+            let title = between(e, "<title>", "</title>")?;
+            let tag = title.split_whitespace().find(|w| w.starts_with("BuildDev-"))?.to_string();
+            let notes = between(e, "<content type=\"html\">", "</content>").map(|h| feed_notes(&unescape(h))).unwrap_or_default();
+            let page = between(e, "<link rel=\"alternate\" type=\"text/html\" href=\"", "\"").unwrap_or_default().to_string();
+            let name = format!("FluxCode-{tag}-{XZ_SUFFIX}");
+            Some(serde_json::json!({
+                "tag_name": tag, "draft": false, "body": notes, "html_url": page,
+                "assets": [{ "name": name, "browser_download_url": format!("{DOWNLOAD}/{tag}/{name}"), "size": 0 }],
+            }))
+        })
+        .collect();
+    serde_json::Value::Array(list)
+}
+
+fn between<'a>(s: &'a str, open: &str, close: &str) -> Option<&'a str> {
+    let i = s.find(open)? + open.len();
+    let j = s[i..].find(close)? + i;
+    Some(&s[i..j])
+}
+
+fn unescape(s: &str) -> String {
+    s.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&")
+}
+
+/// The release notes' HTML as the Markdown the card reads: paragraphs, `## ` headings
+/// and `- ` bullets, up to the download table.
+fn feed_notes(html: &str) -> String {
+    let html = html.split("<h2>Download</h2>").next().unwrap_or_default();
+    let mut md = html
+        .replace("<h2>", "\n## ")
+        .replace("</h2>", "\n")
+        .replace("<li>", "- ")
+        .replace("</li>\n", "\n")
+        .replace("</li>", "\n")
+        .replace("</p>", "\n\n")
+        .replace("<code>", "`")
+        .replace("</code>", "`");
+    // Whatever tags are left (links, lists, paragraphs) go; their text stays.
+    let mut out = String::with_capacity(md.len());
+    let mut tag = false;
+    for ch in md.drain(..) {
+        match ch {
+            '<' => tag = true,
+            '>' if tag => tag = false,
+            c if !tag => out.push(c),
+            _ => {}
+        }
+    }
+    let out = unescape(&out);
+    // One blank line between blocks at most.
+    let mut lines: Vec<&str> = Vec::new();
+    for l in out.lines().map(str::trim_end) {
+        if !(l.is_empty() && lines.last().is_none_or(|p| p.is_empty())) {
+            lines.push(l);
+        }
+    }
+    lines.join("\n").trim().to_string()
 }
 
 /// The newest release in GitHub's list that is newer than `current` and carries
@@ -706,7 +823,36 @@ pub fn build_time(tag: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     // Not `super::*`: that brings in gpui's own `test` attribute.
-    use super::{build_time, highlights, newest, ASSET_SUFFIX, BUILD, XZ_SUFFIX};
+    use super::{build_time, feed_releases, highlights, newest, ASSET_SUFFIX, BUILD, XZ_SUFFIX};
+
+    #[test]
+    fn reads_the_releases_feed() {
+        let xml = r#"<feed><title>Release notes from FluxCode</title>
+  <entry>
+    <link rel="alternate" type="text/html" href="https://github.com/MuaraAI/FluxCode/releases/tag/BuildDev-2999-01-02-00-00-00"/>
+    <title>FluxCode BuildDev-2999-01-02-00-00-00</title>
+    <content type="html">&lt;p&gt;Development build, made from &lt;code&gt;0b745e2&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;What changed&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;French and Malay interface; quieter update toast&lt;/li&gt;
+&lt;li&gt;Liquid glass across popups &amp;amp; menus&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Download&lt;/h2&gt;
+&lt;table&gt;&lt;tr&gt;&lt;td&gt;x&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</content>
+  </entry>
+  <entry><title>FluxCode BuildDev-2999-01-01-00-00-00</title><content type="html">&lt;ul&gt;&lt;li&gt;Older&lt;/li&gt;&lt;/ul&gt;</content></entry>
+</feed>"#;
+        let list = feed_releases(xml);
+        let r = newest(&list, BUILD).unwrap();
+        assert_eq!(r.tag, "BuildDev-2999-01-02-00-00-00");
+        assert_eq!(r.page, "https://github.com/MuaraAI/FluxCode/releases/tag/BuildDev-2999-01-02-00-00-00");
+        assert!(r.url.ends_with(&format!("/BuildDev-2999-01-02-00-00-00/FluxCode-BuildDev-2999-01-02-00-00-00-{XZ_SUFFIX}")), "{}", r.url);
+        assert!(r.url.starts_with("https://github.com/MuaraAI/FluxCode/releases/download/"));
+        assert!(!r.notes.contains("Download") && !r.notes.contains('<'), "{}", r.notes);
+        assert_eq!(highlights(&r.notes, 2), vec!["French and Malay interface; quieter update toast", "Liquid glass across popups & menus"]);
+        assert_eq!(r.between.len(), 2);
+        assert_eq!(r.between[1], ("BuildDev-2999-01-01-00-00-00".to_string(), "Older".to_string()));
+    }
 
     #[test]
     fn prefers_the_xz_file_and_reads_it() {

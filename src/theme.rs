@@ -538,6 +538,14 @@ pub fn tint(hex: Option<u32>) -> Hsla {
 /// The editor surface. With an image, a left-to-right wash: the code side lets
 /// 60% of the image strength through, the far right all of it, so the picture
 /// lives where code usually is not.
+/// The welcome page over a scene or picture: a light shade, enough for its text and
+/// shortcuts to read on a bright sky, while the picture still shows through.
+pub fn welcome_tint() -> Background {
+    let base: Hsla = rgb(palette().editor).into();
+    let a = if palette().dark { 0.6 } else { 0.62 };
+    linear_gradient(180., linear_color_stop(base.opacity(a * 0.8), 0.), linear_color_stop(base.opacity(a), 1.))
+}
+
 pub fn editor_wash() -> Background {
     let base: Hsla = rgb(palette().editor).into();
     match image() {
@@ -715,8 +723,10 @@ pub fn glass_pop_fill() -> Background {
         return base.into();
     }
     let dark = palette().dark;
-    let top = Hsla { l: (base.l + if dark { 0.07 } else { 0.03 }).clamp(0., 1.), ..base };
-    let (a_top, a_bottom) = if dark { (0.90, 0.84) } else { (0.92, 0.86) };
+    let top = Hsla { l: (base.l + if dark { 0.05 } else { 0.03 }).clamp(0., 1.), ..base };
+    // Nearly solid: without a blur, even a tenth of the chat's white text under a
+    // dark panel reads through it.
+    let (a_top, a_bottom) = (0.97, 0.95);
     linear_gradient(180., linear_color_stop(top.opacity(a_top), 0.), linear_color_stop(base.opacity(a_bottom), 1.))
 }
 
