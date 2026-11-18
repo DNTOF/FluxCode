@@ -329,10 +329,10 @@ section { scroll-margin-top: calc(var(--header-space) + 16px); }
 .fh.on .sky-stars { transform: translate3d(0, calc(var(--p, 0) * 10svh), 0); }
 .fh.on .fh-mask { display: block; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 #fh-dim { fill: rgba(5, 6, 13, 0.82); }
-#fh-text, #fh-edge { font-family: var(--sans); font-weight: 800; letter-spacing: -0.05em; }
-#fh-edge { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
-.fh.on .fh-intro { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-  padding: 0 20px max(6svh, 32px); opacity: var(--io, 1); transform: translate3d(0, var(--iy, 0), 0); }
+#fh-text, #fh-edge { font-family: var(--sans); font-weight: 800; letter-spacing: -0.025em; }
+#fh-edge { fill: url(#fh-sheen); stroke: none; }
+.fh.on .fh-intro { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: var(--it, 62svh) 20px 0; opacity: var(--io, 1); transform: translate3d(0, var(--iy, 0), 0); }
 .fh.on .fh-hint { display: block; margin: clamp(18px, 3svh, 34px) 0 0; font: 500 11px/1 var(--mono); letter-spacing: 0.3em; text-transform: uppercase; color: #8f8ba2; }
 .fh.on .fh-hint::after { content: ""; display: block; width: 1px; height: 34px; margin: 10px auto 0; background: linear-gradient(#b9b5c9, transparent); transform-origin: top; animation: drip 1.8s ease-in-out infinite; }
 @keyframes drip { 0% { transform: scaleY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
@@ -810,6 +810,14 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       </div>
       <svg class="fh-mask" aria-hidden="true" focusable="false">
         <defs>
+          <!-- Light caught in the glass: brighter at the top of each letter, gone by the
+               bottom. A fill, not an outline: the font's overlapping contours (the x's
+               cross, where u, d and e join their stems) would show as stray lines. -->
+          <linearGradient id="fh-sheen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity="0.22"/>
+            <stop offset="0.45" stop-color="#fff" stop-opacity="0.05"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
           <mask id="fh-cut" maskUnits="userSpaceOnUse">
             <rect class="fh-all" fill="#fff"/>
             <g id="fh-word"><text id="fh-text" text-anchor="middle" fill="#000">FluxCode</text></g>
@@ -2117,6 +2125,22 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
         var len = text.getComputedTextLength();
         if (len > w * 0.9) { size = size * (w * 0.9) / len; place(size); }
       } catch (e) { /* measured on the next layout */ }
+      // The word and the claim under it are one group, centred in the room below the
+      // header: the word's capitals, a gap that grows with the letters, then the claim,
+      // the buttons and the scroll hint. Phones would otherwise leave the small word
+      // floating far above a claim pinned to the bottom.
+      try {
+        var hdr = $(".site-header"), tag = $(".fh-tag"), last = $(".fh.on .fh-hint");
+        if (!last || !last.offsetHeight) last = $(".fh-intro .cta-row");
+        var top = Math.min(120, Math.max(56, hdr ? hdr.offsetHeight : 72)) + 8;
+        var cap = capRatio() * size;
+        var gap = Math.max(26, Math.min(72, size * 0.26));
+        var claim = tag && last ? last.getBoundingClientRect().bottom - tag.getBoundingClientRect().top : 0;
+        var room = h - top - 16, group = cap + gap + claim;
+        var base = top + Math.max(0, (room - group) * 0.46) + cap;
+        [text, edge].forEach(function (t) { t.setAttribute("y", base); });
+        sec.style.setProperty("--it", Math.round(base + gap) + "px");
+      } catch (e) { /* keep the default spot */ }
       // The point the zoom flies into: the middle of the F's stem, low enough to miss its arms.
       try {
         var b = text.getExtentOfChar(0);
@@ -2125,6 +2149,18 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
       } catch (e) {
         origin.x = w * 0.27; origin.y = h * 0.5;
       }
+    }
+    // Height of a capital in the wordmark's font, as a share of the font size.
+    var capCache = 0;
+    function capRatio() {
+      if (capCache) return capCache;
+      try {
+        var cs = getComputedStyle(text), c = document.createElement("canvas").getContext("2d");
+        c.font = cs.fontWeight + " 100px " + cs.fontFamily;
+        var m = c.measureText("F");
+        if (m.actualBoundingBoxAscent > 30) capCache = m.actualBoundingBoxAscent / 100;
+      } catch (e) { /* fall back below */ }
+      return capCache || 0.72;
     }
     function set(n, k, v) { n.style.setProperty(k, v); }
     function frame() {
@@ -2161,7 +2197,7 @@ footer { border-top: 1px solid var(--line); padding: 44px 0 0; color: var(--mute
     }
     function queue() { if (!raf) raf = requestAnimationFrame(frame); }
     layout();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(); queue(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { capCache = 0; layout(); queue(); });
     window.addEventListener("resize", function () { layout(); queue(); }, { passive: true });
     window.addEventListener("scroll", queue, { passive: true });
     frame();
