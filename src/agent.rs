@@ -43,6 +43,7 @@ pub(crate) enum Req {
 }
 
 mod activity;
+pub(crate) mod shots;
 pub(crate) mod chats;
 mod follow;
 mod full;
@@ -120,6 +121,8 @@ pub enum Item {
     Branch(String),
     /// A web search or a page read, with its sources.
     Web(web::Web),
+    /// Pictures a tool took or the agent sent (screenshots), shown as previews.
+    Images { tool: Option<String>, shots: Vec<shots::Shot>, hidden: bool },
 }
 
 /// A message typed while the agent was busy (or not running yet), with its attachments.
@@ -304,6 +307,8 @@ pub struct AgentState {
     pub menu: menu::MenuState,
     pub saver: saver::SaverState,
     pub full: full::FullState,
+    /// A picture open full screen (see `shots`).
+    pub lightbox: Option<shots::Lightbox>,
     /// Where the effort slider's handle was before the last change (it slides from there).
     pub effort_from: std::cell::Cell<Option<f32>>,
     /// The effort handle is held: where it is on the rail (0..1).
@@ -666,6 +671,7 @@ impl AgentState {
             replay: None,
             replay_gen: 0,
             saver: Default::default(),
+            lightbox: None,
             full: Default::default(),
             account_wait: None,
             input,
@@ -1628,6 +1634,7 @@ impl Workbench {
             }
             _ => {}
         }
+        self.agent_take_images(u);
         match u.get("sessionUpdate").and_then(Value::as_str).unwrap_or("") {
             "agent_message_chunk" => self.agent.append(false, &text(u)),
             // Only while an old session replays; live prompts are shown when sent.
@@ -1699,6 +1706,40 @@ impl Workbench {
             }
             _ => {}
         }
+    }
+
+    /// Pictures in a tool call, its update, or an answer: added under that tool's step
+    /// (one strip per tool), or as their own strip for an answer.
+    fn agent_take_images(&mut self, u: &Value) {
+        let kind = u.get("sessionUpdate").and_then(Value::as_str).unwrap_or("");
+        let found = match kind {
+            "tool_call" | "tool_call_update" => {
+                let mut v = Vec::new();
+                for k in ["content", "rawOutput"] {
+                    if let Some(x) = u.get(k) {
+                        v.extend(shots::collect(x));
+                    }
+                }
+                v
+            }
+            "agent_message_chunk" => u.get("content").map(shots::collect).unwrap_or_default(),
+            _ => return,
+        };
+        if found.is_empty() {
+            return;
+        }
+        let tool = u.get("toolCallId").and_then(Value::as_str).map(String::from);
+        if tool.is_some() {
+            if let Some(Item::Images { shots, .. }) = self.agent.items.iter_mut().rev().take(RECENT).find(|i| matches!(i, Item::Images { tool: t, .. } if *t == tool)) {
+                for s in found {
+                    if !shots.contains(&s) {
+                        shots.push(s);
+                    }
+                }
+                return;
+            }
+        }
+        self.agent.items.push(Item::Images { tool, shots: found, hidden: false });
     }
 
     fn agent_on_request(&mut self, id: Value, method: &str, params: Value, cx: &mut Context<Self>) {
@@ -3798,6 +3839,7 @@ impl Workbench {
                 .child(div().flex_1().h(px(1.)).bg(c(theme::BORDER)))
                 .into_any_element(),
             Item::Web(w) => self.render_web_item(i, w, cx),
+            Item::Images { shots, hidden, .. } => self.render_shots(i, shots, *hidden, cx),
             Item::Tool { id, title, status, kind } => self.render_step(
                 activity::Step {
                     key: id.clone(),
@@ -5038,6 +5080,7 @@ fn item_size_sig(item: &Item) -> u64 {
         Item::Tool { title, status, kind, .. } => (title.len(), status, kind).hash(&mut h),
         Item::Plan(e) => (e.len(), e.iter().filter(|x| x.1 == "completed").count()).hash(&mut h),
         Item::Web(w) => (w.results.len(), &w.status, w.query.len()).hash(&mut h),
+        Item::Images { shots, hidden, .. } => (shots.len(), *hidden).hash(&mut h),
     }
     h.finish()
 }
