@@ -43,6 +43,7 @@ mod scm_incoming;
 mod search;
 mod scene;
 mod scene_art;
+mod motion_check;
 mod sidedock;
 mod settings;
 mod shell;

@@ -391,6 +391,8 @@ pub struct Workbench {
     pub(crate) ext: crate::ext::Ext,
     /// The status bar's color theme list is open.
     pub(crate) theme_menu: bool,
+    /// Background animation was just turned on: what this PC makes of it.
+    pub(crate) motion_check: Option<crate::motion_check::Check>,
     pub(crate) quick: crate::quick::QuickOpen,
     /// Every file of the open folder (from the explorer's scan), for Go to File.
     pub(crate) all_files: Rc<Vec<String>>,
@@ -624,6 +626,7 @@ impl Workbench {
             scm,
             ext,
             theme_menu: false,
+            motion_check: None,
             quick,
             tree_nodes: Vec::new(),
             expanded: std::collections::HashSet::new(),

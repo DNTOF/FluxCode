@@ -160,7 +160,8 @@ the list.
 Twelve animated backgrounds play behind the panels: clouds, ocean, mountains, aurora,
 forest, lake, beach, dunes, city, rain, snow and a galaxy. They are drawn live in the theme's
 own colors, so a theme change recolors the scene at once (light themes turn it to day), and
-they fit any window size. Nothing is downloaded, and Background animation stops them.
+they fit any window size. Nothing is downloaded. They stand still by default (no CPU
+at all); Background animation makes them move, after checking what your PC can take.
 
 <table>
   <tr>
@@ -438,8 +439,10 @@ FluxCode opens it drawn, with Preview and Source above it.
   limit window has reset.
 - **Liquid glass and animated backgrounds.** Panels can turn translucent over the system's
   blur, with floating glass cards. Twelve animated backgrounds play behind them, drawn
-  live in the theme's colors (no video and no download), 24 frames a second while
-  the window is in front and a few behind other windows; Background animation stops them.
+  live in the theme's colors (no video and no download). They stand still by default;
+  Background animation makes them move 24 frames a second while the window is in front
+  (about 10 to 15% of one CPU core) and a few behind other windows, and turning it on
+  first measures what your PC can take.
 
 ## FluxCode, Zed and VS Code
 

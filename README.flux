@@ -269,13 +269,15 @@ dipasang langsung dari daftarnya.
 Twelve animated backgrounds play behind the panels: clouds, ocean, mountains, aurora,
 forest, lake, beach, dunes, city, rain, snow and a galaxy. They are drawn live in the theme's
 own colors, so a theme change recolors the scene at once (light themes turn it to day), and
-they fit any window size. Nothing is downloaded, and Background animation stops them.
+they fit any window size. Nothing is downloaded. They stand still by default (no CPU
+at all); Background animation makes them move, after checking what your PC can take.
 @id
 Dua belas latar beranimasi bergerak di belakang panel: awan, laut, pegunungan, aurora,
 hutan, danau, pantai, bukit pasir, kota, hujan, salju, dan galaksi. Semuanya digambar
 langsung dengan warna tema, jadi ganti tema langsung mewarnai ulang scene-nya (tema terang
-mengubahnya jadi siang), dan pas di ukuran jendela apa pun. Tidak ada yang diunduh, dan
-Background animation menghentikannya.
+mengubahnya jadi siang), dan pas di ukuran jendela apa pun. Tidak ada yang diunduh.
+Secara default scene-nya diam (tanpa beban CPU); Background animation membuatnya bergerak,
+setelah mengecek apakah PC kamu sanggup.
 
 @all
 @gallery
@@ -705,8 +707,10 @@ di atasnya.
   limit window has reset.
 - **Liquid glass and animated backgrounds.** Panels can turn translucent over the system's
   blur, with floating glass cards. Twelve animated backgrounds play behind them, drawn
-  live in the theme's colors (no video and no download), 24 frames a second while
-  the window is in front and a few behind other windows; Background animation stops them.
+  live in the theme's colors (no video and no download). They stand still by default;
+  Background animation makes them move 24 frames a second while the window is in front
+  (about 10 to 15% of one CPU core) and a few behind other windows, and turning it on
+  first measures what your PC can take.
 @id
 ## Kemampuan lainnya
 
@@ -799,9 +803,11 @@ di atasnya.
   setelah jendela limitnya reset.
 - **Liquid glass dan latar beranimasi.** Panel bisa menjadi tembus pandang di atas blur
   sistem, dengan kartu kaca yang melayang. Dua belas latar beranimasi bergerak di
-  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), 24 frame
-  per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
-  Background animation menghentikannya.
+  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan). Secara
+  default scene-nya diam; Background animation membuatnya bergerak 24 frame per detik saat
+  jendela di depan (sekitar 10 sampai 15% dari satu core CPU) dan beberapa frame saat di
+  belakang jendela lain, dan saat dinyalakan FluxCode lebih dulu mengukur apakah PC kamu
+  sanggup.
 
 @en
 ## FluxCode, Zed and VS Code

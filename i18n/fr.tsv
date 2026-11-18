@@ -1249,7 +1249,6 @@ Copy the file path	Copier le chemin du fichier
 Clouds	Nuages
 Dusk sky and clouds, peach accent	Ciel du soir et nuages, accent pêche
 Twelve scenes drawn live in your theme's colors: change the theme and the scene changes with it. Nothing to download, and they fit any window size.	Douze scènes dessinées en direct aux couleurs de votre thème : changez de thème et la scène change avec lui. Rien à télécharger, et elles s'adaptent à toute taille de fenêtre.
-Off keeps the scene still: nothing is redrawn while you work.	Désactivé, la scène reste immobile : rien n'est redessiné pendant que vous travaillez.
 Lake	Lac
 City	Ville
 Aurora	Aurore
@@ -1266,3 +1265,14 @@ Update all ({0})	Tout mettre à jour ({0})
 Hide (the update goes on)	Masquer (la mise à jour continue)
 The next chat uses the new version.	La prochaine conversation utilise la nouvelle version.
 Agent updates	Mises à jour des agents
+Off by default: the scene stands still and costs nothing while you work. On, it moves 24 times a second, which takes about 10 to 15% of one CPU core while FluxCode is in front (much less behind other windows). Turning it on checks what your PC can take.	Désactivé par défaut : la scène reste immobile et ne coûte rien pendant que vous travaillez. Activée, elle bouge 24 fois par seconde, ce qui prend environ 10 à 15 % d'un cœur du processeur quand FluxCode est au premier plan (bien moins derrière d'autres fenêtres). L'activer vérifie ce que votre PC peut supporter.
+Checking what your PC can take: watching FluxCode's CPU use for a few seconds…	Vérification de ce que votre PC peut supporter : mesure de l'utilisation du processeur par FluxCode pendant quelques secondes…
+Turn it off	Désactiver
+{cores} cores, {ram} RAM	{cores} cœurs, {ram} de RAM
+Couldn't measure it here. With {spec}, it may be heavy: leave it off if FluxCode feels slow.	Impossible de le mesurer ici. Avec {spec}, cela peut être lourd : désactivez-le si FluxCode semble lent.
+Couldn't measure it here, but {spec} should take it.	Impossible de le mesurer ici, mais {spec} devrait suffire.
+{pct}% of one core ({whole}% of the whole CPU, {spec})	{pct} % d'un cœur ({whole} % de tout le processeur, {spec})
+Your PC takes it easily: {used}.	Votre PC le supporte sans peine : {used}.
+It runs fine here: {used}. It is the heaviest thing FluxCode does while you type.	Cela fonctionne bien ici : {used}. C'est ce que FluxCode fait de plus lourd pendant que vous tapez.
+Heavy for this PC: {used}. Leave it off unless you want the motion.	Lourd pour ce PC : {used}. Laissez-le désactivé sauf si vous tenez au mouvement.
+You are on battery: it drains a little faster while the scene moves.	Vous êtes sur batterie : elle se vide un peu plus vite pendant que la scène bouge.

@@ -94,8 +94,11 @@ pub struct Settings {
     pub bg_scene: String,
     /// The scene FluxSky's clouds replaced, given back when another theme is picked.
     pub bg_scene_before_sky: String,
-    /// The scene moves (off: a still picture).
-    pub bg_anim: bool,
+    /// The scene moves (off, the default: a still picture that costs nothing while you
+    /// work). It replaced `bg_anim`, which was on by default: under the new name every
+    /// install starts with it off once, and turning it on checks what the PC can take
+    /// (`motion_check`).
+    pub bg_motion: bool,
     /// When the agent edits a file, the editor opens it and shows the change being
     /// typed in, line by line, with the view following it.
     pub agent_follow_edits: bool,
@@ -200,7 +203,7 @@ impl Default for Settings {
             resume_at_reset: false,
             bg_scene: "ocean".into(),
             bg_scene_before_sky: String::new(),
-            bg_anim: true,
+            bg_motion: false,
             agent_follow_edits: true,
             agent_accounts: Vec::new(),
             agent_account: Default::default(),
@@ -303,7 +306,7 @@ impl Settings {
     pub fn apply_backdrop(&self) {
         crate::theme::set(&self.theme, self.backdrop_visibility());
         crate::theme::set_glass(self.glass);
-        crate::scene::set(self.scene(), self.bg_anim);
+        crate::scene::set(self.scene(), self.bg_motion);
         crate::theme::set_scene_backdrop(self.scene().is_some());
     }
 }
@@ -627,6 +630,40 @@ impl Workbench {
         theme::apply(cx);
         window.refresh();
         cx.notify();
+    }
+
+    /// Background animation on or off. On, it first says what it costs, then measures it:
+    /// FluxCode's own CPU time over a few seconds of the moving scene, set against the
+    /// PC's cores, memory and power (`motion_check`).
+    pub(crate) fn toggle_bg_motion(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        use crate::motion_check::{self, Check};
+        self.settings.bg_motion = !self.settings.bg_motion;
+        self.apply_appearance(window, cx);
+        if !self.settings.bg_motion {
+            self.motion_check = None;
+            return cx.notify();
+        }
+        self.motion_check = Some(Check::Running);
+        cx.notify();
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(motion_check::SETTLE).await;
+            let start = motion_check::cpu_seconds();
+            cx.background_executor().timer(motion_check::MEASURE).await;
+            let pct = match (start, motion_check::cpu_seconds()) {
+                (Some(a), Some(b)) => Some(((b - a) / motion_check::MEASURE.as_secs_f64() * 100.) as f32),
+                _ => None,
+            };
+            let specs = cx.background_spawn(async { motion_check::specs() }).await;
+            _ = this.update(cx, |this, cx| {
+                // Turned off again while it was measuring: nothing to report.
+                if this.settings.bg_motion && matches!(this.motion_check, Some(Check::Running)) {
+                    let (level, text) = motion_check::verdict(pct, specs);
+                    this.motion_check = Some(Check::Done(level, text));
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
     }
 
     pub(crate) fn set_theme(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
@@ -968,17 +1005,41 @@ impl Workbench {
                 rows.push(div().px_4().pb_4().child(scene_cards(&s.bg_scene, cx)).into_any_element());
                 rows.push(settings_row(
                     tr("Background animation"),
-                    tr("Off keeps the scene still: nothing is redrawn while you work.").into(),
+                    tr("Off by default: the scene stands still and costs nothing while you work. On, it moves 24 times a second, which takes about 10 to 15% of one CPU core while FluxCode is in front (much less behind other windows). Turning it on checks what your PC can take.").into(),
                     Button::new("sc-anim")
-                        .label(if s.bg_anim { tr("On") } else { tr("Off") })
+                        .label(if s.bg_motion { tr("On") } else { tr("Off") })
                         .xsmall()
-                        .when(s.bg_anim, |b| b.primary())
-                        .on_click(cx.listener(|this, _, w, cx| {
-                            this.settings.bg_anim = !this.settings.bg_anim;
-                            this.apply_appearance(w, cx);
-                        }))
+                        .when(s.bg_motion, |b| b.primary())
+                        .on_click(cx.listener(|this, _, w, cx| this.toggle_bg_motion(w, cx)))
                         .into_any_element(),
                 ));
+                if let Some(check) = &self.motion_check {
+                    use crate::motion_check::{Check, Level};
+                    let (tok, text): (theme::Tok, SharedString) = match check {
+                        Check::Running => (theme::FG_MUTED, tr("Checking what your PC can take: watching FluxCode's CPU use for a few seconds…").into()),
+                        Check::Done(Level::Light, t) => (theme::GREEN, t.clone().into()),
+                        Check::Done(Level::Fine, t) => (theme::WARN, t.clone().into()),
+                        Check::Done(Level::Heavy, t) => (theme::DANGER, t.clone().into()),
+                    };
+                    let heavy = matches!(check, Check::Done(Level::Heavy, _));
+                    rows.push(
+                        h_flex()
+                            .px_4()
+                            .pb_3()
+                            .gap_3()
+                            .items_start()
+                            .child(div().flex_none().mt(px(5.)).size(px(7.)).rounded_full().bg(c(tok)))
+                            .child(div().flex_1().min_w_0().text_xs().text_color(c(tok)).child(text))
+                            .when(heavy, |h| {
+                                h.child(Button::new("sc-anim-off").label(tr("Turn it off")).xsmall().on_click(cx.listener(|this, _, w, cx| {
+                                    if this.settings.bg_motion {
+                                        this.toggle_bg_motion(w, cx);
+                                    }
+                                })))
+                            })
+                            .into_any_element(),
+                    );
+                }
                 if s.backdrop_visibility().is_some() {
                     rows.push(settings_row(tr("Background visibility"), vis_desc, vis_controls));
                 }

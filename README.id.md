@@ -164,8 +164,9 @@ dipasang langsung dari daftarnya.
 Dua belas latar beranimasi bergerak di belakang panel: awan, laut, pegunungan, aurora,
 hutan, danau, pantai, bukit pasir, kota, hujan, salju, dan galaksi. Semuanya digambar
 langsung dengan warna tema, jadi ganti tema langsung mewarnai ulang scene-nya (tema terang
-mengubahnya jadi siang), dan pas di ukuran jendela apa pun. Tidak ada yang diunduh, dan
-Background animation menghentikannya.
+mengubahnya jadi siang), dan pas di ukuran jendela apa pun. Tidak ada yang diunduh.
+Secara default scene-nya diam (tanpa beban CPU); Background animation membuatnya bergerak,
+setelah mengecek apakah PC kamu sanggup.
 
 <table>
   <tr>
@@ -461,9 +462,11 @@ di atasnya.
   setelah jendela limitnya reset.
 - **Liquid glass dan latar beranimasi.** Panel bisa menjadi tembus pandang di atas blur
   sistem, dengan kartu kaca yang melayang. Dua belas latar beranimasi bergerak di
-  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), 24 frame
-  per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
-  Background animation menghentikannya.
+  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan). Secara
+  default scene-nya diam; Background animation membuatnya bergerak 24 frame per detik saat
+  jendela di depan (sekitar 10 sampai 15% dari satu core CPU) dan beberapa frame saat di
+  belakang jendela lain, dan saat dinyalakan FluxCode lebih dulu mengukur apakah PC kamu
+  sanggup.
 
 ## FluxCode, Zed, dan VS Code
 
