@@ -1460,6 +1460,14 @@ pub const ID: &[(&str, &str)] = &[
     ("Full screen", "Layar penuh"),
     ("Open in a tab", "Buka di tab"),
     ("Copy the file path", "Salin path file"),
+    ("{0} has an update", "{0} punya pembaruan"),
+    ("Updating {0}", "Memperbarui {0}"),
+    ("{0} is up to date", "{0} sudah terbaru"),
+    ("{0} was not updated", "{0} gagal diperbarui"),
+    ("Update all ({0})", "Perbarui semua ({0})"),
+    ("Hide (the update goes on)", "Sembunyikan (pembaruan tetap jalan)"),
+    ("The next chat uses the new version.", "Chat berikutnya memakai versi baru."),
+    ("Agent updates", "Pembaruan agen"),
 ];
 
 #[cfg(test)]
