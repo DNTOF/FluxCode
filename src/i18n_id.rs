@@ -1373,11 +1373,6 @@ pub const ID: &[(&str, &str)] = &[
     ("Background animation", "Animasi latar"),
     ("Your background image shows instead. Remove it to see the scene.", "Gambar latar kamu yang tampil. Hapus gambarnya untuk melihat scene."),
     // ------------------------------------------------------------ backgrounds, search
-    (
-        "A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.",
-        "Video pixel berulang di belakang panel: laut, sungai, pantai, pegunungan atau senja anime. Diunduh sekali (beberapa MB) saat pertama dipilih.",
-    ),
-    ("Off keeps the scene's first frame as a still picture (nothing decodes while you work).", "Off: frame pertama jadi gambar diam (tidak ada decode saat kamu bekerja)."),
     ("{0} more matches", "{0} hasil lagi"),
     ("Checking Copilot…", "Memeriksa Copilot…"),
     ("Ready, signed in as {user}. Suggestions appear as ghost text a moment after you stop typing; Tab accepts.", "Siap, masuk sebagai {user}. Saran muncul sebagai teks abu-abu sesaat setelah kamu berhenti mengetik; Tab untuk menerima."),
@@ -1460,6 +1455,20 @@ pub const ID: &[(&str, &str)] = &[
     ("Full screen", "Layar penuh"),
     ("Open in a tab", "Buka di tab"),
     ("Copy the file path", "Salin path file"),
+    ("Twelve scenes drawn live in your theme's colors: change the theme and the scene changes with it. Nothing to download, and they fit any window size.", "Dua belas scene yang digambar langsung dengan warna tema kamu: ganti tema, scene-nya ikut berubah. Tidak perlu diunduh, dan pas di ukuran jendela apa pun."),
+    ("Off keeps the scene still: nothing is redrawn while you work.", "Off membuat scene diam: tidak ada yang digambar ulang saat kamu bekerja."),
+    ("Lake", "Danau"),
+    ("City", "Kota"),
+    ("Aurora", "Aurora"),
+    ("Rain", "Hujan"),
+    ("Snow", "Salju"),
+    ("Dunes", "Bukit pasir"),
+    ("Forest", "Hutan"),
+    ("Galaxy", "Galaksi"),
+    ("{name} is already on this PC: FluxCode uses that copy.", "{name} sudah ada di PC ini: FluxCode memakai salinan itu."),
+    ("{cli} found · adds its ACP bridge", "{cli} ditemukan · tinggal tambah jembatan ACP-nya"),
+    ("Clouds", "Awan"),
+    ("Dusk sky and clouds, peach accent", "Langit senja dan awan, aksen persik"),
 ];
 
 #[cfg(test)]

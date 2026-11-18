@@ -527,9 +527,8 @@ impl std::ops::DerefMut for AgentState {
 pub(crate) fn find_mura() -> Option<PathBuf> {
     let exe = if cfg!(windows) { "mura.exe" } else { "mura" };
     let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(path) = std::env::var_os("PATH") {
-        candidates.extend(std::env::split_paths(&path).map(|d| d.join(exe)));
-    }
+    // Windows' PATH as it is now (registry included), not only FluxCode's own copy.
+    candidates.extend(std::env::split_paths(&crate::acp::fresh_path()).map(|d| d.join(exe)));
     for var in ["USERPROFILE", "HOME"] {
         if let Ok(base) = std::env::var(var) {
             let b = Path::new(&base);
@@ -562,7 +561,8 @@ pub fn agent_id() -> String {
     if !c.is_empty() && c != "auto" {
         return c;
     }
-    crate::acp::installed().into_iter().next().unwrap_or_else(|| "opencode-v2".into())
+    // An agent still being built (Mura) is never picked for you, even when it is installed.
+    crate::acp::installed().into_iter().find(|id| !crate::acp::experimental(id)).unwrap_or_else(|| "opencode-v2".into())
 }
 
 /// A `/command`: FluxCode's own, or one the agent announced (ACP available_commands_update).
@@ -602,7 +602,8 @@ pub fn agent_name() -> &'static str {
 /// Where the OpenCode CLI lives (same search as the Tauri app).
 pub(crate) fn find_opencode() -> Option<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(path) = std::env::var_os("PATH") {
+    {
+        let path = crate::acp::fresh_path();
         for dir in std::env::split_paths(&path) {
             if cfg!(windows) {
                 candidates.push(dir.join("opencode.exe"));
@@ -2111,6 +2112,14 @@ impl Workbench {
         if id == "mura" {
             // Mura is built from its repository; it is not in the registry.
             cx.open_url("https://github.com/MuaraAI/Mura-Harness");
+            return;
+        }
+        // Installed outside FluxCode since the list was drawn (npm, an installer, WinGet):
+        // use that copy instead of downloading it again.
+        crate::acp::rescan();
+        if crate::acp::locate(&id).is_some() {
+            self.agent_use(&id, window, cx);
+            self.status = crate::trf!("{name} is already on this PC: FluxCode uses that copy."; name => crate::acp::display_name(&id)).into();
             return;
         }
         if id == "commandcode" {

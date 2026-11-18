@@ -65,7 +65,7 @@ fn exe_path() -> Result<String, String> {
 }
 
 #[cfg(windows)]
-mod reg {
+pub(crate) mod reg {
     use std::ffi::c_void;
     use std::ptr::{null, null_mut};
 
@@ -73,12 +73,14 @@ mod reg {
     // (HKEY)(ULONG_PTR)(LONG)0x8000000x: sign-extended on 64-bit Windows.
     pub const HKCR: Hkey = 0x8000_0000u32 as i32 as isize;
     pub const HKCU: Hkey = 0x8000_0001u32 as i32 as isize;
+    pub const HKLM: Hkey = 0x8000_0002u32 as i32 as isize;
     const KEY_ALL_ACCESS: u32 = 0xF003F;
     const REG_NONE: u32 = 0;
     const REG_SZ: u32 = 1;
     const RRF_RT_REG_SZ: u32 = 0x2;
     const ERROR_SUCCESS: i32 = 0;
     const ERROR_FILE_NOT_FOUND: i32 = 2;
+    const ERROR_MORE_DATA: i32 = 234;
 
     #[link(name = "advapi32")]
     extern "system" {
@@ -143,7 +145,13 @@ mod reg {
         let name_w = opt_wide(name);
         let mut buf = vec![0u16; 1024];
         let mut len = (buf.len() * 2) as u32;
-        let rc = unsafe { RegGetValueW(root, sub_w.as_ptr(), ptr(&name_w), RRF_RT_REG_SZ, null_mut(), buf.as_mut_ptr().cast(), &mut len) };
+        // REG_EXPAND_SZ values (PATH) come back expanded; a long one asks for a bigger buffer.
+        let mut rc = unsafe { RegGetValueW(root, sub_w.as_ptr(), ptr(&name_w), RRF_RT_REG_SZ, null_mut(), buf.as_mut_ptr().cast(), &mut len) };
+        if rc == ERROR_MORE_DATA {
+            buf = vec![0u16; len as usize / 2 + 64];
+            len = (buf.len() * 2) as u32;
+            rc = unsafe { RegGetValueW(root, sub_w.as_ptr(), ptr(&name_w), RRF_RT_REG_SZ, null_mut(), buf.as_mut_ptr().cast(), &mut len) };
+        }
         if rc != ERROR_SUCCESS {
             return None;
         }

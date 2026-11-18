@@ -89,9 +89,11 @@ pub struct Settings {
     pub saver_compact_at: u8,
     /// Send the waiting message again by itself when a usage limit resets.
     pub resume_at_reset: bool,
-    /// The animated scene behind the panels ("ocean", "river", "beach", "mountains",
-    /// "anime", or "none"); a background image takes its place while one is set.
+    /// The animated scene behind the panels (an id of `scene::Scene`, or "none"); a
+    /// background image takes its place while one is set.
     pub bg_scene: String,
+    /// The scene FluxSky's clouds replaced, given back when another theme is picked.
+    pub bg_scene_before_sky: String,
     /// The scene moves (off: a still picture).
     pub bg_anim: bool,
     /// When the agent edits a file, the editor opens it and shows the change being
@@ -197,6 +199,7 @@ impl Default for Settings {
             saver_compact_at: 70,
             resume_at_reset: false,
             bg_scene: "ocean".into(),
+            bg_scene_before_sky: String::new(),
             bg_anim: true,
             agent_follow_edits: true,
             agent_accounts: Vec::new(),
@@ -508,6 +511,37 @@ fn settings_card(rows: Vec<AnyElement>) -> AnyElement {
         .into_any_element()
 }
 
+/// The animated backgrounds as a grid of small live previews, each in the active
+/// theme's colors; a click shows it behind the panels at once.
+fn scene_cards(current: &str, cx: &mut Context<Workbench>) -> Div {
+    h_flex().w_full().flex_wrap().gap_2().children(crate::scene::Scene::ALL.into_iter().map(|sc| {
+        let on = current == sc.id();
+        v_flex()
+            .id(SharedString::from(format!("sc-{}", sc.id())))
+            .w(theme::u(128.))
+            .rounded(px(6.))
+            .overflow_hidden()
+            .cursor_pointer()
+            .border_2()
+            .border_color(if on { c(theme::ACCENT) } else { c(theme::BORDER) })
+            .hover(move |st| st.border_color(c(if on { theme::ACCENT } else { theme::BORDER_STRONG })))
+            .on_click(cx.listener(move |this, _, w, cx| {
+                this.settings.bg_scene = sc.id().into();
+                this.apply_appearance(w, cx);
+            }))
+            .child(div().h(theme::u(72.)).w_full().overflow_hidden().child(crate::scene::preview(sc, 12.)))
+            .child(
+                h_flex()
+                    .px_2()
+                    .py_1()
+                    .gap_1()
+                    .bg(c(theme::BG_ELEVATED))
+                    .child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(if on { theme::FG_STRONG } else { theme::FG_MUTED })).child(tr(sc.label())))
+                    .when(on, |h| h.child(gpui_kit::component::Icon::new(gpui_kit::assets::IconName::Check).size(theme::u(12.)).text_color(c(theme::ACCENT_TEXT)))),
+            )
+    }))
+}
+
 /// The six theme palettes as a grid of swatch cards. Extracted unchanged
 /// from the old flat settings page.
 fn theme_cards(cx: &mut Context<Workbench>) -> Div {
@@ -596,7 +630,34 @@ impl Workbench {
     }
 
     pub(crate) fn set_theme(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let old = theme::palette();
         self.settings.theme = id.into();
+        // FluxSky is the website's dusk: its drifting clouds come with it (unless a
+        // picture of your own is set), and the scene they replaced comes back with the
+        // next theme.
+        let sky = crate::scene::Scene::Sky.id();
+        if id == "flux-sky" && old.id != id && self.settings.bg_image.is_none() && self.settings.bg_scene != sky {
+            self.settings.bg_scene_before_sky = std::mem::replace(&mut self.settings.bg_scene, sky.into());
+        } else if id != "flux-sky" && old.id == "flux-sky" && self.settings.bg_scene == sky && !self.settings.bg_scene_before_sky.is_empty() {
+            self.settings.bg_scene = std::mem::take(&mut self.settings.bg_scene_before_sky);
+        }
+        if old.id != id {
+            theme::fade_from(old);
+            // One frame per display refresh until the colors have settled.
+            cx.spawn_in(window, async move |this, cx| loop {
+                cx.background_executor().timer(std::time::Duration::from_millis(16)).await;
+                let more = theme::fading();
+                let ok = this.update_in(cx, |_, window, cx| {
+                    theme::apply(cx);
+                    window.refresh();
+                    cx.notify();
+                });
+                if ok.is_err() || !more {
+                    break;
+                }
+            })
+            .detach();
+        }
         self.apply_appearance(window, cx);
         let name = theme::find(id).map_or("", |p| p.name);
         self.status = crate::trf!("Color theme: {name}"; name => name).into();
@@ -881,34 +942,26 @@ impl Workbench {
                             .into_any_element(),
                     ),
                 ];
-                // Animated scenes: one of five, or none, and whether it moves.
-                let scene_controls = h_flex()
-                    .flex_wrap()
-                    .gap_1()
-                    .child(Button::new("sc-none").label(tr("None")).xsmall().when(s.bg_scene == "none", |b| b.primary()).on_click(cx.listener(|this, _, w, cx| {
+                // Animated scenes: a card for each, drawn live in the theme's colors, or none.
+                let none_btn = Button::new("sc-none")
+                    .label(tr("None"))
+                    .xsmall()
+                    .when(s.bg_scene == "none", |b| b.primary())
+                    .on_click(cx.listener(|this, _, w, cx| {
                         this.settings.bg_scene = "none".into();
                         this.apply_appearance(w, cx);
-                    })))
-                    .children(crate::scene::Scene::ALL.into_iter().map(|sc| {
-                        Button::new(SharedString::from(format!("sc-{}", sc.id())))
-                            .label(tr(sc.label()))
-                            .xsmall()
-                            .when(s.bg_scene == sc.id(), |b| b.primary())
-                            .on_click(cx.listener(move |this, _, w, cx| {
-                                this.settings.bg_scene = sc.id().into();
-                                this.apply_appearance(w, cx);
-                            }))
                     }))
                     .into_any_element();
                 let scene_desc: SharedString = if s.background().is_some() {
                     tr("Your background image shows instead. Remove it to see the scene.").into()
                 } else {
-                    tr("A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.").into()
+                    tr("Twelve scenes drawn live in your theme's colors: change the theme and the scene changes with it. Nothing to download, and they fit any window size.").into()
                 };
-                rows.push(settings_row(tr("Animated background"), scene_desc, scene_controls));
+                rows.push(settings_row(tr("Animated background"), scene_desc, none_btn));
+                rows.push(div().px_4().pb_4().child(scene_cards(&s.bg_scene, cx)).into_any_element());
                 rows.push(settings_row(
                     tr("Background animation"),
-                    tr("Off keeps the scene's first frame as a still picture (nothing decodes while you work).").into(),
+                    tr("Off keeps the scene still: nothing is redrawn while you work.").into(),
                     Button::new("sc-anim")
                         .label(if s.bg_anim { tr("On") } else { tr("Off") })
                         .xsmall()

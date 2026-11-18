@@ -1162,8 +1162,6 @@ None	Aucun
 Animated background	Arrière-plan animé
 Background animation	Animation d'arrière-plan
 Your background image shows instead. Remove it to see the scene.	Votre image d'arrière-plan s'affiche à la place. Supprimez-la pour voir la scène.
-A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.	Une vidéo pixel art en boucle derrière les panneaux : océan, rivière, plage, montagnes ou crépuscule anime. Téléchargée une seule fois (quelques MB) la première fois que vous la choisissez.
-Off keeps the scene's first frame as a still picture (nothing decodes while you work).	Désactivé : la première image de la scène reste figée (aucun décodage pendant que vous travaillez).
 {0} more matches	{0} autres correspondances
 Checking Copilot…	Vérification de Copilot…
 Ready, signed in as {user}. Suggestions appear as ghost text a moment after you stop typing; Tab accepts.	Prêt, connecté en tant que {user}. Les suggestions apparaissent en texte fantôme un instant après que vous avez cessé de taper ; Tab accepte.
@@ -1246,3 +1244,17 @@ Hide the preview	Masquer l'aperçu
 Full screen	Plein écran
 Open in a tab	Ouvrir dans un onglet
 Copy the file path	Copier le chemin du fichier
+{name} is already on this PC: FluxCode uses that copy.	{name} est déjà sur ce PC : FluxCode utilise cette copie.
+{cli} found · adds its ACP bridge	{cli} trouvé · ajoute son pont ACP
+Clouds	Nuages
+Dusk sky and clouds, peach accent	Ciel du soir et nuages, accent pêche
+Twelve scenes drawn live in your theme's colors: change the theme and the scene changes with it. Nothing to download, and they fit any window size.	Douze scènes dessinées en direct aux couleurs de votre thème : changez de thème et la scène change avec lui. Rien à télécharger, et elles s'adaptent à toute taille de fenêtre.
+Off keeps the scene still: nothing is redrawn while you work.	Désactivé, la scène reste immobile : rien n'est redessiné pendant que vous travaillez.
+Lake	Lac
+City	Ville
+Aurora	Aurore
+Rain	Pluie
+Snow	Neige
+Dunes	Dunes
+Forest	Forêt
+Galaxy	Galaxie
