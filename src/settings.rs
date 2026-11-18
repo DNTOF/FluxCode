@@ -131,6 +131,9 @@ pub struct Settings {
     pub agent_hint: u8,
     /// How the agent's chat list is grouped (`ChatView::id`).
     pub chat_view: String,
+    /// Agent full screen: the chats and changes columns' widths, as dragged (0: default).
+    pub full_left_w: f32,
+    pub full_right_w: f32,
     /// The chat list shows every chat; off (the default) shows only the ones working,
     /// open or pinned, with the rest one click away.
     pub chat_show_all: bool,
@@ -210,6 +213,8 @@ impl Default for Settings {
             extensions: crate::ext::default_installed(),
             agent_hint: 0,
             chat_view: String::new(),
+            full_left_w: 0.,
+            full_right_w: 0.,
             chat_show_all: false,
             chat_collapsed: Vec::new(),
             update_check: true,
@@ -784,7 +789,8 @@ impl Workbench {
                 let lang = s.language.clone();
                 let lang_controls = h_flex()
                     .gap_1()
-                    .children([("auto", tr("Automatic")), ("en", "English"), ("id", "Bahasa Indonesia")].into_iter().map(|(id, name)| {
+                    .flex_wrap()
+                    .children([("auto", tr("Automatic")), ("en", "English"), ("id", "Bahasa Indonesia"), ("fr", "Français"), ("ms", "Bahasa Melayu")].into_iter().map(|(id, name)| {
                         Button::new(SharedString::from(format!("lang-{id}")))
                             .label(name)
                             .xsmall()

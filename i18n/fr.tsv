@@ -1,0 +1,1241 @@
+File	Fichier
+Edit	Édition
+View	Affichage
+Run	Exécuter
+Terminal	Terminal
+Help	Aide
+Go to File...	Atteindre le fichier...
+Open File...	Ouvrir un fichier...
+Open Folder...	Ouvrir un dossier...
+Open Folder in WSL...	Ouvrir un dossier dans WSL...
+No WSL distro found.	Aucune distribution WSL trouvée.
+Open this folder	Ouvrir ce dossier
+Open {path}	Ouvrir {path}
+WSL	WSL
+Read WSL folders through a helper in the distro	Lire les dossiers WSL via un utilitaire dans la distribution
+Faster: the helper reads the distro's own disk instead of Windows' 9p share. It is FluxCode itself, built for Linux, taken from this build's release and installed once in ~/.fluxcode/helper. Off: folders are read through \\\\wsl.localhost, which works but is slower.	Plus rapide : l'utilitaire lit directement le disque de la distribution au lieu du partage 9p de Windows. C'est FluxCode lui-même, compilé pour Linux, récupéré depuis la release de ce build et installé une seule fois dans ~/.fluxcode/helper. Désactivé : les dossiers sont lus via \\\\wsl.localhost, ce qui fonctionne mais plus lentement.
+WSL is only available on Windows.	WSL n'est disponible que sous Windows.
+Windows	Windows
+How FluxCode shows up in Windows Explorer.	Comment FluxCode apparaît dans l'Explorateur Windows.
+Open with FluxCode	Ouvrir avec FluxCode
+Adds "Open with FluxCode" to the right-click menu of files and folders, and FluxCode to Open with for code and text files (.js, .ts, .json, .html, .css, .py and more). Types no app opens yet open in FluxCode on a double-click. For the rest, Windows asks you: pick FluxCode once in Open with, tick Always, or set it in Default apps. A file opened this way joins the FluxCode window that is already open.	Ajoute « Open with FluxCode » au menu contextuel des fichiers et dossiers, et FluxCode à « Ouvrir avec » pour les fichiers de code et de texte (.js, .ts, .json, .html, .css, .py, etc.). Les types qu'aucune application n'ouvre encore s'ouvrent dans FluxCode par double-clic. Pour les autres, Windows vous demande : choisissez une fois FluxCode dans « Ouvrir avec » et cochez « Toujours », ou définissez-le dans Applications par défaut. Un fichier ouvert ainsi rejoint la fenêtre FluxCode déjà ouverte.
+Default apps…	Applications par défaut…
+FluxCode is in Explorer's right-click menu and in Open with	FluxCode figure dans le menu contextuel de l'Explorateur et dans « Ouvrir avec »
+Removed FluxCode from Explorer's right-click menu and Open with	FluxCode a été retiré du menu contextuel de l'Explorateur et de « Ouvrir avec »
+Could not change the Explorer entries: {0}	Impossible de modifier les entrées de l'Explorateur : {0}
+Couldn't reach {name}.	Impossible de joindre {name}.
+New File...	Nouveau fichier...
+New Folder...	Nouveau dossier...
+Save	Enregistrer
+Save All	Enregistrer tout
+Settings	Paramètres
+Close Editor	Fermer l'éditeur
+Exit	Quitter
+Undo	Annuler
+Redo	Rétablir
+Cut	Couper
+Copy	Copier
+Paste	Coller
+Find	Rechercher
+Find in Files	Rechercher dans les fichiers
+Explorer	Explorateur
+Search	Rechercher
+Source Control	Contrôle de code source
+AI Agent	Agent IA
+Toggle Sidebar	Afficher/masquer la barre latérale
+Toggle Panel	Afficher/masquer le panneau
+Output	Sortie
+Run File	Exécuter le fichier
+Stop	Arrêter
+Live Preview	Aperçu en direct
+Toggle Terminal	Afficher/masquer le terminal
+Next Color Theme	Thème de couleur suivant
+About FluxCode	À propos de FluxCode
+FluxCode	FluxCode
+Search files in {f}	Rechercher des fichiers dans {f}
+Go to File (Ctrl+P)	Atteindre le fichier (Ctrl+P)
+EXPLORER	EXPLORATEUR
+SEARCH	RECHERCHER
+RUN	EXÉCUTER
+SOURCE CONTROL	CONTRÔLE DE CODE SOURCE
+WORKSPACE	ESPACE DE TRAVAIL
+New File	Nouveau fichier
+New Folder	Nouveau dossier
+Refresh	Actualiser
+You have not yet opened a folder.	Vous n'avez pas encore ouvert de dossier.
+Open folder	Ouvrir un dossier
+Open file	Ouvrir un fichier
+Run {f}	Exécuter {f}
+Open a file to run it.	Ouvrez un fichier pour l'exécuter.
+Searching…	Recherche…
+{0}{1} results in {2} files	{0}{1} résultats dans {2} fichiers
+Match Case	Respecter la casse
+Match Whole Word	Mot entier uniquement
+Rename...	Renommer...
+Delete	Supprimer
+Copy Path	Copier le chemin
+Reveal in File Explorer	Révéler dans l'Explorateur de fichiers
+Create	Créer
+File name	Nom du fichier
+Folder name	Nom du dossier
+Delete {name}?	Supprimer {name} ?
+Cancel	Annuler
+"{name}" is not a valid name	« {name} » n'est pas un nom valide
+Open Folder	Ouvrir le dossier
+Remove Folder from Workspace	Retirer le dossier de l'espace de travail
+Added {n} to the workspace	Ajouté à l'espace de travail : {n}
+1 folder	1 dossier
+{n} folders	{n} dossiers
+Removed {name} from the workspace	{name} a été retiré de l'espace de travail
+Drop folders to open them, or files to edit them	Déposez des dossiers pour les ouvrir, ou des fichiers pour les modifier
+Keep {current} open and add {what} next to it, or close {current} and work in {what}.	Garder {current} ouvert et ajouter {what} à côté, ou fermer {current} et travailler dans {what}.
+Keep {current} open and add them next to it, or close {current} and work in them.	Garder {current} ouvert et les ajouter à côté, ou fermer {current} et travailler dedans.
+Open {what}	Ouvrir {what}
+Add to workspace	Ajouter à l'espace de travail
+Switch to it	Basculer dessus
+Saved {0}	{0} enregistré
+Save failed: {e}	Échec de l'enregistrement : {e}
+Large file: syntax colors are off	Fichier volumineux : coloration syntaxique désactivée
+{0} is too large to open ({1} MB).	{0} est trop volumineux pour être ouvert ({1} MB).
+Ln {0}, Col {1}	Ligne {0}, col. {1}
+Running	En cours d'exécution
+A native code editor that runs as one process.	Un éditeur de code natif qui s'exécute en un seul processus.
+Find in files	Rechercher dans les fichiers
+Toggle terminal	Afficher/masquer le terminal
+Run file	Exécuter le fichier
+OpenCode	OpenCode
+Next color theme	Thème de couleur suivant
+Word document	Document Word
+the document's text	le texte du document
+Spreadsheet	Feuille de calcul
+every sheet as tab-separated rows	chaque feuille en lignes séparées par des tabulations
+Slides	Diapositives
+the text of each slide	le texte de chaque diapositive
+{label} · {size} · showing {what}, read only	{label} · {size} · affichage de {what}, lecture seule
+{label} · {size} · couldn't read it ({e}), showing the bytes	{label} · {size} · lecture impossible ({e}), affichage des octets
+, first {0} shown	, {0} premiers affichés
+{what} · {size}{more} · hex view, read only	{what} · {size}{more} · vue hexadécimale, lecture seule
+.{e} binary file	Fichier binaire .{e}
+Hex	Hex
+Archive	Archive
+ZIP archive · {size} · {files} files, {0} unpacked · size, space saved, path	Archive ZIP · {size} · {files} fichiers, {0} une fois décompressée · taille, gain de place, chemin
+{pages} pages · 	{pages} pages · 
+1 page · 	1 page · 
+PDF · {pages_s}{size} · showing its text, read only	PDF · {pages_s}{size} · affichage du texte, lecture seule
+PDF · {pages_s}{size} · no readable text (scanned or custom fonts), showing the bytes	PDF · {pages_s}{size} · aucun texte lisible (document numérisé ou polices personnalisées), affichage des octets
+SQLite database · {size} · {tables} tables with their SQL and row counts, read only	Base de données SQLite · {size} · {tables} tables avec leur SQL et leur nombre de lignes, lecture seule
+TERMINAL	TERMINAL
+OUTPUT	SORTIE
+Type a command, then press Enter	Tapez une commande, puis appuyez sur Enter
+Type a command	Tapez une commande
+Running. Type here if the program asks for something	En cours d'exécution. Tapez ici si le programme demande quelque chose
+Type a command after the ❯ and press Enter to run it.	Tapez une commande après le ❯ et appuyez sur Enter pour l'exécuter.
+For example:  dir  lists the files here,  cd folder  goes into a folder,  py app.py  runs a Python file.	Par exemple :  dir  liste les fichiers ici,  cd folder  entre dans un dossier,  py app.py  exécute un fichier Python.
+↑ ↓ history  ·  Tab completes names  ·  Ctrl+C stops  ·  typos like  pip i  are fixed for you	↑ ↓ historique  ·  Tab complète les noms  ·  Ctrl+C arrête  ·  les fautes de frappe comme  pip i  sont corrigées pour vous
+{shown}, line {line}	{shown}, ligne {line}
+No folder named '{arg}' here.	Aucun dossier nommé '{arg}' ici.
+{0}   … {more} more	{0}   … {more} de plus
+Open a file to run it	Ouvrez un fichier pour l'exécuter
+Don't know how to run {0}	FluxCode ne sait pas exécuter {0}
+Don't know how to run {0} in WSL	FluxCode ne sait pas exécuter {0} dans WSL
+A worktree inside a WSL folder isn't supported yet.	Un worktree dans un dossier WSL n'est pas encore pris en charge.
+Couldn't start '{program}': {e}	Impossible de lancer '{program}' : {e}
+Failed (exit code {c})	Échec (code de sortie {c})
+{0} doesn't exist	{0} n'existe pas
+The terminal is busy: the fix is in the prompt, press Enter when it's free	Le terminal est occupé : la correction est dans l'invite, appuyez sur Enter quand il sera libre
+↳ auto-corrected	↳ corrigé automatiquement
+in {0}	dans {0}
+Fix	Corriger
+Open a folder or an HTML file to preview it	Ouvrez un dossier ou un fichier HTML pour en afficher l'aperçu
+Preview server failed: {e}	Échec du serveur d'aperçu : {e}
+WebView2 is not available: {e}	WebView2 n'est pas disponible : {e}
+HTML preview runs a WebView	L'aperçu HTML utilise une WebView
+This preview opens a WebView (WebView2), not FluxCode's native Rust UI. The page runs in the system's web view, so it is not part of the native editor.	Cet aperçu ouvre une WebView (WebView2), et non l'interface Rust native de FluxCode. La page s'exécute dans la vue web du système : elle ne fait donc pas partie de l'éditeur natif.
+Do not show again	Ne plus afficher
+Continue	Continuer
+Live Preview: {url} (reloads on save)	Aperçu en direct : {url} (rechargé à chaque enregistrement)
+Type part of a file name	Tapez une partie d'un nom de fichier
+No file matches. Try fewer letters.	Aucun fichier ne correspond. Essayez avec moins de lettres.
+Message (Enter to commit)	Message (Enter pour faire le commit)
+Source Control is busy, try again in a moment	Le contrôle de code source est occupé, réessayez dans un instant
+Synced with the remote	Synchronisé avec le dépôt distant
+Open a folder to use Source Control.	Ouvrez un dossier pour utiliser le contrôle de code source.
+This folder is not a Git repository.	Ce dossier n'est pas un dépôt Git.
+Initialize Repository	Initialiser le dépôt
+Git repository created	Dépôt Git créé
+Commit & Push	Commit et push
+Commit & Sync	Commit et synchronisation
+Commit (Amend)	Commit (amend)
+Open	Ouvrir
+Show changes	Afficher les modifications
+Discard?	Abandonner ?
+Discard changes (click twice)	Abandonner les modifications (cliquer deux fois)
+Show staged changes	Afficher les modifications indexées
+Unstage All	Tout désindexer
+Stage All	Tout indexer
+No changes. The working tree matches the last commit.	Aucune modification. L'arborescence de travail correspond au dernier commit.
+Branch published	Branche publiée
+Create a pull request on GitHub (gh pr create --fill)	Créer une pull request sur GitHub (gh pr create --fill)
+gh workflow run on the current branch (needs workflow_dispatch)	gh workflow run sur la branche actuelle (nécessite workflow_dispatch)
+Pull	Pull
+Push	Push
+Sync (Pull, then Push)	Synchroniser (pull, puis push)
+Fetch	Fetch
+Stage All Changes	Indexer toutes les modifications
+Unstage All Changes	Désindexer toutes les modifications
+Create Pull Request	Créer une pull request
+Open Repository on GitHub	Ouvrir le dépôt sur GitHub
+Pulled	Pull effectué
+Pushed	Push effectué
+Fetched	Fetch effectué
+Appearance	Apparence
+Color theme. Ctrl+K Ctrl+T switches to the next one from anywhere.	Thème de couleur. Ctrl+K Ctrl+T passe au suivant depuis n'importe où.
+Color theme: {name}	Thème de couleur : {name}
+Language	Langue
+Menus, panels and messages. Automatic follows Windows.	Menus, panneaux et messages. Automatique suit la langue de Windows.
+Automatic	Automatique
+Interface size	Taille de l'interface
+Menus, tabs, the explorer, panels and icons. The editor font has its own size below.	Menus, onglets, explorateur, panneaux et icônes. La police de l'éditeur a sa propre taille plus bas.
+Background image	Image d'arrière-plan
+A picture of your own behind the panels. Stays on your PC. Current: {0}	Une image de votre choix derrière les panneaux. Elle reste sur votre PC. Actuelle : {0}
+Background visibility	Visibilité de l'arrière-plan
+Strong: the picture shows clearly. Over very bright pictures, dim text (line numbers, hints) can drop below comfortable contrast.	Forte : l'image est bien visible. Sur des images très claires, le texte atténué (numéros de ligne, indications) peut manquer de contraste.
+How much of the picture shows through the panels. The code side of the editor always gets less of it than the right edge.	Dans quelle mesure l'image transparaît à travers les panneaux. La zone de code de l'éditeur en laisse toujours moins voir que le bord droit.
+{0} is not an image FluxCode can show (PNG, JPEG, WebP, GIF or BMP).	{0} n'est pas une image que FluxCode peut afficher (PNG, JPEG, WebP, GIF ou BMP).
+{0} was not found. Choose another image or remove it.	{0} est introuvable. Choisissez une autre image ou supprimez-la.
+Background image set	Image d'arrière-plan définie
+Background image removed	Image d'arrière-plan supprimée
+Change image…	Changer d'image…
+Choose image…	Choisir une image…
+Remove	Supprimer
+Close	Fermer
+On	Activé
+Off	Désactivé
+Active	Actif
+Editor	Éditeur
+Font size	Taille de police
+Font size of the editor and terminal, in pixels.	Taille de police de l'éditeur et du terminal, en pixels.
+Tab size	Taille des tabulations
+Spaces per indentation level (applies to newly opened files).	Espaces par niveau d'indentation (s'applique aux fichiers ouverts ensuite).
+Word wrap	Retour automatique à la ligne
+Wrap long lines at the edge of the editor.	Renvoyer les longues lignes à la ligne au bord de l'éditeur.
+Whitespace dots	Points d'espacement
+Show each space as a faint dot, next to the guide lines that mark how far each block reaches.	Afficher chaque espace sous forme de point discret, à côté des repères qui indiquent jusqu'où va chaque bloc.
+Auto save	Enregistrement automatique
+Save a file shortly after you stop typing.	Enregistrer un fichier peu après que vous avez cessé de taper.
+AI agents and GitHub	Agents IA et GitHub
+AI agent: turn off when idle	Agent IA : arrêter en cas d'inactivité
+After 10 idle minutes the agent process stops and frees its memory (OpenCode uses several hundred MB). Your next message starts it again and continues the same chat.	Après 10 minutes d'inactivité, le processus de l'agent s'arrête et libère sa mémoire (OpenCode utilise plusieurs centaines de MB). Votre prochain message le relance et poursuit la même conversation.
+Agent panel on the right	Panneau de l'agent à droite
+Dock the agent chat beside the editor instead of in the side bar. The arrow button in its header does the same.	Ancrer la conversation avec l'agent à côté de l'éditeur plutôt que dans la barre latérale. Le bouton flèche de son en-tête fait de même.
+GitHub	GitHub
+Sign in so gh, git and OpenCode inside FluxCode can use your account (GH_TOKEN).	Connectez-vous pour que gh, git et OpenCode dans FluxCode puissent utiliser votre compte (GH_TOKEN).
+Stored in {0}	Stocké dans {0}
+Signed in to GitHub	Connecté à GitHub
+Sign out	Se déconnecter
+Sign in with token	Se connecter avec un jeton
+Use GitHub CLI login	Utiliser la connexion de GitHub CLI
+Personal access token	Jeton d'accès personnel
+Ask {name}…	Demander à {name}…
+Choose the agent	Choisir l'agent
+No saved chats yet. Chats are saved after each answer.	Aucune conversation enregistrée. Les conversations sont enregistrées après chaque réponse.
+Delete this chat	Supprimer cette conversation
+New chat	Nouvelle conversation
+Selection · line {a}	Sélection · ligne {a}
+Selection · lines {a}-{b}	Sélection · lignes {a}-{b}
+Last failed command	Dernière commande en échec
+Terminal output	Sortie du terminal
+Workspace	Espace de travail
+No file is open: the code was copied instead	Aucun fichier ouvert : le code a été copié à la place
+Resume this session here	Reprendre cette session ici
+No command matches	Aucune commande ne correspond
+No file matches	Aucun fichier ne correspond
+↑↓ choose · Tab or Enter adds · Esc closes	↑↓ choisir · Tab ou Enter ajoute · Esc ferme
+Use OpenCode	Utiliser OpenCode
+Insert at the cursor in the open file (replaces the selection)	Insérer au curseur dans le fichier ouvert (remplace la sélection)
+Thinking	Réflexion
+Keep all	Tout conserver
+Keep	Conserver
+Send now	Envoyer maintenant
+Stop the current answer and send this now (the agent keeps the context)	Arrêter la réponse en cours et envoyer ceci maintenant (l'agent conserve le contexte)
+Remove from the queue	Retirer de la file d'attente
+Attach files: images, PDF, Word, Excel, PowerPoint, code… (or drop / paste them)	Joindre des fichiers : images, PDF, Word, Excel, PowerPoint, code… (ou déposez-les / collez-les)
+Mention a file in the project	Mentionner un fichier du projet
+Stop the answer	Arrêter la réponse
+FluxCode is open source under the GPL-3.0 license and still in development, so expect rough edges and frequent builds. The code, every build and the issue tracker are on GitHub.	FluxCode est open source sous licence GPL-3.0 et encore en développement : attendez-vous à quelques imperfections et à des builds fréquents. Le code, tous les builds et le suivi des problèmes sont sur GitHub.
+A MuaraAI project. Copyright (C) 2026 MuaraAI and contributors.	Un projet MuaraAI. Copyright (C) 2026 MuaraAI et ses contributeurs.
+Open the repository	Ouvrir le dépôt
+Report a problem	Signaler un problème
+What changed	Ce qui a changé
+Check for Updates	Rechercher les mises à jour
+FluxCode Development, {0} (copied)	FluxCode Development, {0} (copié)
+Development build {0}	Build de développement {0}
+Updates	Mises à jour
+Check for new builds	Rechercher de nouveaux builds
+FluxCode asks github.com for its list of releases at start and every 6 hours. Nothing about you, this PC or your files is sent. This is {0}.	FluxCode demande à github.com la liste de ses releases au démarrage, puis toutes les 6 heures. Aucune information sur vous, ce PC ou vos fichiers n'est envoyée. Version actuelle : {0}.
+Check now	Vérifier maintenant
+Checking for a new build…	Recherche d'un nouveau build…
+{0} is available	{0} est disponible
+You have the newest build ({0})	Vous avez le build le plus récent ({0})
+Could not check for updates: {0}	Impossible de rechercher les mises à jour : {0}
+Installed, but FluxCode could not restart ({0}). Open it again.	Installé, mais FluxCode n'a pas pu redémarrer ({0}). Rouvrez-le.
+Installing…	Installation…
+The update did not finish	La mise à jour n'a pas abouti
+Later	Plus tard
+{0} of {1} MB	{0} sur {1} MB
+FluxCode restarts on its own in a moment. Your open files and folders come back.	FluxCode va redémarrer de lui-même dans un instant. Vos fichiers et dossiers ouverts seront restaurés.
+Try again	Réessayer
+Update and restart	Mettre à jour et redémarrer
+What's new	Nouveautés
+AI agent	Agent IA
+Commit message	Message de commit
+Agent	Agent
+Open or close the AI agent (Ctrl+L)	Ouvrir ou fermer l'agent IA (Ctrl+L)
+Remove Git from This Folder…	Supprimer Git de ce dossier…
+Removing Git…	Suppression de Git…
+Git removed from {0}. The .git folder is in the Recycle Bin.	Git supprimé de {0}. Le dossier .git est dans la Corbeille.
+{0} added to .gitignore	{0} ajouté à .gitignore
+Remove Git from {0}?	Supprimer Git de {0} ?
+The .git folder (commits, branches, settings) goes to the Recycle Bin. Your files stay as they are.	Le dossier .git (commits, branches, paramètres) est placé dans la Corbeille. Vos fichiers restent tels quels.
+Remove Git	Supprimer Git
+{n} untracked files	{n} fichiers non suivis
+Folders with the most of them. Ignore the ones git should not track (they go to .gitignore).	Les dossiers qui en contiennent le plus. Ignorez ceux que git ne doit pas suivre (ils sont ajoutés à .gitignore).
+Ignore	Ignorer
+… and {n} more files (Stage All includes them)	… et {n} autres fichiers (Tout indexer les inclut)
+Mode	Mode
+Idle	Inactif
+Turns off after 10 quiet minutes to free memory	S'arrête après 10 minutes d'inactivité pour libérer de la mémoire
+1 file	1 fichier
+{n} files	{n} fichiers
+new	nouveau
+Show the diff	Afficher le diff
+Undo this file	Annuler les modifications de ce fichier
+Changes	Modifications
+Undo all	Tout annuler
+{name} is in use by another program (a running server, for example), so it can't be opened now	{name} est utilisé par un autre programme (un serveur en cours d'exécution, par exemple) et ne peut pas être ouvert pour l'instant
+Couldn't open {name}: {e}	Impossible d'ouvrir {name} : {e}
+Memory	Mémoire
+This project	Ce projet
+All projects	Tous les projets
+Normal	Normal
+File:	Fichier :
+Access: {level}. What the agent may do without asking	Accès : {level}. Ce que l'agent peut faire sans demander
+AI agent: access	Agent IA : accès
+Read only: it reads and explains, edits and commands are refused. Read & write: it edits files (Undo is under the chat), commands ask first. Full access: nothing asks.	Lecture seule : il lit et explique, les modifications et commandes sont refusées. Lecture et écriture : il modifie les fichiers (Annuler est sous la conversation), les commandes demandent d'abord. Accès complet : rien n'est demandé.
+Read only	Lecture seule
+Read & write	Lecture et écriture
+Full access	Accès complet
+Access	Accès
+Read only: reads and explains	Lecture seule : lit et explique
+Read & write: edits files, commands ask	Lecture et écriture : modifie les fichiers, demande pour les commandes
+Full access: nothing asks	Accès complet : rien n'est demandé
+Refused (read only): {0}	Refusé (lecture seule) : {0}
+FluxCode is in read-only mode: files can't be changed. Describe the change instead.	FluxCode est en mode lecture seule : les fichiers ne peuvent pas être modifiés. Décrivez plutôt la modification.
+Allow once	Autoriser une fois
+Always allow	Toujours autoriser
+Reject	Refuser
+Always reject	Toujours refuser
+1 file changed by the agent	1 fichier modifié par l'agent
+{n} files changed by the agent	{n} fichiers modifiés par l'agent
+Mura, not installed	Mura, non installé
+Mura isn't installed on this PC (FluxCode looks on PATH and in ~/.local/bin). Build it from github.com/MuaraAI/Mura-Harness, or pick another agent in the menu above.	Mura n'est pas installé sur ce PC (FluxCode le cherche dans le PATH et dans ~/.local/bin). Compilez-le depuis github.com/MuaraAI/Mura-Harness, ou choisissez un autre agent dans le menu ci-dessus.
+Queue it (Enter): sent when the answer ends · Shift+Enter new line	Mettre en file d'attente (Enter) : envoyé à la fin de la réponse · Shift+Enter nouvelle ligne
+Send (Enter) · Shift+Enter new line	Envoyer (Enter) · Shift+Enter nouvelle ligne
+Open the file	Ouvrir le fichier
+Go to it	Y aller
+Leave it out of the message	Ne pas l'inclure dans le message
+Send again: {names}	Renvoyer : {names}
+Incoming	Entrant
+Allow joining over the internet	Autoriser à rejoindre via Internet
+Code together in real time, from your own PC.	Codez ensemble en temps réel, depuis votre propre PC.
+Edits go straight between your PC and each guest, encrypted with the invite code. No account or server needed.	Les modifications transitent directement entre votre PC et chaque invité, chiffrées avec le code d'invitation. Aucun compte ni serveur nécessaire.
+Every way in that opened is in the code; a guest's FluxCode tries them all and keeps the first that answers. The relay only passes bytes encrypted with the code's secret. If someone can't connect, allow FluxCode through the firewall.	Chaque voie d'accès ouverte figure dans le code ; le FluxCode d'un invité les essaie toutes et garde la première qui répond. Le relais ne fait passer que des octets chiffrés avec le secret du code. Si quelqu'un n'arrive pas à se connecter, autorisez FluxCode dans le pare-feu.
+From the internet	Depuis Internet
+Guests can join from anywhere.	Les invités peuvent rejoindre de n'importe où.
+Host this folder	Héberger ce dossier
+Join with a code	Rejoindre avec un code
+Less	Moins
+New folder	Nouveau dossier
+No shared file matches.	Aucun fichier partagé ne correspond.
+Off for this session. To allow it, end the session and host again with internet joining on.	Désactivé pour cette session. Pour l'autoriser, terminez la session et hébergez de nouveau avec l'accès via Internet activé.
+Only people on your network can join. No way in from the internet opened (see Ways in).	Seules les personnes de votre réseau peuvent rejoindre. Aucune voie d'accès depuis Internet ne s'est ouverte (voir Voies d'accès).
+Opening ways in from the internet. The code updates as they open.	Ouverture des voies d'accès depuis Internet. Le code se met à jour à mesure qu'elles s'ouvrent.
+Sign in to GitHub in Settings	Connectez-vous à GitHub dans les Paramètres
+The code changed after you copied it. Copy it again before you send it.	Le code a changé depuis que vous l'avez copié. Copiez-le de nouveau avant de l'envoyer.
+Through your router, or an encrypted relay.	Via votre routeur, ou un relais chiffré.
+Use my GitHub name	Utiliser mon nom GitHub
+Use your clone of the same repository. The host's version of each file you open replaces yours.	Utiliser votre clone du même dépôt. La version de l'hôte de chaque fichier que vous ouvrez remplace la vôtre.
+Anyone with this code can edit {folder} with you. Send it only to people you trust.	Toute personne disposant de ce code peut modifier {folder} avec vous. Ne l'envoyez qu'à des personnes de confiance.
+In {host}'s {folder}	Dans {folder} de {host}
+You appear as @{name}.	Vous apparaissez en tant que @{name}.
+You appear as {name}.	Vous apparaissez en tant que {name}.
+Finished	Terminé
+Stopped	Arrêté
+Nothing has run yet. Press F5 to run the open file, or pick a task under Run.	Rien n'a encore été exécuté. Appuyez sur F5 pour exécuter le fichier ouvert, ou choisissez une tâche sous Exécuter.
+Built into FluxCode	Intégré à FluxCode
+Installed from a file	Installé depuis un fichier
+By {who}	Par {who}
+Their tasks are in the Run view too (Ctrl+Shift+D).	Ses tâches figurent aussi dans la vue Exécuter (Ctrl+Shift+D).
+Install the extension to build and run them here.	Installez l'extension pour les compiler et les exécuter ici.
+A Gradle project for your server's Paper version, with the Gradle wrapper.	Un projet Gradle pour la version Paper de votre serveur, avec le wrapper Gradle.
+A behavior pack and its resource pack, ready to deploy.	Un behavior pack et son resource pack, prêts à être déployés.
+What it adds to the Run view.	Ce qu'elle ajoute à la vue Exécuter.
+The folder itself	Le dossier lui-même
+Running {task}…	Exécution de {task}…
+Running {what}	Exécution de {what}
+More	Plus
+More tasks	Autres tâches
+About {ext}	À propos de {ext}
+Runs in the Terminal: {line}	S'exécute dans le terminal : {line}
+for {name}	pour {name}
+Suggested extensions	Extensions suggérées
+Run {f} (F5)	Exécuter {f} (F5)
+{f} can't be run	{f} ne peut pas être exécuté
+F5 runs Python, JavaScript, TypeScript, PowerShell, batch, shell, Rust and Go files. Build tasks for a project come from its extension.	F5 exécute les fichiers Python, JavaScript, TypeScript, PowerShell, batch, shell, Rust et Go. Les tâches de build d'un projet proviennent de son extension.
+Nothing to run yet	Rien à exécuter pour l'instant
+Open a project folder to get its build tasks here, or open a script and press F5.	Ouvrez un dossier de projet pour voir ses tâches de build ici, ou ouvrez un script et appuyez sur F5.
+Looking for projects…	Recherche de projets…
+Build tasks show up here for each project an extension knows.	Les tâches de build apparaissent ici pour chaque projet reconnu par une extension.
+No project here has an installed extension. Open a script and press F5, or find an extension for your project.	Aucun projet ici n'a d'extension installée. Ouvrez un script et appuyez sur F5, ou trouvez une extension pour votre projet.
+Browse extensions	Parcourir les extensions
+Show the output	Afficher la sortie
+Install packages	Installer les paquets
+Reading	Lecture
+Read	Lu
+Editing	Modification
+Edited	Modifié
+Deleting	Suppression
+Deleted	Supprimé
+Moving	Déplacement
+Moved	Déplacé
+Searching	Recherche
+Searched	Recherché
+the web	le web
+a page	une page
+Ran	Exécuté
+Fetching	Récupération
+Thought	Réflexion terminée
+Done	Terminé
+Failed	Échec
+5-hour limit	Limite de 5 heures
+Weekly limit	Limite hebdomadaire
+Close (Esc)	Fermer (Esc)
+Context	Contexte
+Context: {used} of {size} tokens. Click for usage and limits.	Contexte : {used} sur {size} jetons. Cliquez pour voir l'utilisation et les limites.
+Cost so far {cost}	Coût jusqu'ici : {cost}
+Default	Par défaut
+Reset	Réinitialiser
+Free	Gratuit
+{c} context · {o} out	{c} de contexte · {o} en sortie
+{c} context	{c} de contexte
+Limits reset by themselves at the times above.	Les limites se réinitialisent d'elles-mêmes aux heures ci-dessus.
+Read a page	Page lue
+Reading a page	Lecture d'une page
+Read it again	Relire
+Reading your limits from the agent…	Lecture de vos limites auprès de l'agent…
+Request	Demander
+Request usage credits	Demander des crédits d'utilisation
+Request usage credits?	Demander des crédits d'utilisation ?
+Requesting…	Demande en cours…
+Resets in {t}	Réinitialisation dans {t}
+Searched the web	Recherche sur le web effectuée
+Searched the web · {n} sources	Recherche sur le web effectuée · {n} sources
+Searching the web	Recherche sur le web
+Show all {n}	Tout afficher ({n})
+Show fewer	Afficher moins
+The agent asks your plan for extra usage, so you can keep working after a limit. Your admin may approve it, or it may be turned off for your organization.	L'agent demande à votre forfait une utilisation supplémentaire, pour que vous puissiez continuer après une limite. Votre administrateur peut l'approuver, ou cette option peut être désactivée pour votre organisation.
+The agent didn't report any limits.	L'agent n'a signalé aucune limite.
+The search failed	La recherche a échoué
+Turn the agent on to read your limits: it knows them, FluxCode doesn't.	Activez l'agent pour lire vos limites : c'est lui qui les connaît, pas FluxCode.
+Usage	Utilisation
+Usage: limits, context and cost	Utilisation : limites, contexte et coût
+What this chat holds now. A new chat (/new) starts it empty.	Ce que contient cette conversation actuellement. Une nouvelle conversation (/new) repart de zéro.
+{i} / {o} per 1M	{i} / {o} par million de jetons
+Limits	Limites
+What uses your limits, last 24 hours	Ce qui consomme vos limites, dernières 24 heures
+Claude 5.5 · newest, the most for each token	Claude 5.5 · le plus récent, le meilleur rendement par jeton
+Claude 5	Claude 5
+Claude 4 · older: more tokens for the same work	Claude 4 · plus ancien : plus de jetons pour le même travail
+Older	Plus anciens
+fast and cheap, for small edits	rapide et économique, pour les petites modifications
+good results with fewer tokens	de bons résultats avec moins de jetons
+more thinking for harder problems	plus de réflexion pour les problèmes difficiles
+deep work on big changes, many tokens	travail approfondi sur de grosses modifications, beaucoup de jetons
+as much thinking as it takes, costs most	autant de réflexion que nécessaire, le plus coûteux
+the agent's own default	la valeur par défaut de l'agent
+About	À propos
+Accept Minecraft's EULA first: set eula=true in eula.txt (it opens now).	Acceptez d'abord le CLUF de Minecraft : mettez eula=true dans eula.txt (il s'ouvre maintenant).
+Add the Gradle wrapper	Ajouter le wrapper Gradle
+All	Toutes
+Background image and more in Settings	Image d'arrière-plan et plus dans les Paramètres
+Check the manifests	Vérifier les manifestes
+Color theme	Thème de couleur
+Color theme (Ctrl+K Ctrl+T for the next one)	Thème de couleur (Ctrl+K Ctrl+T pour le suivant)
+Couldn't install it: {e}	Impossible de l'installer : {e}
+Deploy to Minecraft	Déployer dans Minecraft
+Deploy to the test server	Déployer sur le serveur de test
+Done by FluxCode itself	Effectué par FluxCode lui-même
+Download page	Page de téléchargement
+EXTENSIONS	EXTENSIONS
+Extensions	Extensions
+F5 runs the active file (Python, Node, PowerShell, batch, Rust via cargo). Output appears in the Output panel. Projects get their build, test and deploy buttons above from their extension (Ctrl+Shift+X).	F5 exécute le fichier actif (Python, Node, PowerShell, batch, Rust via cargo). Le résultat s'affiche dans le panneau Sortie. Les projets obtiennent leurs boutons de build, de test et de déploiement ci-dessus grâce à leur extension (Ctrl+Shift+X).
+FluxCompile runs it with {what}	FluxCompile l'exécute avec {what}
+For {name}	Pour {name}
+Goes into {dir}	Créé dans {dir}
+In this folder	Dans ce dossier
+Install extension	Installer l'extension
+Install from a file (extension.json)	Installer depuis un fichier (extension.json)
+Install the extension to get its tasks here.	Installez l'extension pour voir ses tâches ici.
+JDK {v}: {path}	JDK {v} : {path}
+Made {dir}	Créé : {dir}
+Name	Nom
+Needs	Prérequis
+New Paper plugin	Nouveau plugin Paper
+New add-on	Nouvel add-on
+No extension is for a project in this folder.	Aucune extension ne correspond à un projet de ce dossier.
+No extension matches.	Aucune extension ne correspond.
+No test server found: a folder with a plugins folder and a paper-*.jar, above the plugin or in the workspace.	Aucun serveur de test trouvé : un dossier contenant un dossier plugins et un fichier paper-*.jar, au-dessus du plugin ou dans l'espace de travail.
+Not found	Introuvable
+Nothing installed yet: pick one under All.	Rien d'installé pour l'instant : choisissez-en une sous Toutes.
+One task per script in package.json	Une tâche par script dans package.json
+Open a folder first: the new project goes into it.	Ouvrez d'abord un dossier : le nouveau projet y sera créé.
+Open a folder to see which extensions it uses.	Ouvrez un dossier pour voir les extensions qu'il utilise.
+Pack the add-on	Empaqueter l'add-on
+Search extensions	Rechercher des extensions
+Start server	Démarrer le serveur
+Tasks	Tâches
+The preview is the HTML Preview extension: install it to use it	L'aperçu est fourni par l'extension HTML Preview : installez-la pour l'utiliser
+The terminal is busy: stop what runs there first (Ctrl+C)	Le terminal est occupé : arrêtez d'abord ce qui s'y exécute (Ctrl+C)
+This file	Ce fichier
+This folder	Ce dossier
+Uninstall	Désinstaller
+Used in {names}	Utilisée dans {names}
+View: Show Extensions	Affichage : Afficher les extensions
+built in	intégrée
+{ext}: {task}	{ext} : {task}
+Marketplace	Marketplace
+Couldn't reach the Marketplace: {e}	Impossible de joindre le Marketplace : {e}
+No Marketplace extension matches.	Aucune extension du Marketplace ne correspond.
+Searching the Marketplace…	Recherche dans le Marketplace…
+{n} results	{n} résultats
+Loading more…	Chargement…
+Couldn't load more: {e} · Retry	Impossible d'en charger plus : {e} · Réessayer
+No VS Code extension installed yet: find one under Marketplace.	Aucune extension VS Code installée pour l'instant : trouvez-en une dans le Marketplace.
+No installed extension matches.	Aucune extension installée ne correspond.
+Install from VSIX	Installer depuis un VSIX
+Installed {name}	{name} installé
+The file is not a VSIX package.	Ce fichier n'est pas un paquet VSIX.
+Relevance	Pertinence
+Updated	Mise à jour
+All categories	Toutes les catégories
+Programming Languages	Langages de programmation
+Themes	Thèmes
+Snippets	Extraits de code
+Linters	Linters
+Formatters	Formateurs
+Debuggers	Débogueurs
+Keymaps	Mappages de touches
+AI	IA
+Chat	Chat
+Data Science	Science des données
+Machine Learning	Machine learning
+Notebooks	Notebooks
+Testing	Tests
+SCM Providers	Fournisseurs SCM
+Language Packs	Modules linguistiques
+Extension Packs	Packs d'extensions
+Visualization	Visualisation
+Education	Éducation
+Azure	Azure
+Other	Autre
+Installing	Installation
+Removing	Suppression
+Couldn't install {name}: {e}	Impossible d'installer {name} : {e}
+Couldn't uninstall it: {e}	Impossible de la désinstaller : {e}
+Update to {v}	Mettre à jour vers {v}
+Open on the Marketplace website	Ouvrir sur le site du Marketplace
+Identifier	Identificateur
+Version	Version
+Last updated	Dernière mise à jour
+Categories	Catégories
+Installs	Installations
+Rating	Note
+{n} ratings	{n} évaluations
+installed	installée
+README	README
+Loading the README…	Chargement du README…
+This extension has no README.	Cette extension n'a pas de README.
+It declares {list}.	Elle déclare : {list}.
+It declares no themes, languages or snippets.	Elle ne déclare aucun thème, langage ni extrait de code.
+Install it to see what it declares (themes, languages, snippets).	Installez-la pour voir ce qu'elle déclare (thèmes, langages, extraits de code).
+VS Code's JavaScript extension host isn't available in FluxCode, so code that runs inside VS Code (commands, debuggers, language servers started by the extension) doesn't run here.	L'hôte d'extensions JavaScript de VS Code n'est pas disponible dans FluxCode : le code qui s'exécute dans VS Code (commandes, débogueurs, serveurs de langage lancés par l'extension) ne s'exécute pas ici.
+Grammars, snippets and icon themes aren't applied yet.	Les grammaires, extraits de code et thèmes d'icônes ne sont pas encore appliqués.
+Its color themes are in the theme menu; click one to use it:	Ses thèmes de couleur sont dans le menu des thèmes ; cliquez sur l'un d'eux pour l'utiliser :
+Nothing it declares is applied: FluxCode applies color themes and the file types of languages.	Rien de ce qu'elle déclare n'est appliqué : FluxCode applique les thèmes de couleur et les types de fichiers des langages.
+Files open as {list}.	Les fichiers s'ouvrent en tant que {list}.
+Couldn't read: {list}	Lecture impossible : {list}
+VS Code theme from {ext}	Thème VS Code de {ext}
+Added to the color themes: {list}. Pick one below or from the theme menu in the status bar.	Ajouté aux thèmes de couleur : {list}. Choisissez-en un ci-dessous ou dans le menu des thèmes de la barre d'état.
+1 color theme	1 thème de couleur
+{n} color themes	{n} thèmes de couleur
+1 file icon theme	1 thème d'icônes de fichiers
+{n} file icon themes	{n} thèmes d'icônes de fichiers
+1 language	1 langage
+{n} languages	{n} langages
+1 grammar	1 grammaire
+{n} grammars	{n} grammaires
+snippets	extraits de code
+1 command	1 commande
+{n} commands	{n} commandes
+1 keybinding	1 raccourci clavier
+{n} keybindings	{n} raccourcis clavier
+1 debugger	1 débogueur
+{n} debuggers	{n} débogueurs
+The extension's name or version has characters FluxCode won't use in a folder name.	Le nom ou la version de l'extension contient des caractères que FluxCode n'utilise pas dans un nom de dossier.
+The Marketplace lists no package for it.	Le Marketplace ne propose aucun paquet pour elle.
+The package unpacks to more than 1 GB.	Le paquet décompressé dépasse 1 GB.
+The package has no extension/package.json.	Le paquet ne contient pas de extension/package.json.
+{name} asks for Java {w}, which isn't installed here. Install it from the extension's page (Needs), then build again.	{name} nécessite Java {w}, qui n'est pas installé ici. Installez-le depuis la page de l'extension (Prérequis), puis relancez le build.
+▸ {n} Gradle tasks	▸ {n} tâches Gradle
+▸ {n} Gradle tasks · {task}	▸ {n} tâches Gradle · {task}
+Ink and ivory, ochre accent	Encre et ivoire, accent ocre
+Paper and ink, umber accent	Papier et encre, accent terre d'ombre
+Grey UI, red only for errors	Interface grise, rouge uniquement pour les erreurs
+Dark oxblood, clay accent	Sang-de-bœuf sombre, accent argile
+Mist canvas, river-blue accent	Toile brumeuse, accent bleu rivière
+Night water, river-blue accent	Eau nocturne, accent bleu rivière
+Before	Avant
+installed now	installé actuellement
+in the new build	dans le nouveau build
+{n} builds since yours	{n} builds depuis le vôtre
+{n} commits on {up} that this checkout doesn't have yet	{n} commits sur {up} que cette copie locale n'a pas encore
+Update ready	Mise à jour prête
+Update ready: {0}	Mise à jour prête : {0}
+Update	Mettre à jour
+Build from {0}	Build de {0}
+{0}\nInstalled: {1}	{0}\nInstallé : {1}
+Downloading the update	Téléchargement de la mise à jour
+Later (the Update button stays in the title bar)	Plus tard (le bouton Mettre à jour reste dans la barre de titre)
+Not now: hide this until more commits arrive	Pas maintenant : masquer jusqu'à l'arrivée de nouveaux commits
+In {hash}, not pulled yet	Dans {hash}, pas encore récupéré
+Pull them in (git pull)	Les récupérer (git pull)
+Pull them in (your changes are set aside and put back: git pull --autostash)	Les récupérer (vos modifications sont mises de côté puis restaurées : git pull --autostash)
+Reading the changed files…	Lecture des fichiers modifiés…
+Show what changed	Afficher ce qui a changé
+… and {n} more files	… et {n} autres fichiers
+… and {n} older ones	… et {n} plus anciens
+Model, effort and mode	Modèle, effort et mode
+Couldn't change the setting: {m}	Impossible de modifier le paramètre : {m}
+{name} settings: model, effort, mode…	Paramètres de {name} : modèle, effort, mode…
+{name} settings	Paramètres de {name}
+{name} is starting. Its models and settings show here in a moment.	{name} démarre. Ses modèles et paramètres s'afficheront ici dans un instant.
+{name} lists its models and settings once it is on.	{name} affiche ses modèles et paramètres une fois activé.
+Turn {name} on	Activer {name}
+Effort	Effort
+How long the model thinks before it answers. More thinking is slower and more careful.	Durée de réflexion du modèle avant de répondre. Plus de réflexion est plus lent et plus soigné.
+Model	Modèle
+Free (OpenCode Zen)	Gratuit (OpenCode Zen)
+Agent mode	Mode de l'agent
+In FluxCode	Dans FluxCode
+Turn off after 10 idle minutes to free memory	Arrêter après 10 minutes d'inactivité pour libérer de la mémoire
+Open OpenCode's config file	Ouvrir le fichier de configuration d'OpenCode
+Edit this message	Modifier ce message
+Edited: the answer starts over from this message.	Modifié : la réponse reprend à partir de ce message.
+Editing your message. Enter sends it and the answer starts over from there. Esc cancels.	Modification de votre message. Enter l'envoie et la réponse reprend à partir de là. Esc annule.
+Starting…	Démarrage…
+Ready	Prêt
+This looks like a problem with the model. Pick another one with the model button under the message box, then send again.	Le problème semble venir du modèle. Choisissez-en un autre avec le bouton de modèle sous la zone de message, puis renvoyez.
+Working…	En cours…
+You	Vous
+Search files in the workspace	Rechercher des fichiers dans l'espace de travail
+Start a new chat	Démarrer une nouvelle conversation
+Saved chats and agent sessions for this folder	Conversations enregistrées et sessions d'agent pour ce dossier
+Turn the agent off	Désactiver l'agent
+Attached: {0}	Joint : {0}
+Hide (Ctrl+L)	Masquer (Ctrl+L)
+Continued with {name}. It gets the conversation with {old} above as context.	Poursuite avec {name}. La conversation avec {old} ci-dessus lui sert de contexte.
+Back to the chat	Retour à la conversation
+Saved chats	Conversations enregistrées
+Move to the left side bar	Déplacer vers la barre latérale gauche
+Move to the right side	Déplacer sur le côté droit
+Reverted {0}	{0} restauré
+Undo failed: {e}	Échec de l'annulation : {e}
+Wait for the current answer, then open the session again.	Attendez la fin de la réponse en cours, puis rouvrez la session.
+Inserted 1 line into {name}	1 ligne insérée dans {name}
+Inserted {lines} lines into {name}	{lines} lignes insérées dans {name}
+Reading {name}'s sessions…	Lecture des sessions de {name}…
+Sent with your message. Click to leave it out	Envoyé avec votre message. Cliquez pour l'exclure
+Left out. Click to send it	Exclu. Cliquez pour l'envoyer
+Opening the session…	Ouverture de la session…
+Type @ to add a file. Your open file, selection and last error go along when they help.	Tapez @ pour ajouter un fichier. Votre fichier ouvert, votre sélection et la dernière erreur sont joints quand ils sont utiles.
+Off for now. Your first message turns it on. Type @ to add a file.	Désactivé pour l'instant. Votre premier message l'activera. Tapez @ pour ajouter un fichier.
+Ask {name}	Demander à {name}
+Allow: {0}?	Autoriser : {0} ?
+Waiting for {name} to finish, then these are sent together	En attente de la fin de {name}, puis ces messages seront envoyés ensemble
+Sent as soon as {name} is ready	Envoyé dès que {name} est prêt
+Not sent: {name} couldn't start. Switch the agent in the title menu, they will go to it	Non envoyé : {name} n'a pas pu démarrer. Changez d'agent dans le menu du titre, les messages lui seront envoyés
+Sent with your next message	Envoyé avec votre prochain message
+Download	Télécharger
+Get	Obtenir
+Agent settings	Paramètres de l'agent
+Remove {name}	Supprimer {name}
+Reading the ACP registry	Lecture du registre ACP
+Could not read the ACP registry	Impossible de lire le registre ACP
+This agent is no longer in the ACP registry.	Cet agent ne figure plus dans le registre ACP.
+Downloading	Téléchargement
+Checking the download	Vérification du téléchargement
+Unpacking	Décompression
+Installing with npm	Installation avec npm
+Installing {name}	Installation de {name}
+{name} wasn't installed. {why}	{name} n'a pas été installé. {why}
+{name} isn't installed	{name} n'est pas installé
+{name} isn't installed yet. Download it from the agent menu above, or pick another agent.	{name} n'est pas encore installé. Téléchargez-le depuis le menu des agents ci-dessus, ou choisissez un autre agent.
+Pick an agent to start	Choisissez un agent pour commencer
+Download it, or pick an agent you have in the menu above.	Téléchargez-le, ou choisissez un agent déjà installé dans le menu ci-dessus.
+Every agent here speaks the Agent Client Protocol. FluxCode downloads it into its own folder and starts it only while you use it.	Tous les agents ici utilisent l'Agent Client Protocol. FluxCode les télécharge dans son propre dossier et ne les lance que pendant que vous les utilisez.
+Edit files	Modifier les fichiers
+The menu above lists every agent in the ACP registry.	Le menu ci-dessus liste tous les agents du registre ACP.
+Reads files and answers. Changes nothing.	Lit les fichiers et répond. Ne modifie rien.
+Edits files. Asks before running commands.	Modifie les fichiers. Demande avant d'exécuter des commandes.
+Edits files and runs commands without asking.	Modifie les fichiers et exécute des commandes sans demander.
+Permissions: {level}	Autorisations : {level}
+What the agent may do without asking	Ce que l'agent peut faire sans demander
+On this PC	Sur ce PC
+Available	Disponibles
+More in the ACP registry	Plus dans le registre ACP
+Installed	Installé
+Not installed	Non installé
+Back	Retour
+{done} of {total} MB	{done} sur {total} MB
+{done} of {total} files	{done} sur {total} fichiers
+{done} files	{done} fichiers
+{name} wasn't installed	{name} n'a pas été installé
+A new line keeps the indentation, and indents one more level after { or :.	Une nouvelle ligne conserve l'indentation, et ajoute un niveau après { ou :.
+Agent: Agent Settings	Agent : Paramètres de l'agent
+Agent: Open or Close the Agent	Agent : Ouvrir ou fermer l'agent
+Arrows in the gutter that fold a block away.	Des flèches dans la marge pour replier un bloc.
+Close brackets and quotes	Fermer automatiquement crochets et guillemets
+Code folding	Pliage du code
+Command Palette...	Palette de commandes...
+Copy Line Down	Copier la ligne en dessous
+Copy Line Up	Copier la ligne au-dessus
+Current line: {cur} of {total}. Type a line number to go there.	Ligne actuelle : {cur} sur {total}. Tapez un numéro de ligne pour y aller.
+Cursor padding	Marge autour du curseur
+Delete Line	Supprimer la ligne
+Editor font: {n} px	Police de l'éditeur : {n} px
+File: Go to File	Fichier : Atteindre le fichier
+File: Open File	Fichier : Ouvrir un fichier
+File: Open Folder	Fichier : Ouvrir un dossier
+File: Save	Fichier : Enregistrer
+File: Save All	Fichier : Enregistrer tout
+Font	Police
+Full changelog on GitHub	Journal des modifications complet sur GitHub
+Go to Line	Atteindre la ligne
+Go to line {l}, column {col}.	Atteindre la ligne {l}, colonne {col}.
+Go to line {l}.	Atteindre la ligne {l}.
+Help: About FluxCode	Aide : À propos de FluxCode
+Help: Check for Updates	Aide : Rechercher les mises à jour
+Help: What's New	Aide : Nouveautés
+Insert Line Above	Insérer une ligne au-dessus
+Insert Line Below	Insérer une ligne en dessous
+Copilot suggestions	Suggestions Copilot
+Ghost-text completions from GitHub Copilot, a moment after you stop typing. Tab accepts, Esc dismisses. The Copilot language server does the work in its own process, so the editor stays light.	Complétions en texte fantôme de GitHub Copilot, un instant après que vous avez cessé de taper. Tab accepte, Esc ignore. Le serveur de langage Copilot travaille dans son propre processus, l'éditeur reste donc léger.
+Sign in so the editor can suggest the next lines of code. Needs the Copilot language server installed once, and a Copilot plan (a free plan exists).	Connectez-vous pour que l'éditeur suggère les prochaines lignes de code. Nécessite d'installer une fois le serveur de langage Copilot, et un forfait Copilot (une offre gratuite existe).
+Off. Turn Copilot suggestions on in the Editor section.	Désactivé. Activez les suggestions Copilot dans la section Éditeur.
+Starting the Copilot server...	Démarrage du serveur Copilot...
+Not installed. Install it once with: npm install -g @github/copilot-language-server (Node.js 20.8 or later).	Non installé. Installez-le une fois avec : npm install -g @github/copilot-language-server (Node.js 20.8 ou ultérieur).
+Ready. Suggestions appear as ghost text a moment after you stop typing.	Prêt. Les suggestions apparaissent en texte fantôme un instant après que vous avez cessé de taper.
+Not signed in to Copilot yet.	Pas encore connecté à Copilot.
+Copilot has a temporary problem.	Copilot rencontre un problème temporaire.
+Copilot ignores this file.	Copilot ignore ce fichier.
+Signed in to Copilot	Connecté à Copilot
+Signed out of Copilot	Déconnecté de Copilot
+Copy code	Copier le code
+Sign in	Se connecter
+GitHub Copilot	GitHub Copilot
+Your sign-in code: {code}	Votre code de connexion : {code}
+Install server	Installer le serveur
+Get Node.js	Obtenir Node.js
+Copilot server installed.	Serveur Copilot installé.
+npm's global folder is not writable; see the npm docs on EACCES, or install the server by hand.	Le dossier global de npm n'est pas accessible en écriture ; consultez la documentation npm sur EACCES, ou installez le serveur manuellement.
+Install failed: {e}	Échec de l'installation : {e}
+Copilot: install server	Copilot : installer le serveur
+Copilot: sign in	Copilot : se connecter
+Copilot suggestions are not set up yet. Click to open Settings.	Les suggestions Copilot ne sont pas encore configurées. Cliquez pour ouvrir les Paramètres.
+Keyboard shortcuts	Raccourcis clavier
+Leave room below the end of a file, so its last lines can sit mid-screen.	Laisser de l'espace après la fin d'un fichier, pour que ses dernières lignes puissent s'afficher au milieu de l'écran.
+Line numbers	Numéros de ligne
+Lines kept visible above and below the cursor as it moves (0: the editor's default).	Lignes gardées visibles au-dessus et en dessous du curseur lors de ses déplacements (0 : valeur par défaut de l'éditeur).
+Markdown / HTML: Open Preview to the Side	Markdown / HTML : Ouvrir l'aperçu sur le côté
+Move Line Down	Déplacer la ligne vers le bas
+Move Line Up	Déplacer la ligne vers le haut
+No command matches.	Aucune commande ne correspond.
+No notes for this build.	Aucune note pour ce build.
+Numbers in the gutter left of the code.	Numéros dans la marge à gauche du code.
+Preferences: Next Color Theme	Préférences : Thème de couleur suivant
+Preferences: Open Settings	Préférences : Ouvrir les paramètres
+Run: Run File	Exécuter : Exécuter le fichier
+Run: Stop	Exécuter : Arrêter
+Scroll past the last line	Défilement au-delà de la dernière ligne
+Search: Find in Files	Rechercher : Rechercher dans les fichiers
+Smart indent	Indentation intelligente
+The editor and terminal font. Fonts that are not installed fall back to the system's monospace font.	La police de l'éditeur et du terminal. Les polices non installées sont remplacées par la police à chasse fixe du système.
+Toggle Line Comment	Activer/désactiver le commentaire de ligne
+Type part of a file name ( > commands, : a line, wsl: a distro )	Tapez une partie d'un nom de fichier ( > commandes, : une ligne, wsl: une distribution )
+Typing ( [ { or a quote adds its closing pair.	Taper ( [ { ou un guillemet ajoute son équivalent fermant.
+VS Code's keys. Ctrl+Shift+P (or F1) opens every command with its keys; type to filter.	Les raccourcis de VS Code. Ctrl+Shift+P (ou F1) ouvre toutes les commandes avec leurs raccourcis ; tapez pour filtrer.
+View: Close All Editors	Affichage : Fermer tous les éditeurs
+View: Close Editor	Affichage : Fermer l'éditeur
+View: Next Editor	Affichage : Éditeur suivant
+View: Previous Editor	Affichage : Éditeur précédent
+View: Reopen Closed Editor	Affichage : Rouvrir l'éditeur fermé
+View: Reset Zoom	Affichage : Réinitialiser le zoom
+View: Show Explorer	Affichage : Afficher l'Explorateur
+View: Show Output	Affichage : Afficher la sortie
+View: Show Run	Affichage : Afficher Exécuter
+View: Show Source Control	Affichage : Afficher le contrôle de code source
+View: Toggle Panel	Affichage : Afficher/masquer le panneau
+View: Toggle Side Bar	Affichage : Afficher/masquer la barre latérale
+View: Toggle Terminal	Affichage : Afficher/masquer le terminal
+View: Toggle Word Wrap	Affichage : Activer/désactiver le retour à la ligne
+View: Zoom In (editor font)	Affichage : Zoom avant (police de l'éditeur)
+View: Zoom Out (editor font)	Affichage : Zoom arrière (police de l'éditeur)
+What's New	Nouveautés
+What's new in FluxCode	Nouveautés de FluxCode
+Word wrap off	Retour à la ligne désactivé
+Word wrap on	Retour à la ligne activé
+Agent instructions (soul files)	Instructions de l'agent (fichiers soul)
+Answer “{q}” first.	Répondez d'abord à « {q} ».
+Mura's character is built into the program. It follows these project files:	Le caractère de Mura est intégré au programme. Il suit ces fichiers du projet :
+No	Non
+Yes	Oui
+No agent installed yet. The agent panel (Ctrl+L) lists agents to download.	Aucun agent installé pour l'instant. Le panneau de l'agent (Ctrl+L) liste les agents à télécharger.
+Open the page	Ouvrir la page
+Pick one, or type your own.	Choisissez une option, ou tapez la vôtre.
+Remove {name}?	Supprimer {name} ?
+Remove {name}…	Supprimer {name}…
+Send answer	Envoyer la réponse
+Skills and commands from {name}	Skills et commandes de {name}
+Skip	Ignorer
+That is not “{name}”. Check the spelling (capital letters count).	Ce n'est pas « {name} ». Vérifiez l'orthographe (les majuscules comptent).
+The files each installed agent reads for its standing instructions and character. Open one to read or edit it; a missing one can be created empty.	Les fichiers que chaque agent installé lit pour ses instructions permanentes et son caractère. Ouvrez-en un pour le lire ou le modifier ; un fichier manquant peut être créé vide.
+This deletes {path}: the program and its files. Your chats stay. To be sure it is the right agent, type {name} twice.	Ceci supprime {path} : le programme et ses fichiers. Vos conversations sont conservées. Pour être sûr qu'il s'agit du bon agent, tapez {name} deux fois.
+Type it again	Retapez-le
+Type my own answer	Taper ma propre réponse
+Type the name	Tapez le nom
+Type your answer	Tapez votre réponse
+Your answer goes back to the agent.	Votre réponse est renvoyée à l'agent.
+project	projet
+{name} asks	{name} demande
+{name}'s own commands appear once it is on	Les commandes de {name} apparaissent une fois qu'il est activé
+↑↓ choose · Tab fills · Enter runs · Esc closes	↑↓ choisir · Tab remplit · Enter exécute · Esc ferme
+Activity	Activité
+Connecting…	Connexion…
+Copy invite code	Copier le code d'invitation
+Diff	Diff
+Edits show here as people make them. An edit made by an AI agent says which agent, model and effort.	Les modifications s'affichent ici au fur et à mesure. Une modification faite par un agent IA indique l'agent, le modèle et l'effort.
+Files arrive from the host as you open them, into a folder of their own.	Les fichiers arrivent de l'hôte à mesure que vous les ouvrez, dans un dossier dédié.
+Find a shared file	Rechercher un fichier partagé
+Host a session	Héberger une session
+Hosting {folder}	Hébergement de {folder}
+Invite code copied	Code d'invitation copié
+Join	Rejoindre
+Join a session	Rejoindre une session
+LIVE SHARE	LIVE SHARE
+Leave	Quitter
+Open a folder first: the session shares it.	Ouvrez d'abord un dossier : c'est lui que la session partage.
+Open your copy of the project first, or join into a new folder.	Ouvrez d'abord votre copie du projet, ou rejoignez dans un nouveau dossier.
+Others see you as @{name} (GitHub).	Les autres vous voient en tant que @{name} (GitHub).
+Others see you as {name}. Sign in to GitHub in Settings so they see your GitHub name.	Les autres vous voient en tant que {name}. Connectez-vous à GitHub dans les Paramètres pour qu'ils voient votre nom GitHub.
+Paste an invite code (FLUX1-…)	Collez un code d'invitation (FLUX1-…)
+Someone	Quelqu'un
+Start hosting	Commencer l'hébergement
+That file can't be opened as text.	Ce fichier ne peut pas être ouvert en tant que texte.
+That file can't be shared as text.	Ce fichier ne peut pas être partagé en tant que texte.
+That file is not there any more.	Ce fichier n'existe plus.
+That file is outside the shared folder.	Ce fichier est en dehors du dossier partagé.
+That file is too large to share live (over 16 MB).	Ce fichier est trop volumineux pour être partagé en direct (plus de 16 MB).
+The host ended the session.	L'hôte a mis fin à la session.
+The session ended ({why}).	La session est terminée ({why}).
+Your open folder should be your clone of the same repository; the host's version of each file you open replaces yours.	Le dossier ouvert doit être votre clone du même dépôt ; la version de l'hôte de chaque fichier que vous ouvrez remplace la vôtre.
+host	hôte
+just now	à l'instant
+you	vous
+{m} min ago	il y a {m} min
+{name} joined the session	{name} a rejoint la session
+{name} left the session	{name} a quitté la session
+Builds since yours	Builds depuis le vôtre
+Could not read the new build's notes. {why}	Impossible de lire les notes du nouveau build. {why}
+Reading the new build's notes…	Lecture des notes du nouveau build…
+Release page	Page de la release
+The new build has no notes beyond the list above.	Le nouveau build n'a pas d'autres notes que la liste ci-dessus.
+What the new build changes	Ce que change le nouveau build
+Yours, installed now	Le vôtre, installé actuellement
+A new folder	Un nouveau dossier
+Anyone with this code can join, from anywhere.	Toute personne disposant de ce code peut rejoindre, de n'importe où.
+Checking…	Vérification…
+Connected	Connecté
+Copied	Copié
+Dismiss	Fermer
+End	Terminer
+End the session for everyone	Terminer la session pour tout le monde
+Files go to	Les fichiers vont dans
+For guests with IPv6, when your router lets connections in.	Pour les invités en IPv6, si votre routeur autorise les connexions entrantes.
+Let people join over the internet	Autoriser à rejoindre via Internet
+Live	En direct
+My open folder	Mon dossier ouvert
+No file open	Aucun fichier ouvert
+No network connection.	Aucune connexion réseau.
+Off: you chose same network only.	Désactivé : vous avez choisi le même réseau uniquement.
+Only people on your network can join.	Seules les personnes de votre réseau peuvent rejoindre.
+Only people on your network can join: no way in from the internet worked (see below).	Seules les personnes de votre réseau peuvent rejoindre : aucune voie d'accès depuis Internet n'a fonctionné (voir ci-dessous).
+Opening ways in from the internet. The code updates as each one opens.	Ouverture des voies d'accès depuis Internet. Le code se met à jour à chaque ouverture.
+Through your router, our relay, or a public one if ours is down. Only encrypted bytes pass through. No VPN, no server of your own.	Via votre routeur, notre relais, ou un relais public si le nôtre est indisponible. Seuls des octets chiffrés transitent. Ni VPN, ni serveur à vous.
+People	Participants
+Public IPv6	IPv6 public
+Relay (MuaraAI)	Relais (MuaraAI)
+Relay (public)	Relais (public)
+Router port (UPnP)	Port du routeur (UPnP)
+Same network	Même réseau
+Share {folder}. Your PC is the server: guests connect straight to it, encrypted.	Partagez {folder}. Votre PC est le serveur : les invités s'y connectent directement, de façon chiffrée.
+Shared files	Fichiers partagés
+Straight to the host over the internet, encrypted.	Directement vers l'hôte via Internet, chiffré.
+Straight to the host over your network, encrypted.	Directement vers l'hôte via votre réseau, chiffré.
+The relay only passes bytes encrypted with the invite code's secret. If someone can't connect straight to you, allow FluxCode through the firewall.	Le relais ne fait passer que des octets chiffrés avec le secret du code d'invitation. Si quelqu'un ne peut pas se connecter directement à vous, autorisez FluxCode dans le pare-feu.
+The router did not answer (UPnP is off in its settings, or it has none).	Le routeur n'a pas répondu (UPnP est désactivé dans ses paramètres, ou il n'en dispose pas).
+The router offers no port forwarding over UPnP.	Le routeur ne propose pas de redirection de port via UPnP.
+The router opened the port but did not give its public address.	Le routeur a ouvert le port mais n'a pas fourni son adresse publique.
+The router opened the port, but its own internet address ({ip}) is private: your provider shares one public address between customers (carrier-grade NAT). The relay works instead.	Le routeur a ouvert le port, mais sa propre adresse Internet ({ip}) est privée : votre fournisseur partage une adresse publique entre plusieurs clients (CGNAT). Le relais fonctionne à la place.
+The router refused to open port {port} (another device may use it).	Le routeur a refusé d'ouvrir le port {port} (un autre appareil l'utilise peut-être).
+The router's UPnP description could not be read.	Impossible de lire la description UPnP du routeur.
+This PC has a public IPv6 address, but the session could not listen on it.	Ce PC a une adresse IPv6 publique, mais la session n'a pas pu écouter dessus.
+This session is full.	Cette session est complète.
+Through the MuaraAI relay, encrypted end to end: the relay can't read it.	Via le relais MuaraAI, chiffré de bout en bout : le relais ne peut pas le lire.
+Through the public relay, encrypted end to end: the relay can't read it.	Via le relais public, chiffré de bout en bout : le relais ne peut pas le lire.
+Too many requests, slow down.	Trop de requêtes, ralentissez.
+Ways in	Voies d'accès
+Works from any network.	Fonctionne depuis n'importe quel réseau.
+Your internet provider gives this PC no public IPv6 address.	Votre fournisseur d'accès n'attribue aucune adresse IPv6 publique à ce PC.
+{host}'s {folder}	{folder} de {host}
+{relay} closed the tunnel. Opening a new one; new guests need a fresh code.	{relay} a fermé le tunnel. Ouverture d'un nouveau ; les nouveaux invités ont besoin d'un nouveau code.
+{relay} could not be reached ({e}). A firewall or the network may block it.	Impossible de joindre {relay} ({e}). Un pare-feu ou le réseau le bloque peut-être.
+{relay} did not answer ({e}).	{relay} n'a pas répondu ({e}).
+{relay} refused: {why}	{relay} a refusé : {why}
+{relay} did not ask for a secret. Check `--secret` on the relay.	{relay} n'a pas demandé de secret. Vérifiez `--secret` sur le relais.
+{why} Trying again in a few seconds.	{why} Nouvelle tentative dans quelques secondes.
+Guests with IPv6 may join over the internet; everyone else only from your network.	Les invités en IPv6 peuvent rejoindre via Internet ; les autres uniquement depuis votre réseau.
+The code changed after you copied it (a new way in opened). Copy it again before you send it.	Le code a changé depuis que vous l'avez copié (une nouvelle voie d'accès s'est ouverte). Copiez-le de nouveau avant de l'envoyer.
+Agents	Agents
+Available to download	Disponibles au téléchargement
+Error	Erreur
+Nothing matches “{q}”	Aucun résultat pour « {q} »
+Nothing to choose yet: the agent lists these once it is on.	Rien à choisir pour l'instant : l'agent les liste une fois activé.
+Starting	Démarrage
+Working	En cours
+↑↓ Enter · Esc	↑↓ Enter · Esc
+Search agents	Rechercher des agents
+Search models	Rechercher des modèles
+Permissions	Autorisations
+Address	Adresse
+Anyone with this code can join {folder} and edit it with you. Send it only to the people you invite.	Toute personne disposant de ce code peut rejoindre {folder} et le modifier avec vous. Ne l'envoyez qu'aux personnes que vous invitez.
+Click to copy	Cliquer pour copier
+Code together in real time. Your PC is the server: no account, no VPN, no server to rent.	Codez ensemble en temps réel. Votre PC est le serveur : ni compte, ni VPN, ni serveur à louer.
+Connected · {host}'s {folder}	Connecté · {folder} de {host}
+Connection	Connexion
+End session	Terminer la session
+Every way in that opened is in the code. A guest's FluxCode tries them all at once and keeps the first that answers.	Chaque voie d'accès ouverte figure dans le code. Le FluxCode d'un invité les essaie toutes en même temps et garde la première qui répond.
+Files on this PC	Fichiers sur ce PC
+Invite code	Code d'invitation
+Live share	Partage en direct
+Live · hosting {folder}	En direct · hébergement de {folder}
+Nobody else yet. They show here as soon as they join.	Personne d'autre pour l'instant. Les participants s'affichent ici dès qu'ils rejoignent.
+Not in a session	Pas de session en cours
+Only you so far.	Vous seul pour l'instant.
+Open a file to edit it with the others. It comes from the host and stays in sync.	Ouvrez un fichier pour le modifier avec les autres. Il provient de l'hôte et reste synchronisé.
+Paste the code the host sent you.	Collez le code que l'hôte vous a envoyé.
+Share {folder} with the people you invite. Edits go straight between your PC and each guest, encrypted with the invite code.	Partagez {folder} avec les personnes que vous invitez. Les modifications transitent directement entre votre PC et chaque invité, chiffrées avec le code d'invitation.
+open	ouvert
+Host	Héberger
+Start hosting and copy the invite code.	Commencez l'hébergement et copiez le code d'invitation.
+Send the code	Envoyez le code
+In any chat or e-mail. It works on the same network and over the internet.	Par n'importe quelle messagerie ou e-mail. Il fonctionne sur le même réseau comme via Internet.
+Code together	Codez ensemble
+Edits merge live. An edit an AI agent made says which agent and model.	Les modifications fusionnent en direct. Une modification faite par un agent IA indique l'agent et le modèle.
+Contents	Sommaire
+Couldn't save {name}: {e}	Impossible d'enregistrer {name} : {e}
+Danger	Danger
+Details	Détails
+{n} blocks · read in {ms} ms · text in {size}	{n} blocs · lu en {ms} ms · texte : {size}
+Reading the rest…	Lecture de la suite…
+Still reading the document; Source opens in a moment.	Lecture du document en cours ; Source s'ouvrira dans un instant.
+Note	Remarque
+Preview	Aperçu
+Save as Markdown	Enregistrer en Markdown
+Saved {name}	{name} enregistré
+Source	Source
+Tip	Astuce
+Warning	Avertissement
+Write {name} next to it, as GitHub Markdown (flowcharts become Mermaid)	Écrire {name} à côté, en Markdown GitHub (les organigrammes deviennent du Mermaid)
+and {n} more headings	et {n} autres titres
+Agents have no browser.	Les agents n'ont pas de navigateur.
+Agents open pages in {name} (its own profile, not yours) through {pkg} {v}. Applies from the next session.	Les agents ouvrent les pages dans {name} (avec son propre profil, pas le vôtre) via {pkg} {v}. S'applique à partir de la prochaine session.
+Browser	Navigateur
+Browser tools are ready: agents can open and use web pages from their next session.	Les outils de navigateur sont prêts : les agents pourront ouvrir et utiliser des pages web dès leur prochaine session.
+Browser tools could not be installed: {e}	Impossible d'installer les outils de navigateur : {e}
+Install	Installer
+Installing the tools for {name}…	Installation des outils pour {name}…
+No Chrome, Brave, Edge or Chromium found on this PC.	Aucun navigateur Chrome, Brave, Edge ou Chromium trouvé sur ce PC.
+No window	Sans fenêtre
+Show the browser while the agent uses it, or run it out of sight	Afficher le navigateur pendant que l'agent l'utilise, ou l'exécuter en arrière-plan
+The browser needs Node.js 20 or newer (nodejs.org).	Le navigateur nécessite Node.js 20 ou ultérieur (nodejs.org).
+The browser needs Node.js 20.19 or newer; this PC has {v}.	Le navigateur nécessite Node.js 20.19 ou ultérieur ; ce PC a la version {v}.
+The browser tools are already being installed.	Les outils de navigateur sont déjà en cours d'installation.
+The browser tools were installed but can't be found.	Les outils de navigateur ont été installés mais sont introuvables.
+With a window	Avec une fenêtre
+npm isn't on PATH (it comes with Node.js).	npm n'est pas dans le PATH (il est fourni avec Node.js).
+recommended	recommandé
+{name} is found; its tools for agents ({pkg}, about 15 MB) aren't installed yet.	{name} a été trouvé ; ses outils pour les agents ({pkg}, environ 15 MB) ne sont pas encore installés.
+Agent settings: model, permissions, browser	Paramètres de l'agent : modèle, autorisations, navigateur
+Waiting for you	Attend votre réponse
+{name} is waiting for you	{name} attend votre réponse
+Paused	En pause
+Paused · {n} more after this	En pause · {n} de plus après celui-ci
+Run a command	Exécuter une commande
+Change a file	Modifier un fichier
+Delete a file	Supprimer un fichier
+Move or rename a file	Déplacer ou renommer un fichier
+Read files	Lire des fichiers
+Open a web page	Ouvrir une page web
+Use a tool	Utiliser un outil
+Turn on full access	Activer l'accès complet
+Allows this request and every next one: commands and any file on this PC, without asking. Switch it off in the agent's settings.	Autorise cette demande et toutes les suivantes : commandes et n'importe quel fichier de ce PC, sans demander. Désactivez-le dans les paramètres de l'agent.
+Asks first	Demande d'abord
+Model: {m}	Modèle : {m}
+Model: {m} · effort {e}	Modèle : {m} · effort {e}
+Mode: {m}	Mode : {m}
+Usage: context (free model, no limits)	Utilisation : contexte (modèle gratuit, sans limites)
+{name} is a free model	{name} est un modèle gratuit
+It runs on OpenCode Zen's free tier, so there is no plan, no usage limit and no cost to show here. The context below still fills up as the chat grows.	Il fonctionne sur l'offre gratuite d'OpenCode Zen : il n'y a donc ni forfait, ni limite d'utilisation, ni coût à afficher ici. Le contexte ci-dessous se remplit tout de même à mesure que la conversation s'allonge.
+Context: {used} of {size} tokens ({pct}%). Click for usage.	Contexte : {used} sur {size} jetons ({pct}%). Cliquez pour voir l'utilisation.
+Which model answers, how hard it thinks, and how it works.	Quel modèle répond, à quel point il réfléchit et comment il travaille.
+What the agent may do on this PC without asking you first.	Ce que l'agent peut faire sur ce PC sans vous demander d'abord.
+When the agent stops on its own, and your saved chats.	Quand l'agent s'arrête de lui-même, et vos conversations enregistrées.
+The browser agents open pages in.	Le navigateur dans lequel les agents ouvrent les pages.
+The program behind the chat.	Le programme derrière la conversation.
+Session	Session
+Esc closes	Esc pour fermer
+{n} models. Free ones first, then by provider.	{n} modèles. Les gratuits d'abord, puis par fournisseur.
+Models	Modèles
+Full access to this PC	Accès complet à ce PC
+On: whenever the agent asks to run a command or use a file anywhere on this PC, the answer is yes. Nothing waits for you.	Activé : chaque fois que l'agent demande à exécuter une commande ou à utiliser un fichier n'importe où sur ce PC, la réponse est oui. Rien ne vous attend.
+Off: when the agent asks to run a command, change a file or open a folder outside the project, the request shows in the chat and it waits for your answer.	Désactivé : quand l'agent demande à exécuter une commande, modifier un fichier ou ouvrir un dossier hors du projet, la demande s'affiche dans la conversation et il attend votre réponse.
+Edit files, ask for commands	Modifier les fichiers, demander pour les commandes
+Full access is on. Turn it off before you let the agent work in a folder you don't trust.	L'accès complet est activé. Désactivez-le avant de laisser l'agent travailler dans un dossier dont vous n'êtes pas sûr.
+Without full access	Sans accès complet
+Used again when you switch full access off.	Réutilisé quand vous désactivez l'accès complet.
+Reads always go through. Choose whether edits ask too.	Les lectures sont toujours autorisées. Choisissez si les modifications demandent aussi.
+Tell me when it waits	Me prévenir quand il attend
+The request shows in the chat and the taskbar button flashes while FluxCode is in the background.	La demande s'affiche dans la conversation et le bouton de la barre des tâches clignote quand FluxCode est en arrière-plan.
+The agent's own rules still come first: what its config denies stays denied, even with full access, and what it allows never reaches you.	Les règles propres de l'agent restent prioritaires : ce que sa configuration refuse reste refusé, même avec l'accès complet, et ce qu'elle autorise ne vous est jamais demandé.
+Stop when idle	Arrêter en cas d'inactivité
+Turns the agent off after 10 quiet minutes to free memory. Your next message starts it again in the same chat.	Désactive l'agent après 10 minutes d'inactivité pour libérer de la mémoire. Votre prochain message le relance dans la même conversation.
+1 chat saved on this PC.	1 conversation enregistrée sur ce PC.
+{n} chats saved on this PC.	{n} conversations enregistrées sur ce PC.
+Switch agent	Changer d'agent
+Program	Programme
+OpenCode's config	Configuration d'OpenCode
+Providers, models and agents of your own.	Vos propres fournisseurs, modèles et agents.
+Deletes the program FluxCode downloaded. Your chats stay.	Supprime le programme téléchargé par FluxCode. Vos conversations sont conservées.
+Remove…	Supprimer…
+Browser for agents	Navigateur pour les agents
+Copy the selection (Ctrl+C)	Copier la sélection (Ctrl+C)
+Show {n} earlier	Afficher les {n} précédents
+· {n} hidden	· {n} masqués
+More · mode: {m}	Plus · mode : {m}
+Own worktree (on): remove it	Worktree dédié (activé) : le supprimer
+Work in its own git worktree	Travailler dans son propre worktree git
+Close Others	Fermer les autres
+Close to the Right	Fermer à droite
+Close Saved	Fermer les enregistrés
+Close All	Fermer tout
+Copy Relative Path	Copier le chemin relatif
+Edit as text	Modifier en tant que texte
+Follow the agent's edits	Suivre les modifications de l'agent
+When the agent changes a file, it opens in the editor and the change is typed in line by line while the view follows it. Takes under a second and never slows the agent.	Quand l'agent modifie un fichier, celui-ci s'ouvre dans l'éditeur et la modification est saisie ligne par ligne pendant que la vue la suit. Cela prend moins d'une seconde et ne ralentit jamais l'agent.
+1 thought	1 réflexion
+{n} thoughts	{n} réflexions
+1 tool	1 outil
+{n} tools	{n} outils
+Worked	Terminé
+Back beside the editor	Revenir à côté de l'éditeur
+Fill the window	Remplir la fenêtre
+Move to the right side bar	Déplacer vers la barre latérale droite
+Move to the right	Déplacer à droite
+Need more room?	Besoin de plus de place ?
+A worktree needs a git repository: this folder isn't one yet (Source Control can make it one).	Un worktree nécessite un dépôt git : ce dossier n'en est pas encore un (le contrôle de code source peut en créer un).
+Working in its own worktree on branch {b}. Your checkout stays as it is until you merge.	Travail dans son propre worktree sur la branche {b}. Votre copie locale reste inchangée jusqu'à la fusion.
+Couldn't make a worktree: {e}	Impossible de créer un worktree : {e}
+Merged the agent's branch into your checkout.	La branche de l'agent a été fusionnée dans votre copie locale.
+Merge stopped: {e}	Fusion interrompue : {e}
+Back in your checkout; the worktree is removed.	De retour dans votre copie locale ; le worktree a été supprimé.
+Couldn't remove the worktree: {e}	Impossible de supprimer le worktree : {e}
+Now using the account {name}.	Compte {name} désormais utilisé.
+Now using the default account.	Compte par défaut désormais utilisé.
+{name} finished in “{chat}”.	{name} a terminé dans « {chat} ».
+{name} waits for your answer in “{chat}”.	{name} attend votre réponse dans « {chat} ».
+This chat works in its own worktree: remove it first to pick another folder.	Cette conversation travaille dans son propre worktree : supprimez-le d'abord pour choisir un autre dossier.
+Now working in {folder}.	Travail désormais dans {folder}.
+Work in this folder	Travailler dans ce dossier
+Folder	Dossier
+The open folder ({name})	Le dossier ouvert ({name})
+{name} (pick another…)	{name} (en choisir un autre…)
+Another folder…	Autre dossier…
+Use the open folder	Utiliser le dossier ouvert
+Account {n}	Compte {n}
+Working in its own worktree: click to remove it and go back to your checkout	Travaille dans son propre worktree : cliquez pour le supprimer et revenir à votre copie locale
+Work in its own git worktree, so it doesn't touch your checkout	Travailler dans son propre worktree git, sans toucher à votre copie locale
+Account	Compte
+Default account	Compte par défaut
+Add account and sign in…	Ajouter un compte et se connecter…
+Waiting for {name} to sign in… (cancel)	En attente de la connexion de {name}… (annuler)
+Sign out of {name}	Se déconnecter de {name}
+Signed in: {name} added and in use.	Connecté : {name} ajouté et utilisé.
+{name} wasn't signed in, so it wasn't added.	{name} ne s'est pas connecté, il n'a donc pas été ajouté.
+Signed out of {name}; using the default account.	Déconnecté de {name} ; utilisation du compte par défaut.
+Signed out of {name}.	Déconnecté de {name}.
+Merge	Fusionner
+Theme, language, interface size, and the picture behind the panels.	Thème, langue, taille de l'interface et image derrière les panneaux.
+Font, wrapping, line numbers, and the Copilot suggestions the editor shows as you type.	Police, retour à la ligne, numéros de ligne et suggestions Copilot affichées pendant la saisie.
+Read folders inside a WSL distro through a helper, instead of the slow Windows share.	Lire les dossiers d'une distribution WSL via un utilitaire, au lieu du partage Windows, plus lent.
+What the agent may do, how it docks, and the GitHub and Copilot sign-ins.	Ce que l'agent peut faire, où il s'ancre, et les connexions GitHub et Copilot.
+Check for new development builds and whether FluxCode looks for them.	Rechercher de nouveaux builds de développement et choisir si FluxCode les recherche.
+What FluxCode is, where its code lives, and how to report a problem.	Ce qu'est FluxCode, où se trouve son code et comment signaler un problème.
+Agent instructions	Instructions de l'agent
+Move to Left Side Bar	Déplacer vers la barre latérale gauche
+Move to Right Side Bar	Déplacer vers la barre latérale droite
+Run and Debug	Exécuter et déboguer
+Hide	Masquer
+Liquid glass	Verre liquide
+Translucent panels over a blurred window, with floating cards. Off gives solid panels (a little lighter on the GPU).	Panneaux translucides sur une fenêtre floutée, avec des cartes flottantes. Désactivé : panneaux opaques (un peu plus léger pour le GPU).
+Usage limit reached	Limite d'utilisation atteinte
+Resets {0} (in {1})	Réinitialisation {0} (dans {1})
+Resets {0}	Réinitialisation {0}
+Resume at reset	Reprendre à la réinitialisation
+Continue now	Continuer maintenant
+Continuing after the usage limit.	Reprise après la limite d'utilisation.
+Token saver	Économiseur de jetons
+Caveman	Caveman
+Lean code	Code épuré
+Quiet tools	Outils discrets
+Short answers: no filler, no recap.	Réponses courtes : sans remplissage, sans récapitulatif.
+Diffs and changed lines, not whole files.	Diffs et lignes modifiées, pas les fichiers entiers.
+Reads and prints only what the task needs.	Lit et affiche uniquement ce dont la tâche a besoin.
+Lite	Léger
+Full	Complet
+Ultra	Ultra
+Packs changed just now.	Packs modifiés à l'instant.
+Packs changed {0}m ago; they go out with your next message.	Packs modifiés il y a {0} min ; ils partent avec votre prochain message.
+Guidance goes out with your next message, then every few turns.	Les consignes partent avec votre prochain message, puis tous les quelques tours.
+Turn all off	Tout désactiver
+Chats	Conversations
+Now	Maintenant
+No chats yet. Each answer saves the chat here.	Aucune conversation pour l'instant. Chaque réponse enregistre la conversation ici.
+Untitled chat	Conversation sans titre
+Files the agent edits show up here, with a diff a click away.	Les fichiers modifiés par l'agent s'affichent ici, avec leur diff à portée de clic.
+Yesterday	Hier
+Only the chat	Conversation seule
+Show chats and changes	Afficher les conversations et les modifications
+Chat name	Nom de la conversation
+Rename (or double-click)	Renommer (ou double-cliquer)
+Hide chats	Masquer les conversations
+Hide changes	Masquer les modifications
+Free model: no plan limits to count.	Modèle gratuit : aucune limite de forfait à décompter.
+Turn the agent on to read your limits.	Activez l'agent pour lire vos limites.
+Limits show here once the agent reports them.	Les limites s'affichent ici dès que l'agent les communique.
+Experimental	Expérimental
+Ocean	Océan
+River	Rivière
+Beach	Plage
+Mountains	Montagnes
+Anime	Anime
+None	Aucun
+Animated background	Arrière-plan animé
+Background animation	Animation d'arrière-plan
+Your background image shows instead. Remove it to see the scene.	Votre image d'arrière-plan s'affiche à la place. Supprimez-la pour voir la scène.
+A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.	Une vidéo pixel art en boucle derrière les panneaux : océan, rivière, plage, montagnes ou crépuscule anime. Téléchargée une seule fois (quelques MB) la première fois que vous la choisissez.
+Off keeps the scene's first frame as a still picture (nothing decodes while you work).	Désactivé : la première image de la scène reste figée (aucun décodage pendant que vous travaillez).
+{0} more matches	{0} autres correspondances
+Checking Copilot…	Vérification de Copilot…
+Ready, signed in as {user}. Suggestions appear as ghost text a moment after you stop typing; Tab accepts.	Prêt, connecté en tant que {user}. Les suggestions apparaissent en texte fantôme un instant après que vous avez cessé de taper ; Tab accepte.
+{user} has no Copilot plan yet (a free plan exists at github.com/features/copilot).	{user} n'a pas encore de forfait Copilot (une offre gratuite existe sur github.com/features/copilot).
+Word wrap is on for this file (Alt+Z)	Le retour à la ligne est activé pour ce fichier (Alt+Z)
+Wrap long lines in this file (Alt+Z)	Renvoyer les longues lignes à la ligne dans ce fichier (Alt+Z)
+Fit	Ajuster
+Fitted to the editor. Click for 100%	Ajusté à l'éditeur. Cliquez pour 100 %
+Click to fit the image to the editor	Cliquez pour ajuster l'image à l'éditeur
+Zoom out (Ctrl+click, Ctrl+scroll)	Zoom arrière (Ctrl+clic, Ctrl+molette)
+Zoom in (click the image, Ctrl+scroll)	Zoom avant (cliquer sur l'image, Ctrl+molette)
+Save as Markdown: writes {name} next to it, as GitHub Markdown (flowcharts become Mermaid)	Enregistrer en Markdown : écrit {name} à côté, en Markdown GitHub (les organigrammes deviennent du Mermaid)
+Recommended	Recommandé
+By date	Par date
+Most recent	Plus récentes
+By folder	Par dossier
+By agent	Par agent
+Working now	En cours
+Archived	Archivées
+Today	Aujourd'hui
+This week	Cette semaine
+Earlier	Plus tôt
+No folder	Aucun dossier
+Unknown agent	Agent inconnu
+Take out of the archive	Désarchiver
+Nothing archived. Chats untouched for a week move here on their own; the archive button on a chat moves it now.	Rien d'archivé. Les conversations inactives depuis une semaine sont déplacées ici automatiquement ; le bouton d'archivage d'une conversation la déplace immédiatement.
+No chat is working right now.	Aucune conversation en cours.
+Every chat is in the archive.	Toutes les conversations sont archivées.
+Archived chats ({n})	Conversations archivées ({n})
+Sort by	Trier par
+Category	Catégorie
+Updated {d}	Mis à jour {d}
+Installing the Copilot server…	Installation du serveur Copilot…
+npm is downloading @github/copilot-language-server; this usually takes a minute or two. You can keep working.	npm télécharge @github/copilot-language-server ; cela prend généralement une ou deux minutes. Vous pouvez continuer à travailler.
+Copilot: installing…	Copilot : installation…
+Pinned	Épinglées
+Unpin	Désépingler
+Pin to the top	Épingler en haut
+Show {n} more chats	Afficher {n} autres conversations
+Show only active and pinned	Afficher uniquement les actives et épinglées
+Context {pct}% full: compacting it…	Contexte rempli à {pct}% : compactage en cours…
+Context {pct}% full: the chat goes on in a fresh session that carries its recent messages.	Contexte rempli à {pct}% : la conversation continue dans une nouvelle session qui reprend ses messages récents.
+Context compacted: the conversation continues with a summary, using fewer tokens.	Contexte compacté : la conversation continue à partir d'un résumé, avec moins de jetons.
+Couldn't compact the context this time; it will try again after the next answer.	Impossible de compacter le contexte cette fois-ci ; nouvel essai après la prochaine réponse.
+Brief, in full sentences: no greetings, no recap.	Bref, en phrases complètes : sans salutations, sans récapitulatif.
+Telegraphic: keywords and symbols, no prose around code.	Télégraphique : mots-clés et symboles, pas de prose autour du code.
+Terse: no filler or pleasantries; fragments are fine.	Concis : sans remplissage ni formules de politesse ; les phrases incomplètes sont acceptées.
+Short answers	Réponses courtes
+Auto compact	Compactage automatique
+When the context is {at}% full, the chat is summarized so later messages cost less.	Quand le contexte est rempli à {at}%, la conversation est résumée pour que les messages suivants coûtent moins cher.
+Context now	Contexte actuel
+about {pct}% fewer tokens	environ {pct}% de jetons en moins
+Changes apply from your next message.	Les changements s'appliquent à partir de votre prochain message.
+A few lines of guidance go out with your next message and again every few turns, so they cost almost nothing.	Quelques lignes de consignes partent avec votre prochain message, puis tous les quelques tours : elles ne coûtent presque rien.
+Answers	Réponses
+Code and tools	Code et outils
+Shows changed lines or a small diff, never whole files again.	Affiche les lignes modifiées ou un petit diff, jamais plus les fichiers entiers.
+Reads only the lines it needs and keeps command output short.	Ne lit que les lignes nécessaires et garde la sortie des commandes courte.
+Sign-in code copied: paste it on the GitHub page that opened, then click Authorize.	Code de connexion copié : collez-le sur la page GitHub qui s'est ouverte, puis cliquez sur Authorize.
+Paste it on github.com/login/device and click Authorize; this page updates by itself.	Collez-le sur github.com/login/device et cliquez sur Authorize ; cette page se met à jour toute seule.
+Open GitHub	Ouvrir GitHub
+Short answers, Lite: brief, in full sentences; no greetings, no recap.	Réponses courtes, Léger : bref, en phrases complètes ; sans salutations, sans récapitulatif.
+Short answers, Ultra: telegraphic, keywords and symbols; no prose around code.	Réponses courtes, Ultra : télégraphique, mots-clés et symboles ; pas de prose autour du code.
+Short answers, Full: terse; no filler or pleasantries, fragments are fine.	Réponses courtes, Complet : concis ; sans remplissage ni formules de politesse, phrases incomplètes acceptées.
+{n}% now	{n}% actuellement
+About this many fewer output tokens (an estimate). Guidance goes out with your next message, then every few turns.	Environ ce nombre de jetons de sortie en moins (une estimation). Les consignes partent avec votre prochain message, puis tous les quelques tours.
+Applies from your next message	S'applique à partir de votre prochain message
+Workspace overview: on. The agent gets the folders and open files with your message. Click to leave it out.	Aperçu de l'espace de travail : activé. L'agent reçoit les dossiers et fichiers ouverts avec votre message. Cliquez pour l'exclure.
+Workspace overview: off. Click to send the folders and open files with your message.	Aperçu de l'espace de travail : désactivé. Cliquez pour envoyer les dossiers et fichiers ouverts avec votre message.
+{name} is not available yet: it is still being built.	{name} n'est pas encore disponible : il est encore en cours de développement.
+Not available	Non disponible
+Restarting in a moment; your files come back.	Redémarrage dans un instant ; vos fichiers seront restaurés.
+Restart to update	Redémarrer pour mettre à jour
+Restart	Redémarrer
+Install the update and restart FluxCode; your open files come back.	Installer la mise à jour et redémarrer FluxCode ; vos fichiers ouverts sont rouverts.

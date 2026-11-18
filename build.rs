@@ -16,6 +16,21 @@
 //! The answers go into OUT_DIR/release_builds.rs; without git or tags they're empty
 //! and the page shows dates only.
 
+/// French and Malay interface text: `i18n/<lang>.tsv` deflated into OUT_DIR, so each
+/// adds a few dozen KB to the binary and is only unpacked when chosen. A missing file
+/// packs as empty (the interface then stays in English for that language).
+fn pack_languages() {
+    let manifest = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    for lang in ["fr", "ms"] {
+        let src = manifest.join("i18n").join(format!("{lang}.tsv"));
+        println!("cargo:rerun-if-changed={}", src.display());
+        let text = std::fs::read(&src).unwrap_or_default();
+        let packed = miniz_oxide::deflate::compress_to_vec(&text, 10);
+        std::fs::write(out.join(format!("{lang}.tsv.z")), packed).expect("write language pack");
+    }
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=assets/icon.ico");
@@ -28,6 +43,7 @@ fn main() {
     };
     println!("cargo:rustc-env=FLUXCODE_BUILD={build}");
     release_builds(&build);
+    pack_languages();
 
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;

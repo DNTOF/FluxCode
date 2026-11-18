@@ -1,4 +1,8 @@
-//! Interface language: English (the source text) or Indonesian.
+//! Interface language: English (the source text), Indonesian, French or Malay.
+//!
+//! Indonesian lives in `i18n_id.rs`; French and Malay in `i18n/fr.tsv` and
+//! `i18n/ms.tsv` (`English<TAB>translation`), deflated into the binary by build.rs
+//! and unpacked the first time the language is used.
 //!
 //! `tr("Open Folder")` returns the text in the chosen language; English is the
 //! key, so a missing translation shows English instead of a blank. `trf!` does
@@ -11,49 +15,138 @@ use std::sync::OnceLock;
 
 static LANG: AtomicU8 = AtomicU8::new(0);
 
-/// "en", "id", or "auto" (Indonesian when Windows is set to Indonesian).
+const EN: u8 = 0;
+const ID: u8 = 1;
+const FR: u8 = 2;
+const MS: u8 = 3;
+
+/// "en", "id", "fr", "ms", or "auto" (the system's language when it is one of them).
 pub fn set(choice: &str) {
-    let id = match choice {
-        "id" => true,
-        "en" => false,
-        _ => system_is_indonesian(),
+    let lang = match choice {
+        "en" => EN,
+        "id" => ID,
+        "fr" => FR,
+        "ms" => MS,
+        _ => system_language(),
     };
-    LANG.store(id as u8, Ordering::Relaxed);
+    LANG.store(lang, Ordering::Relaxed);
 }
 
 pub fn is_id() -> bool {
-    LANG.load(Ordering::Relaxed) == 1
+    LANG.load(Ordering::Relaxed) == ID
+}
+
+/// The interface language's code: "en", "id", "fr" or "ms".
+pub fn code() -> &'static str {
+    match LANG.load(Ordering::Relaxed) {
+        ID => "id",
+        FR => "fr",
+        MS => "ms",
+        _ => "en",
+    }
+}
+
+/// The language's own name, for the agent's note ("answer in ...").
+pub fn name() -> &'static str {
+    match LANG.load(Ordering::Relaxed) {
+        ID => "Indonesian",
+        FR => "French",
+        MS => "Malay",
+        _ => "English",
+    }
 }
 
 #[cfg(windows)]
-fn system_is_indonesian() -> bool {
+fn system_language() -> u8 {
     #[link(name = "kernel32")]
     extern "system" {
         fn GetUserDefaultUILanguage() -> u16;
         fn GetUserDefaultLCID() -> u32;
     }
-    // LANG_INDONESIAN = 0x21 (primary language id: low 10 bits). The display
-    // language or the regional format both count: many Indonesian PCs run an
-    // English Windows with Indonesian formats.
-    unsafe { GetUserDefaultUILanguage() & 0x3ff == 0x21 || GetUserDefaultLCID() & 0x3ff == 0x21 }
+    // Primary language ids (low 10 bits): Indonesian 0x21, French 0x0c, Malay 0x3e.
+    // The display language wins; else the regional format (many PCs run an English
+    // Windows with local formats).
+    let pick = |l: u32| match l & 0x3ff {
+        0x21 => Some(ID),
+        0x0c => Some(FR),
+        0x3e => Some(MS),
+        _ => None,
+    };
+    unsafe { pick(GetUserDefaultUILanguage() as u32).or_else(|| pick(GetUserDefaultLCID())).unwrap_or(EN) }
 }
 
 #[cfg(not(windows))]
-fn system_is_indonesian() -> bool {
-    ["LC_ALL", "LC_MESSAGES", "LANG"].iter().any(|k| std::env::var(k).is_ok_and(|v| v.starts_with("id")))
+fn system_language() -> u8 {
+    let v = ["LC_ALL", "LC_MESSAGES", "LANG"].iter().filter_map(|k| std::env::var(k).ok()).find(|v| !v.is_empty()).unwrap_or_default();
+    match v.get(..2) {
+        Some("id") => ID,
+        Some("fr") => FR,
+        Some("ms") => MS,
+        _ => EN,
+    }
 }
 
-fn table() -> &'static HashMap<&'static str, &'static str> {
-    static T: OnceLock<HashMap<&'static str, &'static str>> = OnceLock::new();
+type Table = HashMap<&'static str, &'static str>;
+
+fn table_id() -> &'static Table {
+    static T: OnceLock<Table> = OnceLock::new();
     T.get_or_init(|| crate::i18n_id::ID.iter().copied().collect())
+}
+
+static PACK_FR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/fr.tsv.z"));
+static PACK_MS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ms.tsv.z"));
+
+/// A packed language: inflated and parsed once, kept for the rest of the run.
+fn table_packed(cell: &'static OnceLock<Table>, packed: &'static [u8]) -> &'static Table {
+    cell.get_or_init(|| {
+        let bytes = miniz_oxide::inflate::decompress_to_vec(packed).unwrap_or_default();
+        let text: &'static str = Box::leak(String::from_utf8_lossy(&bytes).into_owned().into_boxed_str());
+        parse_tsv(text)
+    })
+}
+
+/// `English<TAB>translation` lines; `\n`, `\t` and `\\` escapes become the characters.
+fn parse_tsv(text: &'static str) -> Table {
+    fn unescape(s: &'static str) -> &'static str {
+        if !s.contains('\\') {
+            return s;
+        }
+        let mut out = String::with_capacity(s.len());
+        let mut it = s.chars();
+        while let Some(ch) = it.next() {
+            if ch == '\\' {
+                match it.next() {
+                    Some('n') => out.push('\n'),
+                    Some('t') => out.push('\t'),
+                    Some(o) => out.push(o),
+                    None => {}
+                }
+            } else {
+                out.push(ch);
+            }
+        }
+        Box::leak(out.into_boxed_str())
+    }
+    text.lines().filter_map(|l| l.split_once('\t')).filter(|(_, t)| !t.is_empty()).map(|(en, t)| (unescape(en), unescape(t))).collect()
+}
+
+fn table() -> Option<&'static Table> {
+    static FR_T: OnceLock<Table> = OnceLock::new();
+    static MS_T: OnceLock<Table> = OnceLock::new();
+    match LANG.load(Ordering::Relaxed) {
+        ID => Some(table_id()),
+        FR => Some(table_packed(&FR_T, PACK_FR)),
+        MS => Some(table_packed(&MS_T, PACK_MS)),
+        _ => None,
+    }
 }
 
 /// The text in the interface language.
 pub fn tr(en: &'static str) -> &'static str {
-    if !is_id() {
-        return en;
+    match table() {
+        Some(t) => t.get(en).copied().unwrap_or(en),
+        None => en,
     }
-    table().get(en).copied().unwrap_or(en)
 }
 
 /// Put values into `{name}` slots (`{{` and `}}` are literal braces).
@@ -97,6 +190,28 @@ macro_rules! trf {
 #[cfg(test)]
 mod tests {
     use super::fill;
+
+    #[test]
+    fn packed_tables_parse_and_unescape() {
+        // As in the files: a real tab between the two, `\n` written as backslash-n.
+        let t = super::parse_tsv("Open folder\tOuvrir le dossier\nTwo\\nlines\tDeux\\nlignes\nEmpty\t\n");
+        assert_eq!(t.get("Open folder"), Some(&"Ouvrir le dossier"));
+        assert_eq!(t.get("Two\nlines"), Some(&"Deux\nlignes"));
+        // An empty translation falls back to English (it isn't in the table).
+        assert!(!t.contains_key("Empty"));
+    }
+
+    #[test]
+    fn every_language_pack_translates_its_strings() {
+        // Read the packs directly: switching the global language here would race the
+        // other tests, which expect English.
+        static FR: std::sync::OnceLock<super::Table> = std::sync::OnceLock::new();
+        static MS: std::sync::OnceLock<super::Table> = std::sync::OnceLock::new();
+        for (code, t) in [("fr", super::table_packed(&FR, super::PACK_FR)), ("ms", super::table_packed(&MS, super::PACK_MS))] {
+            assert!(t.len() > 1000, "{code}: only {} strings", t.len());
+            assert!(t.get("Settings").is_some_and(|s| *s != "Settings"), "{code}: Settings is not translated");
+        }
+    }
 
     #[test]
     fn fills() {

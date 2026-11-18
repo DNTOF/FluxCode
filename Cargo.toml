@@ -14,6 +14,8 @@ path = "src/main.rs"
 
 [build-dependencies]
 embed-resource = "3"
+# French and Malay interface text goes into the binary deflated (i18n/*.tsv).
+miniz_oxide = "0.8"
 
 [dependencies]
 # Syntax colors from syntect with bat's grammar set: about 200 languages in a few MB,

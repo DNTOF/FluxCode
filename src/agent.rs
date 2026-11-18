@@ -547,6 +547,11 @@ pub fn set_choice(cli: &str) {
 
 /// The agent the panel runs: the one picked, or with "auto" the first installed one
 /// in the known list (Mura, then OpenCode, ...); OpenCode when none is installed.
+/// How narrow and how wide the full screen's side columns may be dragged.
+pub(crate) fn full_bounds() -> (f32, f32) {
+    (full::MIN_W, full::MAX_W)
+}
+
 pub fn agent_id() -> String {
     let c = CHOICE.lock().map(|g| g.clone()).unwrap_or_default();
     if !c.is_empty() && c != "auto" {
@@ -2922,10 +2927,9 @@ impl Workbench {
         }
         if !self.agent.hinted {
             self.agent.hinted = true;
-            let lang = if crate::i18n::is_id() {
-                "FluxCode's interface is in Indonesian: when the user's language is unclear, answer in Indonesian. "
-            } else {
-                "FluxCode's interface is in English. "
+            let lang = match crate::i18n::code() {
+                "en" => "FluxCode's interface is in English. ".to_string(),
+                _ => format!("FluxCode's interface is in {0}: when the user's language is unclear, answer in {0}. ", crate::i18n::name()),
             };
             let text = "FluxCode note: answer in the language the user writes in.";
             blocks.push(json!({ "type": "text", "text": format!("{lang}{text}") }));

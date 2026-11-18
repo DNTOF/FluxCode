@@ -3108,12 +3108,27 @@ impl Render for Workbench {
                 match this.resizing {
                     1 => this.sidebar_width = (x - f32::from(theme::u(40.))).clamp(160., (total * 0.45).max(200.)),
                     2 => this.agent_width = (total - x).clamp(260., (total * 0.6).max(300.)),
+                    // Agent full screen: the chats column (3) and the changes column (4).
+                    3 | 4 => {
+                        let Some((x0, w0)) = this.agent.full.drag else { return };
+                        let w = if this.resizing == 3 { w0 + (x - x0) } else { w0 - (x - x0) };
+                        let w = w.clamp(crate::agent::full_bounds().0, crate::agent::full_bounds().1);
+                        if this.resizing == 3 {
+                            this.settings.full_left_w = w;
+                        } else {
+                            this.settings.full_right_w = w;
+                        }
+                    }
                     _ => return,
                 }
                 cx.notify();
             }))
             .on_mouse_up(MouseButton::Left, cx.listener(|this, _, _, cx| {
                 if this.resizing != 0 {
+                    if this.resizing >= 3 {
+                        this.agent.full.drag = None;
+                        this.settings.save();
+                    }
                     this.resizing = 0;
                     cx.notify();
                 }

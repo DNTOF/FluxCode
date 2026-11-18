@@ -1451,6 +1451,8 @@ pub const ID: &[(&str, &str)] = &[
     ("Not available", "Belum tersedia"),
     ("Restarting in a moment; your files come back.", "Memulai ulang sebentar lagi; file-filemu kembali."),
     ("Restart to update", "Mulai ulang untuk update"),
+    ("Restart", "Mulai ulang"),
+    ("Install the update and restart FluxCode; your open files come back.", "Pasang update lalu mulai ulang FluxCode; file yang terbuka kembali lagi."),
 ];
 
 #[cfg(test)]
