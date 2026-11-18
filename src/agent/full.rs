@@ -204,12 +204,10 @@ impl Workbench {
                         .text_color(c(theme::FG_DIM))
                         .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_MUTED)))
                         .child(Icon::new(if folded { Ico::ChevronRight } else { Ico::ChevronDown }).size(theme::u(11.)))
-                        .child(match pill {
-                            // Date headings (and Working / Pinned) as a tinted pill, so
-                            // Today, This week and the rest are told apart at a glance.
-                            Some(col) => div().px_1p5().rounded(px(4.)).bg(col.opacity(0.14)).text_color(col).child(label).into_any_element(),
-                            None => div().min_w_0().truncate().child(label).into_any_element(),
-                        })
+                        // A small dot in the group's color beside a calm label: told apart
+                        // at a glance without a loud pill.
+                        .children(pill.map(|col| div().flex_none().size(px(6.)).rounded_full().bg(col.opacity(0.85))))
+                        .child(div().min_w_0().truncate().text_color(c(theme::FG_MUTED)).child(label))
                         .child(div().text_color(c(theme::FG_DIM)).font_weight(FontWeight::NORMAL).child(idx.len().to_string()))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             let list = &mut this.settings.chat_collapsed;
@@ -514,10 +512,21 @@ fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, f: Flag
         .px_2()
         .py_1p5()
         .gap_1()
+        .relative()
         .rounded(px(10.))
         .cursor_pointer()
-        .when(current, |d| d.bg(c(theme::BG_HOVER)).border_1().border_color(theme::glass_edge()))
-        .hover(|s| s.bg(c(theme::BG_HOVER)))
+        .border_1()
+        .border_color(gpui_kit::transparent_black())
+        .when(current, |d| {
+            d.bg(c(theme::ACCENT).opacity(0.10)).border_color(c(theme::ACCENT).opacity(0.28)).child(
+                div().absolute().left(px(-1.)).w(px(3.)).rounded_full().bg(c(theme::ACCENT)).with_animation(
+                    SharedString::from(format!("agf-cur-{title}")),
+                    Animation::new(std::time::Duration::from_millis(220)).with_easing(gpui_kit::ease_out_quint()),
+                    |d, t| d.top(relative(0.5 - 0.3 * t)).bottom(relative(0.5 - 0.3 * t)),
+                ),
+            )
+        })
+        .when(!current, |d| d.hover(|s| s.bg(c(theme::BG_HOVER))))
         .when(working, |d| {
             d.child(
                 div().flex_none().pr_1().child(

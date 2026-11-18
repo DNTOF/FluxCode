@@ -1439,6 +1439,18 @@ pub const ID: &[(&str, &str)] = &[
     ("Sign-in code copied: paste it on the GitHub page that opened, then click Authorize.", "Kode masuk disalin: tempel di halaman GitHub yang terbuka, lalu klik Authorize."),
     ("Paste it on github.com/login/device and click Authorize; this page updates by itself.", "Tempel di github.com/login/device lalu klik Authorize; halaman ini akan berubah sendiri."),
     ("Open GitHub", "Buka GitHub"),
+    ("Short answers, Lite: brief, in full sentences; no greetings, no recap.", "Jawaban singkat, Lite: ringkas, kalimat utuh; tanpa basa-basi, tanpa rekap."),
+    ("Short answers, Ultra: telegraphic, keywords and symbols; no prose around code.", "Jawaban singkat, Ultra: telegrafis, kata kunci dan simbol; tanpa paragraf di sekitar kode."),
+    ("Short answers, Full: terse; no filler or pleasantries, fragments are fine.", "Jawaban singkat, Full: padat; tanpa kata pengisi, potongan kalimat boleh."),
+    ("{n}% now", "{n}% sekarang"),
+    ("About this many fewer output tokens (an estimate). Guidance goes out with your next message, then every few turns.", "Kira-kira sebanyak ini token keluaran lebih hemat (perkiraan). Panduan ikut pesan berikutnya, lalu tiap beberapa giliran."),
+    ("Applies from your next message", "Berlaku mulai pesan berikutnya"),
+    ("Workspace overview: on. The agent gets the folders and open files with your message. Click to leave it out.", "Ringkasan workspace: nyala. Agent menerima folder dan file yang terbuka bersama pesanmu. Klik untuk tidak menyertakannya."),
+    ("Workspace overview: off. Click to send the folders and open files with your message.", "Ringkasan workspace: mati. Klik untuk mengirim folder dan file yang terbuka bersama pesanmu."),
+    ("{name} is not available yet: it is still being built.", "{name} belum tersedia: masih dalam pengembangan."),
+    ("Not available", "Belum tersedia"),
+    ("Restarting in a moment; your files come back.", "Memulai ulang sebentar lagi; file-filemu kembali."),
+    ("Restart to update", "Mulai ulang untuk update"),
 ];
 
 #[cfg(test)]

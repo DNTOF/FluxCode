@@ -274,6 +274,9 @@ impl Workbench {
                             this.selected = Some(path.clone());
                             if !is_dir {
                                 this.agent.user_nav = Some(std::time::Instant::now());
+                                // Picked from the side bar over the agent's full screen: the
+                                // file is what the user wants to see, so the editor comes back.
+                                this.agent_full = false;
                                 this.open_file(path, window, cx);
                             }
                             cx.notify();

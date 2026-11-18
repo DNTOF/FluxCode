@@ -97,6 +97,17 @@ pub fn groups(history: &[Chat], view: ChatView, busy: &[u64], now: u64, today_st
         };
         push(key, i);
     }
+    if view == ChatView::Date {
+        let rank = |k: &str| match k {
+            "Working now" => 0,
+            "Pinned" => 1,
+            "Today" => 2,
+            "This week" => 3,
+            "Yesterday" => 4,
+            _ => 5,
+        };
+        out.sort_by_key(|(k, _)| rank(k));
+    }
     out
 }
 
@@ -191,9 +202,9 @@ mod tests {
         let h = vec![chat(1, today + 5), chat(2, today - DAY / 2), chat(3, today - 3 * DAY), chat(4, today - 30 * DAY), chat(5, today - 2 * DAY)];
         let g = groups(&h, ChatView::Date, &[3], today + 10, today);
         let names: Vec<&str> = g.iter().map(|(k, _)| k.as_str()).collect();
-        assert_eq!(names, ["Working now", "Today", "Yesterday", "This week", "Earlier"]);
+        assert_eq!(names, ["Working now", "Today", "This week", "Yesterday", "Earlier"]);
         assert_eq!(g[0].1, vec![2]);
-        assert_eq!(g[3].1, vec![4]);
+        assert_eq!(g[2].1, vec![4]);
     }
 
     #[test]

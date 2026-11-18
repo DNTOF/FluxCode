@@ -9,7 +9,7 @@
 
 use super::{agent_glyph, agent_id, model_groups, ConfigOpt, Status};
 use crate::i18n::tr;
-use crate::theme::{self, c};
+use crate::theme::{self, c, GlassExt};
 use crate::workbench::Workbench;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{
@@ -249,6 +249,10 @@ impl Workbench {
     fn agent_menu_pick(&mut self, act: Act, window: &mut Window, cx: &mut Context<Self>) {
         self.agent.menu.open = None;
         match act {
+            // Still being built: not offered yet.
+            Act::Use(id) | Act::Install(id) if crate::acp::experimental(&id) => {
+                self.status = crate::trf!("{name} is not available yet: it is still being built."; name => crate::acp::display_name(&id)).into();
+            }
             Act::Use(id) => self.agent_use(&id, window, cx),
             Act::Install(id) => self.agent_install(id, window, cx),
             Act::Opt(id, v) => self.agent_set_option(&id, v, true, cx),
@@ -445,11 +449,8 @@ impl Workbench {
             .when(!search, |d| d.track_focus(&st.focus))
             .occlude()
             .w_full()
-            .rounded(px(8.))
-            .border_1()
-            .border_color(c(theme::BORDER_STRONG))
-            .bg(bg)
-            .shadow_lg()
+            .glass_pop()
+            .when(!theme::glass(), |d| d.bg(bg))
             .overflow_hidden()
             .on_mouse_down_out(cx.listener(|this, _, w, cx| this.agent_menu_close(true, w, cx)))
             .child(
@@ -518,6 +519,8 @@ impl Workbench {
             .cursor_pointer()
             .when(sel, |h| h.bg(c(theme::SELECT)))
             .when(!sel, |h| h.hover(|s| s.bg(c(theme::BG_HOVER))))
+            // An agent that is still being built is shown, dimmed, but can't be picked.
+            .when(matches!(&r.lead, Lead::Agent(id) if crate::acp::experimental(id)), |h| h.opacity(0.6).cursor_default())
             .children(lead)
             .child({
                 let name = div().text_sm().text_color(c(if r.checked { theme::FG_STRONG } else { theme::FG })).when(r.checked, |d| d.font_weight(FontWeight::MEDIUM)).child(r.title.clone());
@@ -941,18 +944,18 @@ pub(crate) fn recommended_badge() -> Div {
         .child(tr("Recommended"))
 }
 
-/// A small amber pill beside an agent that is still being built.
+/// A small muted pill beside an agent that is still being built (it can't be picked).
 pub(crate) fn experimental_badge() -> Div {
     div()
         .flex_none()
         .px_1p5()
-        .rounded(px(4.))
+        .rounded_full()
         .border_1()
-        .border_color(c(theme::WARN).opacity(0.45))
-        .bg(c(theme::WARN).opacity(0.12))
+        .border_color(c(theme::FG_DIM).opacity(0.4))
+        .bg(c(theme::FG_DIM).opacity(0.12))
         .text_size(theme::u(10.5))
-        .text_color(c(theme::WARN))
-        .child(tr("Experimental"))
+        .text_color(c(theme::FG_MUTED))
+        .child(tr("Not available"))
 }
 
 fn first_sentence(s: &str) -> String {

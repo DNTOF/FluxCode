@@ -3145,7 +3145,9 @@ impl Workbench {
     /// What goes with the message, one chip each. A closed chip goes away; when some
     /// are closed, a "+" at the end brings them back.
     fn render_context_chips(&self, cx: &mut Context<Self>) -> Vec<AnyElement> {
-        let chips = self.agent_chips(cx);
+        // The workspace overview goes with nearly every message: it is the small folder
+        // toggle in the bottom row, not a chip taking room up here.
+        let chips: Vec<_> = self.agent_chips(cx).into_iter().filter(|c| c.0 != "ws").collect();
         let hidden: Vec<(String, String)> = chips.iter().filter(|c| !c.3).map(|c| (c.0.clone(), c.1.clone())).collect();
         let mut out: Vec<AnyElement> = chips
             .into_iter()
@@ -3153,6 +3155,15 @@ impl Workbench {
             .enumerate()
             .map(|(i, (key, label, icon, _))| {
                 let close_key = key.clone();
+                // A mentioned picture shows itself, small, instead of the @ mark.
+                let thumb = key
+                    .strip_prefix('@')
+                    .and_then(|m| self.root.as_ref().map(|r| r.join(m)))
+                    .filter(|p| p.extension().and_then(|e| e.to_str()).is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "ico" | "svg")));
+                let lead: AnyElement = match thumb {
+                    Some(p) => img(p).flex_none().size(theme::u(14.)).rounded(px(3.)).object_fit(ObjectFit::Cover).into_any_element(),
+                    None => icon.size(theme::u(12.)).flex_none().into_any_element(),
+                };
                 chip_shell(SharedString::from(format!("ag-chip-{i}")), true)
                     .child(
                         h_flex()
@@ -3168,7 +3179,7 @@ impl Workbench {
                                 cx.stop_propagation();
                                 this.agent_chip_go(&key, w, cx);
                             }))
-                            .child(icon.size(theme::u(12.)).flex_none())
+                            .child(lead)
                             .child(div().min_w_0().truncate().child(label)),
                     )
                     .child(
@@ -3222,11 +3233,7 @@ impl Workbench {
             .mx_3()
             .mb_1()
             .py_1()
-            .rounded(px(6.))
-            .border_1()
-            .border_color(c(theme::BORDER_STRONG))
-            .bg(gpui_kit::Hsla::from(rgb(theme::palette().swatches()[1])))
-            .shadow_md();
+            .glass_pop();
         if list.is_empty() {
             v = v.child(div().px_2().py_1().text_xs().text_color(c(theme::FG_DIM)).child(tr("No command matches")));
         }
@@ -3276,11 +3283,7 @@ impl Workbench {
             .mx_3()
             .mb_1()
             .py_1()
-            .rounded(px(6.))
-            .border_1()
-            .border_color(c(theme::BORDER_STRONG))
-            .bg(gpui_kit::Hsla::from(rgb(theme::palette().swatches()[1])))
-            .shadow_md();
+            .glass_pop();
         if hits.is_empty() {
             list = list.child(div().px_2().py_1().text_xs().text_color(c(theme::FG_DIM)).child(tr("No file matches")));
         }
@@ -4166,6 +4169,26 @@ impl Workbench {
                                 this.agent_update_mention(cx);
                             })),
                     )
+                    // The workspace overview (folders and open files) goes with the
+                    // message: lit while it is on, a click leaves it out.
+                    .when(self.root.is_some(), |h| {
+                        let ws_on = !self.agent.off_ctx.contains("ws");
+                        h.child(
+                            icon_btn(
+                                "ag-ws",
+                                Icon::new(if ws_on { gpui_kit::assets::IconName::FolderCheck } else { gpui_kit::assets::IconName::Folder }),
+                                if ws_on { tr("Workspace overview: on. The agent gets the folders and open files with your message. Click to leave it out.") } else { tr("Workspace overview: off. Click to send the folders and open files with your message.") },
+                            )
+                            .when(ws_on, |d| d.text_color(c(theme::ACCENT_TEXT)))
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                cx.stop_propagation();
+                                if !this.agent.off_ctx.remove("ws") {
+                                    this.agent.off_ctx.insert("ws".into());
+                                }
+                                cx.notify();
+                            })),
+                        )
+                    })
                     // The model and mode take what is left of the row; the model's name is
                     // what gives way (cut at its end), after the labels on the right have
                     // turned into icons. Send never leaves the box.
@@ -4768,19 +4791,23 @@ fn send_btn(id: &'static str, active: bool, tip: &'static str) -> Stateful<Div> 
 }
 
 /// A chip above the input: 22 px tall, the remove button first, then the name.
+/// A context chip: a small capsule in glass, the name cut to fit; its remove mark
+/// shows while the pointer is on it.
 fn chip_shell(id: SharedString, on: bool) -> Stateful<Div> {
     h_flex()
         .id(id)
+        .group("ag-chip")
         // In one row with the others, which scrolls sideways when they don't fit.
         .flex_none()
-        .max_w(theme::u(200.))
+        .max_w(theme::u(180.))
         .h(theme::u(22.))
+        .pr_0p5()
         .gap_0p5()
-        .rounded(px(4.))
+        .rounded_full()
         .border_1()
         .text_xs()
-        .border_color(c(if on { theme::BORDER_STRONG } else { theme::BORDER }))
-        .bg(if on { c(theme::BG_EDITOR) } else { gpui_kit::transparent_black() })
+        .border_color(theme::glass_pop_edge())
+        .bg(if on { c(theme::FG_DIM).opacity(0.12) } else { gpui_kit::transparent_black() })
         .text_color(c(if on { theme::FG } else { theme::FG_DIM }))
 }
 
@@ -4788,12 +4815,14 @@ fn chip_x(id: SharedString, icon: IconName, f: impl Fn(&ClickEvent, &mut Window,
     div()
         .id(id)
         .flex_none()
-        .size(theme::u(18.))
+        .size(theme::u(16.))
         .ml_px()
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(3.))
+        .rounded_full()
+        .opacity(0.)
+        .group_hover("ag-chip", |s| s.opacity(1.))
         .cursor_pointer()
         .text_color(c(theme::FG_DIM))
         .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))

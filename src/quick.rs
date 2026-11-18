@@ -436,6 +436,8 @@ impl Workbench {
         let Some(&ix) = self.quick.hits.get(self.quick.sel) else { return };
         let path = PathBuf::from(&self.all_files[ix]);
         self.quick.open = false;
+        // Ctrl+P over the agent's full screen: show the file in the editor.
+        self.agent_full = false;
         self.open_file(path, window, cx);
         cx.notify();
     }

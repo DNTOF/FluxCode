@@ -14,7 +14,7 @@ use crate::i18n::tr;
 use crate::theme::{self, c, GlassExt};
 use crate::workbench::Workbench;
 use gpui_kit::component::{
-    button::{Button, ButtonVariants},
+
     h_flex,
     switch::Switch,
     v_flex, Icon, Sizable,
@@ -233,63 +233,52 @@ impl Workbench {
         }
     }
 
-    /// The token saver panel, floating over the chat above the message box: what each
-    /// pack does in a sentence, the level for short answers, and auto compact with
-    /// how full the context is now.
+    /// The token saver panel, floating over the chat above the message box. One line
+    /// per option (what it does is in its tooltip), the level and the compact mark as
+    /// small segmented controls under their option, in liquid glass. Never taller than
+    /// the room above the message box; what doesn't fit scrolls.
     pub(crate) fn render_saver_panel(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         if !self.agent.saver.open {
             return None;
         }
+        use gpui_kit::assets::IconName as Ico;
         let s = &self.settings;
         let on = |id: &str| s.saver_packs.iter().any(|p| p == id);
         let pct = (estimate(&s.saver_packs, &s.saver_level) * 100.).round() as u32;
-        let changed = self.agent.saver.changed.is_some();
-        // One switch row: an icon tile, the name and a sentence, the switch.
-        let row = |key: &'static str, icon: gpui_kit::assets::IconName, title: &'static str, sub: SharedString, checked: bool, cx: &mut Context<Self>, set: fn(&mut Workbench, bool, &mut Context<Workbench>)| {
+        let (panel_top, composer_top) = self.agent.geom.get();
+        let room = if composer_top > panel_top + 120. { composer_top - panel_top - 24. } else { 420. };
+
+        // One option: a line icon, the name, its switch. The tooltip says what it does.
+        let row = |key: &'static str, icon: Ico, title: &'static str, tip: SharedString, checked: bool, cx: &mut Context<Self>, set: fn(&mut Workbench, bool, &mut Context<Workbench>)| {
             h_flex()
-                .gap_2p5()
-                .items_start()
-                .min_w_0()
-                .child(
-                    div()
-                        .flex_none()
-                        .size(theme::u(24.))
-                        .rounded(px(7.))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .bg(c(if checked { theme::GREEN } else { theme::FG_DIM }).opacity(0.14))
-                        .text_color(c(if checked { theme::GREEN } else { theme::FG_MUTED }))
-                        .child(Icon::new(icon).size(theme::u(14.))),
-                )
-                .child(
-                    v_flex()
-                        .flex_1()
-                        .min_w_0()
-                        .gap(px(1.))
-                        .child(div().text_sm().font_weight(FontWeight::MEDIUM).text_color(c(theme::FG_STRONG)).child(tr(title)))
-                        .child(div().text_xs().text_color(c(theme::FG_DIM)).child(sub)),
-                )
+                .id(SharedString::from(format!("sv-row-{key}")))
+                .h(theme::u(30.))
+                .gap_2()
+                .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(tip.clone()).build(w, cx))
+                .child(Icon::new(icon).flex_none().size(theme::u(14.)).text_color(c(if checked { theme::FG_STRONG } else { theme::FG_DIM })))
+                .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(if checked { theme::FG_STRONG } else { theme::FG_MUTED })).child(tr(title)))
                 .child(Switch::new(SharedString::from(format!("sv-{key}"))).checked(checked).small().on_click(cx.listener(move |this, v: &bool, _, cx| set(this, *v, cx))))
         };
-        // A segmented control: the chosen option sits on a raised pill.
-        let seg = |id: &'static str, opts: Vec<(SharedString, bool, Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)>)>, cx: &mut Context<Self>| {
-            let mut h = h_flex().ml(theme::u(34.)).p_0p5().gap_0p5().rounded(px(8.)).bg(c(theme::BG_HOVER));
+        // A small segmented control under its option, lined up with the option's name.
+        let seg = |id: &'static str, opts: Vec<(SharedString, bool, Box<dyn Fn(&mut Workbench)>)>, cx: &mut Context<Self>| {
+            let mut h = h_flex().flex_1().min_w_0().p(px(2.)).gap(px(2.)).rounded(px(8.)).bg(c(theme::FG_DIM).opacity(0.12));
             for (k, (label, picked, f)) in opts.into_iter().enumerate() {
                 h = h.child(
                     div()
                         .id((id, k))
                         .flex_1()
-                        .py_0p5()
+                        .h(theme::u(20.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
                         .rounded(px(6.))
-                        .text_center()
                         .text_xs()
                         .cursor_pointer()
                         .text_color(c(if picked { theme::FG_STRONG } else { theme::FG_MUTED }))
-                        .when(picked, |d| d.bg(c(theme::BG_ELEVATED)).border_1().border_color(theme::glass_edge()).shadow_sm())
+                        .when(picked, |d| d.bg(theme::glass_pop_fill()).border_1().border_color(theme::glass_pop_edge()).shadow_sm())
                         .when(!picked, |d| d.hover(|s| s.text_color(c(theme::FG))))
                         .on_click(cx.listener(move |this, _, _, cx| {
-                            f(this, cx);
+                            f(this);
                             this.agent.saver.changed = Some(std::time::Instant::now());
                             this.settings.save();
                             cx.notify();
@@ -299,29 +288,37 @@ impl Workbench {
             }
             h
         };
-        let level_hint = match s.saver_level.as_str() {
-            "lite" => tr("Brief, in full sentences: no greetings, no recap."),
-            "ultra" => tr("Telegraphic: keywords and symbols, no prose around code."),
-            _ => tr("Terse: no filler or pleasantries; fragments are fine."),
-        };
-        let mut answers = v_flex().gap_1().child(row("caveman", gpui_kit::assets::IconName::MessageSquareCode, "Short answers", level_hint.into(), on("caveman"), cx, |w, v, cx| w.saver_set("caveman", v, cx)));
+        let indent = theme::u(22.);
+        let mut body = v_flex().gap_0p5();
+
+        let level_tip: SharedString = match s.saver_level.as_str() {
+            "lite" => tr("Short answers, Lite: brief, in full sentences; no greetings, no recap."),
+            "ultra" => tr("Short answers, Ultra: telegraphic, keywords and symbols; no prose around code."),
+            _ => tr("Short answers, Full: terse; no filler or pleasantries, fragments are fine."),
+        }
+        .into();
+        body = body.child(row("caveman", Ico::TextAlignStart, "Short answers", level_tip, on("caveman"), cx, |w, v, cx| w.saver_set("caveman", v, cx)));
         if on("caveman") {
             let opts = LEVELS
                 .iter()
                 .map(|&(lv, label)| {
-                    let f: Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)> = Box::new(move |w, _| w.settings.saver_level = lv.into());
+                    let f: Box<dyn Fn(&mut Workbench)> = Box::new(move |w| w.settings.saver_level = lv.into());
                     (SharedString::from(tr(label)), s.saver_level == lv, f)
                 })
                 .collect();
-            answers = answers.child(seg("sv-lv", opts, cx));
+            body = body.child(h_flex().pl(indent).pb_1().child(seg("sv-lv", opts, cx)));
         }
-        // Auto compact, with the context meter it acts on.
+        body = body
+            .child(row("lean", Ico::Code, "Lean code", tr("Shows changed lines or a small diff, never whole files again.").into(), on("lean"), cx, |w, v, cx| w.saver_set("lean", v, cx)))
+            .child(row("quiet", Ico::SquareTerminal, "Quiet tools", tr("Reads only the lines it needs and keeps command output short.").into(), on("quiet"), cx, |w, v, cx| w.saver_set("quiet", v, cx)));
+
+        // Auto compact, with how full the context is now beside its mark.
         let fill = self.agent_context_fill().clamp(0., 1.);
         let at = s.saver_compact_at;
-        let meter_col = if fill * 100. >= at as f32 { theme::WARN } else { theme::GREEN };
-        let mut compact = v_flex().gap_1().child(row(
+        let meter = if fill * 100. >= at as f32 { theme::WARN } else { theme::GREEN };
+        body = body.child(div().my_1().h(px(1.)).bg(theme::glass_pop_edge())).child(row(
             "compact",
-            gpui_kit::assets::IconName::ListCollapse,
+            Ico::Shrink,
             "Auto compact",
             crate::trf!("When the context is {at}% full, the chat is summarized so later messages cost less."; at => at).into(),
             s.saver_compact,
@@ -336,47 +333,39 @@ impl Workbench {
             let opts = COMPACT_AT
                 .iter()
                 .map(|&p| {
-                    let f: Box<dyn Fn(&mut Workbench, &mut Context<Workbench>)> = Box::new(move |w, _| w.settings.saver_compact_at = p);
+                    let f: Box<dyn Fn(&mut Workbench)> = Box::new(move |w| w.settings.saver_compact_at = p);
                     (SharedString::from(format!("{p}%")), at == p, f)
                 })
                 .collect();
-            compact = compact.child(seg("sv-at", opts, cx)).child(
+            body = body.child(
                 v_flex()
-                    .ml(theme::u(34.))
+                    .pl(indent)
                     .gap_1()
+                    .child(seg("sv-at", opts, cx))
                     .child(
                         h_flex()
-                            .text_xs()
-                            .text_color(c(theme::FG_DIM))
-                            .child(div().flex_1().child(tr("Context now")))
-                            .child(div().text_color(c(meter_col)).child(format!("{}%", (fill * 100.).round() as u32))),
-                    )
-                    .child(
-                        div()
-                            .relative()
-                            .w_full()
-                            .h(px(4.))
-                            .rounded_full()
-                            .bg(c(theme::BG_HOVER))
-                            .child(div().absolute().left_0().top_0().h_full().w(relative(fill.max(0.02))).rounded_full().bg(c(meter_col)))
-                            .child(div().absolute().top(px(-2.)).h(px(8.)).w(px(2.)).left(relative(at as f32 / 100.)).rounded_full().bg(c(theme::FG_MUTED))),
+                            .gap_2()
+                            .child(
+                                div()
+                                    .relative()
+                                    .flex_1()
+                                    .h(px(3.))
+                                    .rounded_full()
+                                    .bg(c(theme::FG_DIM).opacity(0.18))
+                                    .child(div().absolute().left_0().top_0().h_full().w(relative(fill.max(0.02))).rounded_full().bg(c(meter)))
+                                    .child(div().absolute().top(px(-2.)).h(px(7.)).w(px(1.5)).left(relative(at as f32 / 100.)).bg(c(theme::FG_MUTED))),
+                            )
+                            .child(div().flex_none().text_xs().text_color(c(theme::FG_DIM)).child(crate::trf!("{n}% now"; n => (fill * 100.).round() as u32))),
                     ),
             );
         }
-        // The panel never grows past the room above the message box; what doesn't
-        // fit scrolls under its header.
-        let (panel_top, composer_top) = self.agent.geom.get();
-        let room = if composer_top > panel_top + 120. { composer_top - panel_top - 24. } else { 420. };
-        let section = |t: &'static str| div().text_size(theme::u(11.)).font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_DIM)).child(tr(t));
-        let rule = || div().h(px(1.)).bg(theme::glass_edge());
+        let any_on = !s.saver_packs.is_empty() || s.saver_compact;
         Some(
             v_flex()
                 .id("ag-saver-panel")
                 .occlude()
-                .w(theme::u(320.))
-                .max_h(px(room.max(180.)))
-                .flex()
-                .flex_col()
+                .w(theme::u(272.))
+                .max_h(px(room.max(160.)))
                 .p_3()
                 .gap_2()
                 .glass_pop()
@@ -388,55 +377,47 @@ impl Workbench {
                 .child(
                     h_flex()
                         .gap_2()
-                        .child(Icon::new(gpui_kit::assets::IconName::Leaf).size(theme::u(16.)).text_color(c(theme::GREEN)))
-                        .child(div().flex_1().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr("Token saver")))
+                        .child(Icon::new(Ico::Leaf).size(theme::u(14.)).text_color(c(theme::GREEN)))
+                        .child(div().flex_1().min_w_0().truncate().text_sm().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr("Token saver")))
                         .when(pct > 0, |h| {
                             h.child(
                                 div()
-                                    .px_2()
-                                    .py(px(1.))
+                                    .id("sv-pct")
+                                    .px_1p5()
                                     .rounded_full()
                                     .bg(c(theme::GREEN).opacity(0.14))
                                     .text_xs()
-                                    .font_weight(FontWeight::MEDIUM)
                                     .text_color(c(theme::GREEN))
-                                    .child(crate::trf!("about {pct}% fewer tokens"; pct => pct)),
+                                    .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("About this many fewer output tokens (an estimate). Guidance goes out with your next message, then every few turns.")).build(w, cx))
+                                    .child(format!("−{pct}%")),
                             )
                         }),
                 )
-                .child(
-                    v_flex()
-                        .id("sv-body")
-                        .flex_1()
-                        .min_h_0()
-                        .overflow_y_scroll()
-                        .gap_2p5()
-                .child(div().text_xs().text_color(c(theme::FG_DIM)).child(if changed {
-                    tr("Changes apply from your next message.")
-                } else {
-                    tr("A few lines of guidance go out with your next message and again every few turns, so they cost almost nothing.")
-                }))
-                .child(v_flex().gap_2().child(section("Answers")).child(answers))
-                .child(rule())
-                .child(
-                    v_flex()
-                        .gap_2()
-                        .child(section("Code and tools"))
-                        .child(row("lean", gpui_kit::assets::IconName::Braces, "Lean code", tr("Shows changed lines or a small diff, never whole files again.").into(), on("lean"), cx, |w, v, cx| w.saver_set("lean", v, cx)))
-                        .child(row("quiet", gpui_kit::assets::IconName::Wrench, "Quiet tools", tr("Reads only the lines it needs and keeps command output short.").into(), on("quiet"), cx, |w, v, cx| w.saver_set("quiet", v, cx))),
-                )
-                .child(rule())
-                .child(v_flex().gap_2().child(section("Context")).child(compact))
-                .child(
-                    h_flex().pt_0p5().child(div().flex_1()).child(Button::new("sv-off").label(tr("Turn all off")).xsmall().ghost().on_click(cx.listener(|this, _, _, cx| {
-                        this.settings.saver_packs.clear();
-                        this.settings.saver_compact = false;
-                        this.agent.saver.changed = Some(std::time::Instant::now());
-                        this.settings.save();
-                        cx.notify();
-                    }))),
-                ),
-                )
+                .child(v_flex().id("sv-body").flex_1().min_h_0().overflow_y_scroll().child(body))
+                .when(any_on, |v| {
+                    v.child(
+                        h_flex()
+                            .text_xs()
+                            .text_color(c(theme::FG_DIM))
+                            .child(div().flex_1().min_w_0().truncate().child(if self.agent.saver.changed.is_some() { tr("Applies from your next message") } else { "" }))
+                            .child(
+                                div()
+                                    .id("sv-off")
+                                    .px_1()
+                                    .rounded(px(4.))
+                                    .cursor_pointer()
+                                    .hover(|s| s.text_color(c(theme::FG_STRONG)))
+                                    .child(tr("Turn all off"))
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.settings.saver_packs.clear();
+                                        this.settings.saver_compact = false;
+                                        this.agent.saver.changed = Some(std::time::Instant::now());
+                                        this.settings.save();
+                                        cx.notify();
+                                    })),
+                            ),
+                    )
+                })
                 .into_any_element(),
         )
     }

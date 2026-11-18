@@ -369,6 +369,10 @@ pub struct Workbench {
     pub(crate) image_box: Rc<std::cell::Cell<(f32, f32)>>,
     /// The tab strip's scroll position, so the active tab is scrolled into view.
     pub(crate) tabs_scroll: ScrollHandle,
+    /// Side bar shown last frame, and a count of its openings: it slides in when it opens.
+    pub(crate) side_anim: std::cell::Cell<(bool, u64)>,
+    /// Agent full screen last frame, and a count of the switches: the view fades over.
+    pub(crate) full_anim: std::cell::Cell<(bool, u64)>,
     pub(crate) out_run: Option<crate::panel::RunInfo>,
     /// Position while walking the history with Up/Down.
     pub(crate) term_hist_ix: Option<usize>,
@@ -602,6 +606,8 @@ impl Workbench {
             panel_sel: None,
             image_box: Rc::default(),
             tabs_scroll: ScrollHandle::new(),
+            side_anim: std::cell::Cell::new((false, 0)),
+            full_anim: std::cell::Cell::new((false, 0)),
             out_run: None,
             term_hist_ix: None,
             problems: Vec::new(),
@@ -2994,25 +3000,72 @@ impl Render for Workbench {
                     cx.notify();
                 }))
         };
-        let center: AnyElement = if self.sidebar_open {
+        // The side bar slides in when it opens (220 ms) instead of appearing at full width.
+        let (was_open, mut side_gen) = self.side_anim.get();
+        if was_open != self.sidebar_open {
+            if self.sidebar_open {
+                side_gen += 1;
+            }
+            self.side_anim.set((self.sidebar_open, side_gen));
+        }
+        let side_column = |this: &Self, window: &mut Window, cx: &mut Context<Self>| -> AnyElement {
+            let col = div().w(px(side_w)).flex_none().h_full().overflow_hidden().child(this.render_side_bar(window, cx));
+            if side_gen <= 1 {
+                // The first frame's side bar is simply there.
+                return col.into_any_element();
+            }
+            col.with_animation(
+                SharedString::from(format!("side-in-{side_gen}")),
+                Animation::new(std::time::Duration::from_millis(220)).with_easing(gpui_kit::ease_out_quint()),
+                move |d, t| d.w(px((side_w * t).max(1.))).opacity(0.3 + 0.7 * t),
+            )
+            .into_any_element()
+        };
+        // Agent full screen fades over the editor (and back) instead of snapping.
+        let full = self.agent_docked_visible() && self.agent_full;
+        let (was_full, mut full_gen) = self.full_anim.get();
+        if was_full != full {
+            full_gen += 1;
+            self.full_anim.set((full, full_gen));
+        }
+        let fade = move |el: Div, key: &'static str| -> AnyElement {
+            if full_gen == 0 {
+                return el.into_any_element();
+            }
+            el.with_animation(
+                SharedString::from(format!("{key}-{full_gen}")),
+                Animation::new(std::time::Duration::from_millis(200)).with_easing(gpui_kit::ease_out_quint()),
+                |d, t| d.opacity(0.35 + 0.65 * t),
+            )
+            .into_any_element()
+        };
+        let center: AnyElement = if full {
+            // Full width: the agent workspace (sessions, chat, changes) fills the window;
+            // the side bar can still open beside it (explorer, search, ...).
+            let agent = fade(div().flex_1().min_w_0().h_full().overflow_hidden().child(self.render_agent_full(window, cx)), "full-in");
+            if self.sidebar_open {
+                h_flex().flex_1().min_w_0().h_full().child(side_column(self, window, cx)).child(handle("sidebar-resize", 1, self, cx)).child(agent).into_any_element()
+            } else {
+                agent
+            }
+        } else if self.sidebar_open {
             h_flex()
                 .flex_1()
                 .min_w_0()
                 .h_full()
-                .child(div().w(px(side_w)).flex_none().h_full().overflow_hidden().child(self.render_side_bar(window, cx)))
+                .child(side_column(self, window, cx))
                 .child(handle("sidebar-resize", 1, self, cx))
-                .child(div().flex_1().min_w_0().h_full().overflow_hidden().child(editor_and_panel))
+                .child(fade(div().flex_1().min_w_0().h_full().overflow_hidden().child(editor_and_panel), "editor-in"))
                 .into_any_element()
         } else {
             // Beside the activity bar it takes what is left (a full-width child would
             // run past the window's right edge by the activity bar's width).
-            div().flex_1().min_w_0().h_full().overflow_hidden().child(editor_and_panel).into_any_element()
+            fade(div().flex_1().min_w_0().h_full().overflow_hidden().child(editor_and_panel), "editor-in")
         };
         // The right dock is a fixed-width column (dragged by its left edge), so it always
         // fits in the window: the editor side gives up the space, never the dock.
-        let center: AnyElement = if self.agent_docked_visible() && self.agent_full {
-            // Full width: the agent workspace (sessions, chat, changes) fills the window.
-            div().flex_1().min_w_0().h_full().overflow_hidden().child(self.render_agent_full(window, cx)).into_any_element()
+        let center: AnyElement = if full {
+            center
         } else if self.right_dock_on() {
             h_flex()
                 .flex_1()
