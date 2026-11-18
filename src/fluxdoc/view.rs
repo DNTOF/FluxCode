@@ -558,7 +558,7 @@ impl Ctx<'_> {
         let arg_text = self.t(a);
         let src: &str = &arg_text;
         let args_ = args(src, (0, src.len() as u32));
-        let caption = arg(src, &args_, "caption");
+        let caption = super::caption(src, &args_, self.sh.want);
         let right = arg(src, &args_, "align") == Some("right");
         v_flex()
             .pb_4()
@@ -809,7 +809,19 @@ impl Ctx<'_> {
                 .gap_2()
                 .pb_4()
                 .children(blocks.iter().enumerate().filter_map(|(k, b)| match b {
-                    Block::Image(a) => Some(self.picture(*a, bi * 1000 + k)),
+                    // Each image with its caption under it, as on GitHub.
+                    Block::Image(a) => {
+                        let arg_text = self.t(*a);
+                        let src: &str = &arg_text;
+                        let cap = super::caption(src, &args(src, (0, src.len() as u32)), self.sh.want).map(str::to_string);
+                        Some(
+                            v_flex()
+                                .gap_1()
+                                .child(self.picture(*a, bi * 1000 + k))
+                                .when_some(cap, |v, cap| v.child(div().text_xs().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_MUTED)).child(cap)))
+                                .into_any_element(),
+                        )
+                    }
                     _ => None,
                 }))
                 .into_any_element(),

@@ -277,6 +277,17 @@ pub fn arg<'a>(src: &'a str, a: &[(String, Span)], key: &str) -> Option<&'a str>
     a.iter().find(|(k, _)| k == key).map(|(_, s)| text(src, *s))
 }
 
+/// An image's caption in a language (`want`: 1 English, 2 Indonesian): `caption-id=`
+/// for Indonesian when there is one, else `caption=`.
+pub fn caption<'a>(src: &'a str, a: &[(String, Span)], want: u8) -> Option<&'a str> {
+    if want == 2 {
+        if let Some(c) = arg(src, a, "caption-id") {
+            return Some(c);
+        }
+    }
+    arg(src, a, "caption")
+}
+
 fn hex(s: &str) -> Option<u32> {
     let s = s.trim().trim_start_matches('#');
     match s.len() {

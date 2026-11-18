@@ -688,37 +688,54 @@ impl Workbench {
         .detach();
     }
 
+    /// The sections shown on this system (Windows integration means nothing elsewhere).
+    fn settings_sections() -> Vec<SettingsSection> {
+        SettingsSection::ALL.iter().copied().filter(|s| cfg!(windows) || *s != SettingsSection::Windows).collect()
+    }
+
+    /// The section the page is scrolled to: the first one still showing more than a
+    /// strip under the top edge. At the very bottom, a short last section the user
+    /// picked in the list counts as reached even though it can't scroll to the top.
+    fn settings_in_view(&self, sections: &[SettingsSection]) -> SettingsSection {
+        let h = &self.settings_scroll;
+        if h.bounds_for_item(0).is_none() {
+            return self.settings_section;
+        }
+        let top = h.bounds().top() - h.offset().y + theme::u(96.);
+        let mut ix = 0;
+        while ix + 1 < sections.len() && h.bounds_for_item(ix).is_some_and(|b| b.bottom() <= top) {
+            ix += 1;
+        }
+        let at_end = h.offset().y <= -h.max_offset().y + px(2.);
+        let picked = sections.iter().position(|s| *s == self.settings_section).unwrap_or(0);
+        if at_end && picked > ix {
+            ix = picked;
+        }
+        sections[ix]
+    }
+
+    /// Settings as one page: the list of sections on the left, and every section, from
+    /// Appearance down to About, in one scroll on the right. A row in the list jumps to
+    /// its section; the list follows the scroll.
     pub(crate) fn render_settings(&self, _: &mut Window, cx: &mut Context<Self>) -> AnyElement {
-        let close_btn = self.action_button("settings-close", tr("Close"), crate::ui::Kind::Plain, cx, |this, _, cx| {
-            this.settings_open = false;
-            cx.notify();
-        });
-        let section = self.settings_section;
-        let content = self.settings_section_content(section, cx);
-        let key = SharedString::from(format!("settings-section-{}", section as u8));
-        // Switching sections fades the new one in over 160 ms, opacity only.
-        // The feel follows PandaCode (aicodeking/pandacode, src/motion.css and
-        // src/motion.ts): its content appears with a 160 ms ease-out fade from
-        // opacity 0, and it never animates a layout property such as top or
-        // left, so no layout pass runs per frame. The fade uses GPUI's cubic
-        // ease-out, the same curve as CSS ease-out, and only the active
-        // section is built. Under the system's reduce-motion setting there is
-        // no motion at all.
-        let body = if cx.reduce_motion() {
-            div().child(content).into_any_element()
-        } else {
-            div()
-                .child(content)
-                .with_animation(key, Animation::new(Duration::from_millis(160)).with_easing(gpui_kit::base::animation::ease_out_cubic), |el, t| {
-                    el.opacity(t)
-                })
+        let sections = Self::settings_sections();
+        let active = self.settings_in_view(&sections);
+        let blocks = sections.iter().map(|sec| {
+            v_flex()
+                .w_full()
+                .max_w(theme::u(860.))
+                .pb(theme::u(40.))
+                .child(div().text_lg().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr(sec.title())))
+                .child(div().pt(px(2.)).text_xs().text_color(c(theme::FG_MUTED)).child(tr(sec.description())))
+                .child(div().h(theme::u(14.)))
+                .child(self.settings_section_content(*sec, cx))
                 .into_any_element()
-        };
+        }).collect::<Vec<_>>();
         h_flex()
             .id("settings")
             .size_full()
             .bg(c(theme::BG_EDITOR))
-            .child(self.render_settings_nav(cx))
+            .child(self.render_settings_nav(&sections, active, cx))
             .child(
                 v_flex()
                     .id("settings-content")
@@ -726,35 +743,26 @@ impl Workbench {
                     .min_w_0()
                     .h_full()
                     .overflow_y_scroll()
-                    .px_8()
-                    .py_6()
-                    .child(
-                        h_flex()
-                            .w_full()
-                            .max_w(theme::u(760.))
-                            .items_start()
-                            .gap_4()
-                            .child(
-                                v_flex()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .gap_1()
-                                    .child(div().text_xl().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr(section.title())))
-                                    .child(div().text_xs().text_color(c(theme::FG_MUTED)).child(tr(section.description()))),
-                            )
-                            .child(close_btn),
-                    )
-                    .child(div().h(theme::u(16.)))
-                    .child(body),
+                    .track_scroll(&self.settings_scroll)
+                    .px_10()
+                    .pt_8()
+                    .children(blocks)
+                    // Room under the last section, so the short ones at the end can come
+                    // up to the top when picked in the list.
+                    .child(div().flex_none().h(theme::u(360.))),
             )
             .into_any_element()
     }
 
-    /// The left navigation: one row per section, an accent bar on the active
-    /// row, and a dot on rows whose section differs from the defaults.
-    fn render_settings_nav(&self, cx: &mut Context<Self>) -> AnyElement {
+    /// The left list: one row per section, an accent bar on the one in view, and a dot
+    /// on rows whose section differs from the defaults. Close sits at its top.
+    fn render_settings_nav(&self, sections: &[SettingsSection], active: SettingsSection, cx: &mut Context<Self>) -> AnyElement {
+        let close_btn = self.action_button("settings-close", tr("Close"), crate::ui::Kind::Plain, cx, |this, _, cx| {
+            this.settings_open = false;
+            cx.notify();
+        });
         v_flex()
-            .w(theme::u(208.))
+            .w(theme::u(220.))
             .h_full()
             .flex_shrink_0()
             .bg(c(theme::BG_SIDE))
@@ -765,18 +773,17 @@ impl Workbench {
             // Room between the rows, so a selected row and a hovered one never touch.
             .gap(px(3.))
             .child(
-                div()
-                    .px_3()
+                h_flex()
+                    .pl_3()
                     .pb_2()
-                    .text_sm()
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(c(theme::FG_STRONG))
-                    .child(tr("Settings")),
+                    .gap_2()
+                    .items_center()
+                    .child(div().flex_1().text_sm().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(tr("Settings")))
+                    .child(close_btn),
             )
-            // Windows integration means nothing on Linux or macOS.
-            .children(SettingsSection::ALL.iter().enumerate().filter(|(_, s)| cfg!(windows) || **s != SettingsSection::Windows).map(|(ix, sec)| {
+            .children(sections.iter().enumerate().map(|(ix, sec)| {
                 let sec = *sec;
-                let active = sec == self.settings_section;
+                let on = sec == active;
                 let modified = sec.modified(self);
                 div()
                     .relative()
@@ -788,9 +795,9 @@ impl Workbench {
                     .flex()
                     .items_center()
                     .gap_2()
-                    .when(active, |d| d.bg(c(theme::SELECT)))
-                    .when(!active, |d| d.hover(|s| s.bg(c(theme::BG_HOVER))))
-                    .when(active, |d| {
+                    .when(on, |d| d.bg(c(theme::SELECT)))
+                    .when(!on, |d| d.hover(|s| s.bg(c(theme::BG_HOVER))))
+                    .when(on, |d| {
                         d.child(
                             div()
                                 .absolute()
@@ -802,19 +809,19 @@ impl Workbench {
                                 .bg(c(theme::ACCENT)),
                         )
                     })
-                    .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(if active { theme::FG_STRONG } else { theme::FG })).child(tr(sec.nav_label())))
+                    .child(div().flex_1().min_w_0().truncate().text_sm().text_color(c(if on { theme::FG_STRONG } else { theme::FG })).child(tr(sec.nav_label())))
                     .when(modified, |d| d.child(div().size(px(6.)).rounded_full().bg(c(theme::WARN))))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.settings_section = sec;
+                        this.settings_scroll.scroll_to_top_of_item(ix);
                         cx.notify();
                     }))
             }))
             .into_any_element()
     }
 
-    /// Builds the content of one section. Only the active section is built,
-    /// so opening Settings no longer reads the soul files or lists the
-    /// shortcuts of the rest.
+    /// Builds the content of one section (the page builds them all, one under another;
+    /// the agents list and the soul files' places come from caches and a few file checks).
     fn settings_section_content(&self, section: SettingsSection, cx: &mut Context<Self>) -> AnyElement {
         let s = &self.settings;
         // Same behaviour as the old flat page: each control applies the

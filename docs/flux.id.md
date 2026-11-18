@@ -153,7 +153,8 @@ FluxCode hanya menggambar yang ada di layar.
   mengambang ke kanan.
 - `dark=` ditampilkan sebagai gantinya saat temanya gelap (di GitHub juga, lewat
   `<picture>`).
-- `link=` adalah yang terbuka saat diklik; `caption=` tampil di bawahnya.
+- `link=` adalah yang terbuka saat diklik; `caption=` tampil di bawahnya, dan
+  `caption-id=` versi Bahasa Indonesianya kalau berbeda.
 - GIF diputar di FluxCode apa adanya. Gambar dari web tidak diambil: dokumen tetap
   offline, dan menampilkan tautan sebagai gantinya.
 - `@video` menampilkan poster dengan tombol putar; satu klik memutarnya di player sistem
@@ -166,8 +167,8 @@ Dua gambar atau lebih berdampingan:
 
 ```flux
 @gallery
-@image before.png width=49% alt="Before"
-@image after.png width=49% alt="After"
+@image before.png width=49% alt="Before" caption="Before"
+@image after.png width=49% alt="After" caption="After"
 @end
 ```
 

@@ -152,7 +152,7 @@ the list.
     </td>
     <td width="50%" valign="top">
       <a href="assets/screenshots/backgrounds-themes.png"><img src="assets/screenshots/backgrounds-themes.png" width="100%" alt="The Mountains background in four themes: FluxDark, FluxRed and FluxMuara Dark at night, FluxCream as a pale day scene."></a>
-      <br><sub><b>One scene, four themes</b></sub>
+      <br><sub><b>One scene in four themes</b></sub>
     </td>
   </tr>
 </table>
@@ -405,8 +405,12 @@ FluxCode opens it drawn, with Preview and Source above it.
   (from [`changelog.flux`](changelog.flux), in the interface language). Help > What's New
   opens it again.
 - OpenCode 2 is the registry's native OpenCode build from opencode.ai, which FluxCode
-  installs and checks against its SHA-256. A copy of OpenCode on your PATH is no longer
-  used, and an existing OpenCode choice moves to OpenCode 2 with its settings.
+  installs and checks against its SHA-256. An OpenCode 2 you already installed (npm's
+  `@opencode/cli`, or the opencode.ai installer) is used as it is instead; OpenCode 1 is
+  not. An existing OpenCode choice moves to OpenCode 2 with its settings.
+- Agents already on your PC are found the way Windows finds programs: on the PATH as
+  Windows has it now and in the folders installers use (npm, pnpm, bun, Scoop, WinGet,
+  `~/.local/bin`), so nothing is downloaded twice.
 - The color theme's name in the status bar opens the seven themes, each shown as a small
   editor in its colors.
 - Markdown files draw themselves: a README opens as text, and an eye icon above it

@@ -8,6 +8,7 @@
 //! | `@details` | `<details><summary>` |
 //! | `@table` | a pipe table with the same alignment |
 //! | `@image ... width=` | `<img width=...>` |
+//! | `@gallery` | a table: the images side by side, each with its caption under it |
 //! | `@video` | the poster image, linked to the video |
 //! | `{kbd X}` | `<kbd>X</kbd>` |
 //! | `@toc` | a list of links to the headings |
@@ -171,7 +172,7 @@ fn emit(doc: &Doc, src: &str, blocks: &[Block], out: &mut String, prefix: &str, 
             Block::Image(a) => {
                 line(out, prefix, &image_md(src, a));
                 let a = args(src, a);
-                if let Some(c) = arg(src, &a, "caption") {
+                if let Some(c) = super::caption(src, &a, want) {
                     line(out, prefix, "");
                     line(out, prefix, &format!("*{}*", inline_md(c)));
                 }
@@ -203,13 +204,23 @@ fn emit(doc: &Doc, src: &str, blocks: &[Block], out: &mut String, prefix: &str, 
                     }
                     Kind::Columns => emit(doc, src, inner, out, prefix, want),
                     Kind::Gallery => {
-                        line(out, prefix, "<p align=\"center\">");
-                        for b in inner {
-                            if let Block::Image(a) = b {
-                                line(out, prefix, &format!("  {}", image_md(src, *a)));
+                        // A table keeps the images in line at any page width, and gives
+                        // each its caption right under it.
+                        let imgs: Vec<super::Span> = inner.iter().filter_map(|b| if let Block::Image(a) = b { Some(*a) } else { None }).collect();
+                        let share = 100 / imgs.len().max(1);
+                        line(out, prefix, "<table>");
+                        line(out, prefix, "  <tr>");
+                        for a in imgs {
+                            line(out, prefix, &format!("    <td width=\"{share}%\" valign=\"top\">"));
+                            line(out, prefix, &format!("      {}", image_md_width(src, a, Some("100%"))));
+                            let args_ = args(src, a);
+                            if let Some(c) = super::caption(src, &args_, want) {
+                                line(out, prefix, &format!("      <br><sub><b>{}</b></sub>", inline_md(c)));
                             }
+                            line(out, prefix, "    </td>");
                         }
-                        line(out, prefix, "</p>");
+                        line(out, prefix, "  </tr>");
+                        line(out, prefix, "</table>");
                     }
                     _ => {
                         let tag = match kind {
@@ -254,10 +265,15 @@ fn emit(doc: &Doc, src: &str, blocks: &[Block], out: &mut String, prefix: &str, 
 /// An image in GitHub Markdown: `![alt](path)` when that says it all, else HTML for a
 /// width, alignment, link or dark-theme version (`<picture>`).
 fn image_md(src: &str, a: super::Span) -> String {
+    image_md_width(src, a, None)
+}
+
+/// `image_md` with its width replaced (a gallery's images fill their cells).
+fn image_md_width(src: &str, a: super::Span, width: Option<&str>) -> String {
     let a = args(src, a);
     let path = arg(src, &a, "").unwrap_or("");
     let alt = arg(src, &a, "alt").unwrap_or("").replace('"', "&quot;");
-    let (width, align, link, dark) = (arg(src, &a, "width"), arg(src, &a, "align"), arg(src, &a, "link"), arg(src, &a, "dark"));
+    let (width, align, link, dark) = (width.or(arg(src, &a, "width")), arg(src, &a, "align"), arg(src, &a, "link"), arg(src, &a, "dark"));
     if width.is_none() && align.is_none() && link.is_none() && dark.is_none() {
         return format!("![{alt}]({path})");
     }

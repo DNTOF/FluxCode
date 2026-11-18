@@ -1469,6 +1469,14 @@ pub const ID: &[(&str, &str)] = &[
     ("{cli} found · adds its ACP bridge", "{cli} ditemukan · tinggal tambah jembatan ACP-nya"),
     ("Clouds", "Awan"),
     ("Dusk sky and clouds, peach accent", "Langit senja dan awan, aksen persik"),
+    ("{0} has an update", "{0} punya pembaruan"),
+    ("Updating {0}", "Memperbarui {0}"),
+    ("{0} is up to date", "{0} sudah terbaru"),
+    ("{0} was not updated", "{0} gagal diperbarui"),
+    ("Update all ({0})", "Perbarui semua ({0})"),
+    ("Hide (the update goes on)", "Sembunyikan (pembaruan tetap jalan)"),
+    ("The next chat uses the new version.", "Chat berikutnya memakai versi baru."),
+    ("Agent updates", "Pembaruan agen"),
 ];
 
 #[cfg(test)]

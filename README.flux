@@ -43,12 +43,12 @@ pengembangan.
 
 The agent's full-screen workspace: your chats on the left, the conversation in the middle
 and the files it changed on the right, each a floating glass column over an animated
-pixel background. Beside the code, the same agent stays a compact panel (`Ctrl+L`).
+background. Beside the code, the same agent stays a compact panel (`Ctrl+L`).
 @id
 @image assets/screenshots/hero.id.jpg width=100% link=assets/screenshots/agent-workspace.png alt="Editor kode 16 MB dengan agen AI di dalamnya: judul di atas langit senja, dan di bawahnya FluxCode dengan agen memenuhi jendela, muncul dari balik awan. Daftar chat di kiri, percakapan di tengah, file yang diubahnya di kanan."
 
 Workspace layar penuh milik agent: daftar chat di kiri, percakapan di tengah, dan file yang
-diubahnya di kanan, masing-masing kolom kaca yang melayang di atas latar pixel beranimasi.
+diubahnya di kanan, masing-masing kolom kaca yang melayang di atas latar beranimasi.
 Di samping kode, agent yang sama tetap menjadi panel ringkas (`Ctrl+L`).
 
 @en
@@ -228,8 +228,8 @@ Settings > Updates mematikan pemeriksaannya.
 
 @all
 @gallery
-@image assets/screenshots/token-saver.png width=49% link=assets/screenshots/token-saver.png alt="The token saver panel over the chat: Caveman on at the Full level, Lean code off, Quiet tools on, about 36 percent fewer output tokens."
-@image assets/screenshots/usage-limit.png width=49% link=assets/screenshots/usage-limit.png alt="A banner above the message box: Usage limit reached, resets 15.45 in 2 hours, with a Resume at reset checkbox and a Continue now button."
+@image assets/screenshots/token-saver.png width=49% link=assets/screenshots/token-saver.png alt="The token saver panel over the chat: Caveman on at the Full level, Lean code off, Quiet tools on, about 36 percent fewer output tokens." caption="Token saver" caption-id="Hemat token"
+@image assets/screenshots/usage-limit.png width=49% link=assets/screenshots/usage-limit.png alt="A banner above the message box: Usage limit reached, resets 15.45 in 2 hours, with a Resume at reset checkbox and a Continue now button." caption="When a usage limit is reached" caption-id="Saat limit pemakaian tercapai"
 @end
 
 @en
@@ -244,8 +244,8 @@ melakukannya untukmu.
 
 @all
 @gallery
-@image assets/screenshots/side-bars-search.png width=49% link=assets/screenshots/side-bars-search.png alt="Search moved to the right side bar, with the Explorer on the left: typing right_view lists 23 results in 4 files as you type, each match tinted, long files folded to six lines."
-@image assets/screenshots/extensions-marketplace.png width=49% link=assets/screenshots/extensions-marketplace.png alt="The Extensions view searching the VS Code Marketplace for prettier: 256 results with icons, installs, ratings and Install buttons, and Prettier's page with its details and README."
+@image assets/screenshots/side-bars-search.png width=49% link=assets/screenshots/side-bars-search.png alt="Search moved to the right side bar, with the Explorer on the left: typing right_view lists 23 results in 4 files as you type, each match tinted, long files folded to six lines." caption="Search in either side bar" caption-id="Search di side bar mana pun"
+@image assets/screenshots/extensions-marketplace.png width=49% link=assets/screenshots/extensions-marketplace.png alt="The Extensions view searching the VS Code Marketplace for prettier: 256 results with icons, installs, ratings and Install buttons, and Prettier's page with its details and README." caption="The whole VS Code Marketplace" caption-id="Seluruh VS Code Marketplace"
 @end
 
 @en
@@ -258,23 +258,29 @@ mencari sambil kamu mengetik. Extensions mencari di seluruh VS Code Marketplace 
 dipasang langsung dari daftarnya.
 
 @all
+@image assets/screenshots/backgrounds.png width=100% link=assets/screenshots/backgrounds.png alt="The twelve animated backgrounds in the FluxDark theme, drawn live: Clouds at dusk, a moonlit Ocean, Mountains in fog, an Aurora over snowy ridges, a pine Forest with fireflies, a Lake between hills, a Beach at sunset, Dunes under a low sun, a City skyline with lit windows, Rain, Snow, and a Galaxy with a ringed planet."
+
 @gallery
-@image assets/screenshots/settings-backgrounds.png width=49% link=assets/screenshots/settings-backgrounds.png alt="Settings, Appearance: Liquid glass on, Animated background with None, Ocean, River, Beach, Mountains and Anime, Background animation on, and Background visibility."
-@image assets/screenshots/backgrounds.png width=49% link=assets/screenshots/backgrounds.png alt="The five animated backgrounds as pixel art: a moonlit ocean, a river between hills and trees, a beach at sunset, mountain ridges with fog, and an anime dusk with a city skyline."
+@image assets/screenshots/settings-backgrounds.png width=49% link=assets/screenshots/settings-backgrounds.png alt="Settings, Appearance: Animated background as a grid of twelve live previews (Clouds, Ocean, Mountains, Aurora, Forest, Lake, Beach, Dunes, City, Rain, Snow, Galaxy), each drawn in the FluxSky theme's colors, with Clouds chosen; Background animation and Background visibility below." caption="Twelve backgrounds, previewed live" caption-id="Dua belas latar, dengan pratinjau langsung"
+@image assets/screenshots/backgrounds-themes.png width=49% link=assets/screenshots/backgrounds-themes.png alt="The Mountains background in four themes: FluxDark, FluxRed and FluxMuara Dark at night, FluxCream as a pale day scene." caption="One scene in four themes" caption-id="Satu scene dalam empat tema"
 @end
 
 @en
-Liquid glass turns the panels translucent with floating cards. Five animated pixel
-backgrounds (ocean, river, beach, mountains, anime dusk) play behind them, or none.
+Twelve animated backgrounds play behind the panels: clouds, ocean, mountains, aurora,
+forest, lake, beach, dunes, city, rain, snow and a galaxy. They are drawn live in the theme's
+own colors, so a theme change recolors the scene at once (light themes turn it to day), and
+they fit any window size. Nothing is downloaded, and Background animation stops them.
 @id
-Liquid glass membuat panel tembus pandang dengan kartu yang melayang. Lima latar pixel
-beranimasi (laut, sungai, pantai, pegunungan, senja anime) diputar di belakangnya, atau
-tidak sama sekali.
+Dua belas latar beranimasi bergerak di belakang panel: awan, laut, pegunungan, aurora,
+hutan, danau, pantai, bukit pasir, kota, hujan, salju, dan galaksi. Semuanya digambar
+langsung dengan warna tema, jadi ganti tema langsung mewarnai ulang scene-nya (tema terang
+mengubahnya jadi siang), dan pas di ukuran jendela apa pun. Tidak ada yang diunduh, dan
+Background animation menghentikannya.
 
 @all
 @gallery
-@image assets/screenshots/python-error.png width=49% link=assets/screenshots/python-error.png alt="A Python run fails with ModuleNotFoundError. The Output panel shows a card with the file and line, the code line, a hint, and a Fix button that runs py -m pip install tabulate."
-@image assets/screenshots/sqlite.png width=49% link=assets/screenshots/sqlite.png alt="A SQLite database opened as text: each table and view with its CREATE statement and row count, under a line saying the view is read-only."
+@image assets/screenshots/python-error.png width=49% link=assets/screenshots/python-error.png alt="A Python run fails with ModuleNotFoundError. The Output panel shows a card with the file and line, the code line, a hint, and a Fix button that runs py -m pip install tabulate." caption="A Python error as a card" caption-id="Error Python jadi kartu"
+@image assets/screenshots/sqlite.png width=49% link=assets/screenshots/sqlite.png alt="A SQLite database opened as text: each table and view with its CREATE statement and row count, under a line saying the view is read-only." caption="SQLite opened as text" caption-id="SQLite dibuka sebagai teks"
 @end
 
 @en
@@ -288,8 +294,8 @@ seperti file Word, Excel, PDF, dan ZIP, bukan sebagai error.
 
 @all
 @gallery
-@image assets/screenshots/source-control.png width=49% link=assets/screenshots/source-control.png alt="Source Control after git init in a game server folder: 2801 untracked files, with the folders holding most of them listed first, each with an Ignore button."
-@image assets/screenshots/go-to-file.png width=49% link=assets/screenshots/go-to-file.png alt="Go to File in the FluxMono theme: typing wbench finds workbench.rs in the src folder."
+@image assets/screenshots/source-control.png width=49% link=assets/screenshots/source-control.png alt="Source Control after git init in a game server folder: 2801 untracked files, with the folders holding most of them listed first, each with an Ignore button." caption="Thousands of new files" caption-id="Ribuan file baru"
+@image assets/screenshots/go-to-file.png width=49% link=assets/screenshots/go-to-file.png alt="Go to File in the FluxMono theme: typing wbench finds workbench.rs in the src folder." caption="Go to File" caption-id="Go to File"
 @end
 
 @en
@@ -301,15 +307,15 @@ yang menampungnya. Go to File (`Ctrl+P`) menemukan file dari beberapa huruf nama
 
 @all
 @gallery
-@image assets/screenshots/themes.png width=49% link=assets/screenshots/themes.png alt="Settings: six color themes as cards (FluxDark, FluxCream, FluxMono, FluxRed, FluxMuara, FluxMuara Dark), then language and interface size."
-@image assets/screenshots/update-indonesian.png width=49% link=assets/screenshots/update-indonesian.png alt="The FluxCream theme with the interface in Bahasa Indonesia. A card in the corner offers a newer build, with its notes and a button to update and restart."
+@image assets/screenshots/themes.png width=49% link=assets/screenshots/themes.png alt="Settings, Appearance: seven color themes as cards (FluxDark, FluxCream, FluxMono, FluxRed, FluxMuara, FluxMuara Dark and FluxSky, active), over the FluxSky clouds." caption="Seven color themes" caption-id="Tujuh tema warna"
+@image assets/screenshots/update-indonesian.png width=49% link=assets/screenshots/update-indonesian.png alt="The FluxCream theme with the interface in Bahasa Indonesia. A card in the corner offers a newer build, with its notes and a button to update and restart." caption="Bahasa Indonesia and the update card" caption-id="Bahasa Indonesia dan kartu update"
 @end
 
 @en
-Six color themes, three interface sizes and your own background image. The interface
+Seven color themes, three interface sizes and your own background image. The interface
 also comes in Bahasa Indonesia, shown here with the update card in the FluxCream theme.
 @id
-Enam tema warna, tiga ukuran antarmuka, dan gambar latar pilihanmu sendiri. Antarmukanya
+Tujuh tema warna, tiga ukuran antarmuka, dan gambar latar pilihanmu sendiri. Antarmukanya
 juga tersedia dalam Bahasa Indonesia, terlihat di sini bersama kartu update pada tema
 FluxCream.
 
@@ -666,9 +672,13 @@ di atasnya.
   (from [`changelog.flux`](changelog.flux), in the interface language). Help > What's New
   opens it again.
 - OpenCode 2 is the registry's native OpenCode build from opencode.ai, which FluxCode
-  installs and checks against its SHA-256. A copy of OpenCode on your PATH is no longer
-  used, and an existing OpenCode choice moves to OpenCode 2 with its settings.
-- The color theme's name in the status bar opens the six themes, each shown as a small
+  installs and checks against its SHA-256. An OpenCode 2 you already installed (npm's
+  `@opencode/cli`, or the opencode.ai installer) is used as it is instead; OpenCode 1 is
+  not. An existing OpenCode choice moves to OpenCode 2 with its settings.
+- Agents already on your PC are found the way Windows finds programs: on the PATH as
+  Windows has it now and in the folders installers use (npm, pnpm, bun, Scoop, WinGet,
+  `~/.local/bin`), so nothing is downloaded twice.
+- The color theme's name in the status bar opens the seven themes, each shown as a small
   editor in its colors.
 - Markdown files draw themselves: a README opens as text, and an eye icon above it
   turns it into the drawn page GitHub shows (headings, tables, lists, local images,
@@ -694,9 +704,9 @@ di atasnya.
   Continue now sends the cut-off message again; Resume at reset does it by itself once the
   limit window has reset.
 - **Liquid glass and animated backgrounds.** Panels can turn translucent over the system's
-  blur, with floating glass cards. Five looping pixel backgrounds play behind them (ocean,
-  river, beach, mountains, anime dusk); each is downloaded once (0.4 to 3.3 MB), plays at
-  10 frames a second, and Background animation turns it into a still picture.
+  blur, with floating glass cards. Twelve animated backgrounds play behind them, drawn
+  live in the theme's colors (no video and no download), about 30 frames a second while
+  the window is in front and a few behind other windows; Background animation stops them.
 @id
 ## Kemampuan lainnya
 
@@ -756,9 +766,13 @@ di atasnya.
   (dari [`changelog.flux`](changelog.flux), dalam bahasa antarmuka). Help > What's New
   membukanya lagi.
 - OpenCode 2 adalah build native OpenCode dari opencode.ai di registri, yang dipasang
-  FluxCode dan diperiksa terhadap SHA-256-nya. Salinan OpenCode di PATH tidak lagi dipakai,
-  dan pilihan OpenCode yang sudah ada berpindah ke OpenCode 2 beserta pengaturannya.
-- Nama tema warna di status bar membuka enam tema, masing-masing digambar sebagai editor
+  FluxCode dan diperiksa terhadap SHA-256-nya. OpenCode 2 yang sudah kamu pasang (lewat npm
+  `@opencode/cli`, atau installer opencode.ai) langsung dipakai; OpenCode 1 tidak. Pilihan
+  OpenCode yang sudah ada berpindah ke OpenCode 2 beserta pengaturannya.
+- Agent yang sudah ada di PC kamu ditemukan seperti Windows menemukan program: dari PATH
+  Windows saat itu dan dari folder yang dipakai installer (npm, pnpm, bun, Scoop, WinGet,
+  `~/.local/bin`), jadi tidak ada yang diunduh dua kali.
+- Nama tema warna di status bar membuka tujuh tema, masing-masing digambar sebagai editor
   kecil dalam warnanya sendiri.
 - File Markdown menggambar dirinya sendiri: README terbuka sebagai teks, dan ikon mata di
   atasnya mengubahnya menjadi halaman tergambar seperti di GitHub (judul, tabel, daftar,
@@ -784,10 +798,10 @@ di atasnya.
   Continue now mengirim ulang pesan yang terpotong; Resume at reset melakukannya sendiri
   setelah jendela limitnya reset.
 - **Liquid glass dan latar beranimasi.** Panel bisa menjadi tembus pandang di atas blur
-  sistem, dengan kartu kaca yang melayang. Lima latar pixel berulang diputar di belakangnya
-  (laut, sungai, pantai, pegunungan, senja anime); masing-masing diunduh sekali (0,4 sampai
-  3,3 MB), diputar 10 frame per detik, dan Background animation mengubahnya menjadi gambar
-  diam.
+  sistem, dengan kartu kaca yang melayang. Dua belas latar beranimasi bergerak di
+  belakangnya, digambar langsung dengan warna tema (tanpa video dan tanpa unduhan), sekitar
+  30 frame per detik saat jendela di depan dan beberapa frame saat di belakang jendela lain;
+  Background animation menghentikannya.
 
 @en
 ## FluxCode, Zed and VS Code
@@ -922,8 +936,7 @@ Extensions download nothing by themselves: Add Gradle wrapper asks services.grad
 the current version and fetches the wrapper from Gradle's GitHub repository, and an
 Install button on an extension's page runs `winget` in the Terminal, only when you click.
 The Extensions view asks marketplace.visualstudio.com for the list while it is open, and
-downloads an extension's VSIX only when you click Install. An animated background is
-downloaded from this repository on GitHub the first time you pick it.
+downloads an extension's VSIX only when you click Install.
 @id
 ## Privasi
 
@@ -944,8 +957,7 @@ Extension tidak mengunduh apa pun sendiri: Add Gradle wrapper menanyakan versi t
 services.gradle.org dan mengambil wrapper dari repositori GitHub Gradle, dan tombol Install
 di halaman sebuah extension menjalankan `winget` di Terminal, hanya saat kamu menekannya.
 Tampilan Extensions meminta daftar ke marketplace.visualstudio.com selama tampilan itu
-terbuka, dan mengunduh VSIX sebuah extension hanya saat kamu menekan Install. Latar
-beranimasi diunduh dari repositori ini di GitHub saat pertama kali kamu memilihnya.
+terbuka, dan mengunduh VSIX sebuah extension hanya saat kamu menekan Install.
 
 @en
 ## Shortcuts

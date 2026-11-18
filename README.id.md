@@ -156,7 +156,7 @@ dipasang langsung dari daftarnya.
     </td>
     <td width="50%" valign="top">
       <a href="assets/screenshots/backgrounds-themes.png"><img src="assets/screenshots/backgrounds-themes.png" width="100%" alt="The Mountains background in four themes: FluxDark, FluxRed and FluxMuara Dark at night, FluxCream as a pale day scene."></a>
-      <br><sub><b>Satu scene, empat tema</b></sub>
+      <br><sub><b>Satu scene dalam empat tema</b></sub>
     </td>
   </tr>
 </table>
@@ -428,8 +428,12 @@ di atasnya.
   (dari [`changelog.flux`](changelog.flux), dalam bahasa antarmuka). Help > What's New
   membukanya lagi.
 - OpenCode 2 adalah build native OpenCode dari opencode.ai di registri, yang dipasang
-  FluxCode dan diperiksa terhadap SHA-256-nya. Salinan OpenCode di PATH tidak lagi dipakai,
-  dan pilihan OpenCode yang sudah ada berpindah ke OpenCode 2 beserta pengaturannya.
+  FluxCode dan diperiksa terhadap SHA-256-nya. OpenCode 2 yang sudah kamu pasang (lewat npm
+  `@opencode/cli`, atau installer opencode.ai) langsung dipakai; OpenCode 1 tidak. Pilihan
+  OpenCode yang sudah ada berpindah ke OpenCode 2 beserta pengaturannya.
+- Agent yang sudah ada di PC kamu ditemukan seperti Windows menemukan program: dari PATH
+  Windows saat itu dan dari folder yang dipakai installer (npm, pnpm, bun, Scoop, WinGet,
+  `~/.local/bin`), jadi tidak ada yang diunduh dua kali.
 - Nama tema warna di status bar membuka tujuh tema, masing-masing digambar sebagai editor
   kecil dalam warnanya sendiri.
 - File Markdown menggambar dirinya sendiri: README terbuka sebagai teks, dan ikon mata di
