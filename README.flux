@@ -39,13 +39,13 @@ pengembangan.
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 
 @en
-@image assets/screenshots/agent-workspace.png width=100% link=assets/screenshots/agent-workspace.png alt="The agent filling the window: saved chats on the left, the conversation in the middle, the files it changed on the right, as floating glass columns over the ocean background."
+@image assets/screenshots/hero.jpg width=100% link=assets/screenshots/agent-workspace.png alt="A 16 MB code editor with AI agents built in: the title over a dusk sky, and below it FluxCode with the agent filling the window, rising out of a bank of clouds. Saved chats on the left, the conversation in the middle, the files it changed on the right."
 
 The agent's full-screen workspace: your chats on the left, the conversation in the middle
 and the files it changed on the right, each a floating glass column over an animated
 pixel background. Beside the code, the same agent stays a compact panel (`Ctrl+L`).
 @id
-@image assets/screenshots/agent-workspace.png width=100% link=assets/screenshots/agent-workspace.png alt="Agent memenuhi jendela: daftar chat di kiri, percakapan di tengah, file yang diubahnya di kanan, sebagai kolom kaca yang melayang di atas latar laut."
+@image assets/screenshots/hero.id.jpg width=100% link=assets/screenshots/agent-workspace.png alt="Editor kode 16 MB dengan agen AI di dalamnya: judul di atas langit senja, dan di bawahnya FluxCode dengan agen memenuhi jendela, muncul dari balik awan. Daftar chat di kiri, percakapan di tengah, file yang diubahnya di kanan."
 
 Workspace layar penuh milik agent: daftar chat di kiri, percakapan di tengah, dan file yang
 diubahnya di kanan, masing-masing kolom kaca yang melayang di atas latar pixel beranimasi.
