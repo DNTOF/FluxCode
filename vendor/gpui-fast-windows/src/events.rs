@@ -273,6 +273,10 @@ impl WindowsWindowInner {
     }
 
     fn handle_size_move_loop(&self, handle: HWND) -> Option<isize> {
+        // FluxCode (#94): accent-policy acrylic flickers while the window moves.
+        if self.blur_needs_swap() {
+            crate::window::acrylic_while_moving(handle, true);
+        }
         unsafe {
             let ret = SetTimer(
                 Some(handle),
@@ -294,7 +298,16 @@ impl WindowsWindowInner {
         unsafe {
             KillTimer(Some(handle), SIZE_MOVE_LOOP_TIMER_ID).log_err();
         }
+        if self.blur_needs_swap() {
+            crate::window::acrylic_while_moving(handle, false);
+        }
         None
+    }
+
+    /// FluxCode: the window shows accent-policy acrylic (Windows older than 11 22H2),
+    /// which is swapped for plain blur during a move or resize.
+    fn blur_needs_swap(&self) -> bool {
+        matches!(self.state.background_appearance.get(), WindowBackgroundAppearance::Blurred) && !crate::window::system_acrylic_available()
     }
 
     fn handle_timer_msg(&self, handle: HWND, wparam: WPARAM) -> Option<isize> {
