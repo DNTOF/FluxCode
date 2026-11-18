@@ -103,7 +103,8 @@ pub fn recommended(id: &str) -> bool {
     matches!(id, "opencode-v2" | "opencode" | "commandcode" | "claude-acp")
 }
 
-/// Agents still being built: the picker marks them "Experimental".
+/// Agents still being built: the picker marks them "Not available" and they can't be
+/// picked (Mura is still in progress).
 pub fn experimental(id: &str) -> bool {
     id == "mura"
 }

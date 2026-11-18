@@ -504,6 +504,8 @@ gpui_kit::assets::icon_assets!(pub FileIcons, [
     Leaf,
     // Agent full screen: only the chat, and the limits card's way to the usage panel
     Focus, Maximize2,
+    // Token saver: its options; the composer's workspace toggle
+    TextAlignStart, Code, Shrink, FolderCheck,
     // Agent chats: the view menu and the archive
     ListFilter, Archive, ArchiveRestore, Pin, PinOff,
     // Editor header: word wrap and image zoom

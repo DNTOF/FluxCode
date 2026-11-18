@@ -12,16 +12,13 @@
 //! a running exe, Linux allows replacing it), the new one takes its name, and the
 //! app restarts. The `.old` file is removed on the next start.
 
-use gpui_kit::component::{
-    button::{Button, ButtonVariants},
-    h_flex, v_flex, Icon, IconName, Sizable,
-};
+use gpui_kit::component::{h_flex, v_flex, Icon, IconName, Sizable};
 use gpui_kit::{prelude::FluentBuilder, *};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::i18n::tr;
-use crate::theme::{self, c};
+use crate::theme::{self, c, GlassExt};
 use crate::workbench::Workbench;
 
 /// This build, e.g. `BuildDev-2026-11-09-17-30-12` (set by build.rs).
@@ -547,22 +544,101 @@ impl Workbench {
             Phase::Failed(..) => tr("The update did not finish"),
             _ => tr("Update ready"),
         };
+        // A small, quiet toast: one line with the title and the actions, one dim line
+        // under it (what changed, or the download's progress). Which build, and the
+        // one installed, are in the title's tooltip.
+        let full: SharedString = if tag.is_empty() {
+            SharedString::default()
+        } else {
+            let when = build_time(&tag).map(|t| crate::trf!("Build from {0}"; 0 => t)).unwrap_or_else(|| tag.to_string());
+            format!("{when}\n{}", crate::trf!("{0}\nInstalled: {1}"; 0 => &tag, 1 => BUILD)).into()
+        };
+        let accent = if failed { theme::DANGER } else { theme::ACCENT_TEXT };
+        let busy = matches!(u.phase, Phase::Downloading(_) | Phase::Installing(_));
+        let page = rel.map(|r| r.page.clone()).unwrap_or_default();
+        let notes_for = rel.cloned();
+        let text_btn = |id: &'static str, label: &'static str| {
+            div()
+                .id(id)
+                .flex_none()
+                .h(theme::u(22.))
+                .px_1p5()
+                .flex()
+                .items_center()
+                .rounded(px(6.))
+                .cursor_pointer()
+                .text_xs()
+                .text_color(c(theme::FG_MUTED))
+                .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
+                .child(tr(label))
+        };
+        let can_act = matches!(u.phase, Phase::Available(_) | Phase::Failed(Some(_), _));
         let head = h_flex()
             .gap_2()
-            .items_center()
+            .child(if busy {
+                gpui_kit::component::spinner::Spinner::new().icon(IconName::LoaderCircle).xsmall().color(c(accent)).into_any_element()
+            } else {
+                Icon::new(if failed { IconName::TriangleAlert } else { IconName::ArrowDown }).flex_none().size(theme::u(13.)).text_color(c(accent)).into_any_element()
+            })
             .child(
-                Icon::new(if failed { IconName::TriangleAlert } else { IconName::ArrowDown })
-                    .size(theme::u(14.))
-                    .text_color(c(if failed { theme::DANGER } else { theme::FG_MUTED })),
+                div()
+                    .id("upd-title")
+                    .flex_1()
+                    .min_w_0()
+                    .whitespace_nowrap()
+                    .text_sm()
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(c(theme::FG_STRONG))
+                    .when(!full.is_empty(), |d| {
+                        let full = full.clone();
+                        d.tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(full.clone()).build(w, cx))
+                    })
+                    .child(title),
             )
-            .child(div().flex_1().min_w_0().truncate().text_sm().font_weight(FontWeight::SEMIBOLD).text_color(c(theme::FG_STRONG)).child(title))
+            .when(can_act && !page.is_empty(), |h| {
+                // The notes open in FluxCode: what changed between this build and the new one.
+                h.child(text_btn("upd-notes", "What's new").on_click(cx.listener(move |this, _, _, cx| {
+                    if let Some(r) = notes_for.clone() {
+                        this.show_update_notes(r, cx);
+                    }
+                })))
+            })
+            .when(can_act, |h| {
+                h.child(
+                    div()
+                        .id("upd-go")
+                        .flex_none()
+                        .h(theme::u(22.))
+                        .px_2()
+                        .flex()
+                        .items_center()
+                        .rounded(px(6.))
+                        .cursor_pointer()
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .bg(c(theme::ACCENT))
+                        .text_color(c(theme::ON_ACCENT))
+                        .hover(|s| s.opacity(0.88))
+                        .child(if failed { tr("Try again") } else { tr("Restart") })
+                        .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Install the update and restart FluxCode; your open files come back.")).build(w, cx))
+                        .on_click(cx.listener(|this, _, _, cx| this.update_start(cx))),
+                )
+            })
             .when(close, |h| {
                 h.child(
-                    Button::new("upd-close")
-                        .icon(IconName::Close)
-                        .ghost()
-                        .xsmall()
-                        .tooltip(tr("Later (the Update button stays in the title bar)"))
+                    div()
+                        .id("upd-close")
+                        .flex_none()
+                        .size(theme::u(20.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(6.))
+                        .cursor_pointer()
+                        .text_color(c(theme::FG_DIM))
+                        .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_STRONG)))
+                        .tooltip(|w, cx| gpui_kit::component::tooltip::Tooltip::new(tr("Later (the Update button stays in the title bar)")).build(w, cx))
+                        .child(Icon::new(IconName::Close).size(theme::u(11.)))
                         .on_click(cx.listener(|this, _, _, cx| {
                             match &this.update.phase {
                                 Phase::Available(r) => this.update.hidden = Some(r.tag.clone()),
@@ -572,95 +648,41 @@ impl Workbench {
                         })),
                 )
             });
-        // Lines under the title line up with its text, not with the icon.
-        let mut body = v_flex().pl(theme::u(22.)).gap_0p5().text_xs().min_w_0();
-        if !tag.is_empty() {
-            let full: SharedString = crate::trf!("{0}\nInstalled: {1}"; 0 => &tag, 1 => BUILD).into();
-            let when = build_time(&tag).map(|t| crate::trf!("Build from {0}"; 0 => t)).unwrap_or_else(|| tag.to_string());
-            body = body.child(
-                div()
-                    .id("upd-build")
-                    .truncate()
-                    .text_color(c(theme::FG_DIM))
-                    .tooltip(move |w, cx| gpui_kit::component::tooltip::Tooltip::new(full.clone()).build(w, cx))
-                    .child(when),
-            );
-        }
-        match &u.phase {
-            Phase::Available(r) => {
-                if let Some(line) = highlights(&r.notes, 1).into_iter().next() {
-                    body = body.child(div().text_color(c(theme::FG)).line_clamp(2).child(line));
-                }
-            }
+        // The line under the title, lined up with the title's text.
+        let sub: Option<AnyElement> = match &u.phase {
+            Phase::Available(r) => highlights(&r.notes, 1).into_iter().next().map(|l| div().truncate().child(l).into_any_element()),
             Phase::Downloading(r) => {
                 let frac = if r.size > 0 { (u.done as f32 / r.size as f32).clamp(0., 1.) } else { 0. };
                 let mb = |b: u64| format!("{:.1}", b as f64 / 1_048_576.);
-                body = body
-                    .child(
-                        div()
-                            .mt_1()
-                            .h(px(3.))
-                            .w_full()
-                            .rounded(px(2.))
-                            .bg(c(theme::BG_HOVER))
-                            .child(div().h_full().rounded(px(2.)).bg(c(theme::ACCENT)).w(relative(frac))),
-                    )
-                    .child(div().text_color(c(theme::FG_DIM)).child(crate::trf!("{0} of {1} MB"; 0 => mb(u.done), 1 => mb(r.size))));
+                Some(
+                    h_flex()
+                        .gap_2()
+                        .child(div().flex_1().h(px(3.)).rounded_full().bg(c(theme::FG_DIM).opacity(0.2)).child(div().h_full().rounded_full().bg(c(theme::ACCENT)).w(relative(frac))))
+                        .child(div().flex_none().child(crate::trf!("{0} of {1} MB"; 0 => mb(u.done), 1 => mb(r.size))))
+                        .into_any_element(),
+                )
             }
-            Phase::Installing(_) => {
-                body = body.child(div().text_color(c(theme::FG_DIM)).child(tr("FluxCode restarts on its own in a moment. Your open files and folders come back.")));
-            }
-            Phase::Failed(_, e) => {
-                body = body.child(div().text_color(c(theme::FG)).line_clamp(3).child(e.clone()));
-            }
-            Phase::Idle => {}
-        }
-        let page = rel.map(|r| r.page.clone()).unwrap_or_default();
-        let notes_for = rel.cloned();
-        let actions = match &u.phase {
-            Phase::Available(_) | Phase::Failed(Some(_), _) => Some(
-                h_flex()
-                    .pl(theme::u(22.))
-                    .pt_1()
-                    .gap_1()
-                    .flex_wrap()
-                    .child(
-                        Button::new("upd-go")
-                            .label(if failed { tr("Try again") } else { tr("Update and restart") })
-                            .primary()
-                            .xsmall()
-                            .on_click(cx.listener(|this, _, _, cx| this.update_start(cx))),
-                    )
-                    .when(!page.is_empty(), |h| {
-                        // The notes open in FluxCode: what changed between this build and the new one.
-                        h.child(Button::new("upd-notes").label(tr("What's new")).ghost().xsmall().on_click(cx.listener(move |this, _, _, cx| {
-                            if let Some(r) = notes_for.clone() {
-                                this.show_update_notes(r, cx);
-                            }
-                        })))
-                    }),
-            ),
-            _ => None,
+            Phase::Installing(_) => Some(div().truncate().child(tr("Restarting in a moment; your files come back.")).into_any_element()),
+            Phase::Failed(_, e) => Some(div().line_clamp(2).child(e.clone()).into_any_element()),
+            Phase::Idle => None,
         };
         // Slides up and fades in once when it appears (240 ms), then stays still.
         let card = v_flex()
             .id("update-card")
             .absolute()
             .right(px(12.))
-            .w(theme::u(300.))
-            .max_w(relative(0.92))
-            .px_3()
-            .py_2p5()
+            .w(theme::u(340.))
+            .max_w(relative(0.9))
+            .pl_3()
+            .pr_2()
+            .py_2()
             .gap_1()
-            .rounded(px(6.))
-            .border_1()
-            .border_color(c(theme::BORDER_STRONG))
-            .bg(c(theme::BG_ELEVATED))
-            .shadow_md()
+            .glass_pop()
+            .rounded(px(10.))
             .occlude()
             .child(head)
-            .child(body)
-            .children(actions);
+            .children(sub.map(|s| div().pl(theme::u(21.)).pr_1().text_xs().text_color(c(theme::FG_DIM)).child(s)));
+
         let key: SharedString = format!("update-in-{tag}").into();
         Some(
             card.with_animation(key, Animation::new(Duration::from_millis(240)).with_easing(ease_out_quint()), |el, t| {

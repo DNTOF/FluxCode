@@ -29,7 +29,15 @@ pub struct FullState {
     pub right: bool,
     /// A chat's title being edited in the left column.
     pub rename: Option<Rename>,
+    /// A column edge being dragged: (mouse x, the column's width) when it started.
+    pub drag: Option<(f32, f32)>,
 }
+
+/// The chats and changes columns: their default widths and what a drag may make of them.
+pub const LEFT_W: f32 = 260.;
+pub const RIGHT_W: f32 = 300.;
+pub const MIN_W: f32 = 200.;
+pub const MAX_W: f32 = 520.;
 
 pub struct Rename {
     pub id: u64,
@@ -39,22 +47,64 @@ pub struct Rename {
 
 impl Default for FullState {
     fn default() -> Self {
-        FullState { left: true, right: true, rename: None }
+        FullState { left: true, right: true, rename: None, drag: None }
     }
 }
 
 impl Workbench {
+    /// The chats column's width (dragged, else the default).
+    pub(crate) fn full_left_w(&self) -> f32 {
+        let w = self.settings.full_left_w;
+        if w > 0. { w.clamp(MIN_W, MAX_W) } else { f32::from(theme::u(LEFT_W)) }
+    }
+
+    /// The changes column's width (dragged, else the default).
+    pub(crate) fn full_right_w(&self) -> f32 {
+        let w = self.settings.full_right_w;
+        if w > 0. { w.clamp(MIN_W, MAX_W) } else { f32::from(theme::u(RIGHT_W)) }
+    }
+
     pub(crate) fn render_agent_full(&self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let w = f32::from(window.viewport_size().width);
         let left = self.agent.full.left && w >= MEDIUM;
         let right = self.agent.full.right && w >= WIDE;
         let gap = theme::u(10.);
+        // The gap beside a side column is its edge: drag it to make the column wider
+        // or narrower (the width is kept in Settings).
+        let edge = |id: &'static str, which: u8, this: &Self, cx: &mut Context<Self>| {
+            let on = this.resizing == which;
+            div()
+                .id(id)
+                .flex_none()
+                .w(gap)
+                .h_full()
+                .flex()
+                .justify_center()
+                .cursor_col_resize()
+                .group("agf-edge")
+                .child(
+                    div()
+                        .w(px(2.))
+                        .h(relative(0.12))
+                        .my_auto()
+                        .rounded_full()
+                        .bg(c(theme::ACCENT))
+                        .opacity(if on { 1. } else { 0. })
+                        .group_hover("agf-edge", |s| s.opacity(0.7)),
+                )
+                .on_mouse_down(MouseButton::Left, cx.listener(move |this, e: &MouseDownEvent, _, cx| {
+                    let w = if which == 3 { this.full_left_w() } else { this.full_right_w() };
+                    this.agent.full.drag = Some((f32::from(e.position.x), w));
+                    this.resizing = which;
+                    cx.notify();
+                }))
+        };
         h_flex()
             .id("ag-full")
             .size_full()
             .p(gap)
-            .gap(gap)
-            .when(left, |d| d.child(self.render_full_chats(cx)))
+            .when(left, |d| d.child(self.render_full_chats(cx)).child(edge("agf-edge-l", 3, self, cx)))
+            .when(!left, |d| d.child(div().w(gap).flex_none()))
             .child(
                 v_flex()
                     .flex_1()
@@ -66,7 +116,8 @@ impl Workbench {
                     .children(self.render_worktree_strip(cx))
                     .child(h_flex().flex_1().min_h_0().justify_center().child(div().h_full().w_full().max_w(theme::u(900.)).child(self.render_agent(window, cx)))),
             )
-            .when(right, |d| d.child(self.render_full_changes(cx)))
+            .when(right, |d| d.child(edge("agf-edge-r", 4, self, cx)).child(self.render_full_changes(cx)))
+            .when(!right, |d| d.child(div().w(gap).flex_none()))
             .with_animation("ag-full-in", Animation::new(std::time::Duration::from_millis(180)).with_easing(ease_out_quint()), |d, t| d.opacity(t))
             .into_any_element()
     }
@@ -204,12 +255,10 @@ impl Workbench {
                         .text_color(c(theme::FG_DIM))
                         .hover(|s| s.bg(c(theme::BG_HOVER)).text_color(c(theme::FG_MUTED)))
                         .child(Icon::new(if folded { Ico::ChevronRight } else { Ico::ChevronDown }).size(theme::u(11.)))
-                        .child(match pill {
-                            // Date headings (and Working / Pinned) as a tinted pill, so
-                            // Today, This week and the rest are told apart at a glance.
-                            Some(col) => div().px_1p5().rounded(px(4.)).bg(col.opacity(0.14)).text_color(col).child(label).into_any_element(),
-                            None => div().min_w_0().truncate().child(label).into_any_element(),
-                        })
+                        // A small dot in the group's color beside a calm label: told apart
+                        // at a glance without a loud pill.
+                        .children(pill.map(|col| div().flex_none().size(px(6.)).rounded_full().bg(col.opacity(0.85))))
+                        .child(div().min_w_0().truncate().text_color(c(theme::FG_MUTED)).child(label))
                         .child(div().text_color(c(theme::FG_DIM)).font_weight(FontWeight::NORMAL).child(idx.len().to_string()))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             let list = &mut this.settings.chat_collapsed;
@@ -347,7 +396,7 @@ impl Workbench {
                 menu
             });
         v_flex()
-            .w(theme::u(260.))
+            .w(px(self.full_left_w()))
             .flex_none()
             .h_full()
             .glass()
@@ -446,7 +495,7 @@ impl Workbench {
             list = list.child(div().px_2().py_2().text_xs().text_color(c(theme::FG_DIM)).child(tr("Files the agent edits show up here, with a diff a click away.")));
         }
         v_flex()
-            .w(theme::u(300.))
+            .w(px(self.full_right_w()))
             .flex_none()
             .h_full()
             .glass()
@@ -514,10 +563,21 @@ fn chat_row(id: impl Into<ElementId>, title: String, when: SharedString, f: Flag
         .px_2()
         .py_1p5()
         .gap_1()
+        .relative()
         .rounded(px(10.))
         .cursor_pointer()
-        .when(current, |d| d.bg(c(theme::BG_HOVER)).border_1().border_color(theme::glass_edge()))
-        .hover(|s| s.bg(c(theme::BG_HOVER)))
+        .border_1()
+        .border_color(gpui_kit::transparent_black())
+        .when(current, |d| {
+            d.bg(c(theme::ACCENT).opacity(0.10)).border_color(c(theme::ACCENT).opacity(0.28)).child(
+                div().absolute().left(px(-1.)).w(px(3.)).rounded_full().bg(c(theme::ACCENT)).with_animation(
+                    SharedString::from(format!("agf-cur-{title}")),
+                    Animation::new(std::time::Duration::from_millis(220)).with_easing(gpui_kit::ease_out_quint()),
+                    |d, t| d.top(relative(0.5 - 0.3 * t)).bottom(relative(0.5 - 0.3 * t)),
+                ),
+            )
+        })
+        .when(!current, |d| d.hover(|s| s.bg(c(theme::BG_HOVER))))
         .when(working, |d| {
             d.child(
                 div().flex_none().pr_1().child(

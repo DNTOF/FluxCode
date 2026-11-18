@@ -606,7 +606,8 @@ pub fn apply(cx: &mut App) {
         k.list_hover = c(BG_HOVER);
         k.list_active = c(SELECT);
         k.list_active_border = gpui_kit::transparent_black();
-        k.popover = rgb(p.elevated).into();
+        // Menus and dropdowns from gpui-kit: the same light glass as FluxCode's own.
+        k.popover = if glass() { Hsla::from(rgb(p.elevated)).opacity(0.94) } else { rgb(p.elevated).into() };
         k.popover_foreground = c(FG);
         k.window_border = c(BORDER);
         k.scrollbar = gpui_kit::transparent_black();
@@ -701,12 +702,27 @@ mod tests {
 /// The fill of a liquid glass card: translucent, lit from the top edge down. Without
 /// glass it is the plain raised surface, so cards still read as cards.
 pub fn glass_fill() -> Background {
-    glass_with(0.82, 0.66)
+    glass_with(0.9, 0.84)
 }
 
-/// A popover's glass: nearly solid, so the text under it never shows through its own.
+/// A floating surface's liquid glass (menus, popovers, toasts, the token saver):
+/// translucent, a little lighter at the top like light caught in glass, over a
+/// soft shadow. GPUI can't blur what is under a panel, so it stays opaque enough
+/// for text on top to read; with liquid glass off in Settings it is solid.
 pub fn glass_pop_fill() -> Background {
-    glass_with(1., 1.)
+    let base: Hsla = rgb(palette().hex(Tok::BgElevated)).into();
+    if !glass() {
+        return base.into();
+    }
+    let dark = palette().dark;
+    let top = Hsla { l: (base.l + if dark { 0.07 } else { 0.03 }).clamp(0., 1.), ..base };
+    let (a_top, a_bottom) = if dark { (0.90, 0.84) } else { (0.92, 0.86) };
+    linear_gradient(180., linear_color_stop(top.opacity(a_top), 0.), linear_color_stop(base.opacity(a_bottom), 1.))
+}
+
+/// The bright hairline on a floating glass surface's edge.
+pub fn glass_pop_edge() -> Hsla {
+    if palette().dark { gpui_kit::hsla(0., 0., 1., 0.14) } else { gpui_kit::hsla(0., 0., 0., 0.09) }
 }
 
 fn glass_with(top_a: f32, bottom_a: f32) -> Background {
@@ -729,9 +745,9 @@ pub trait GlassExt: gpui_kit::Styled + Sized {
     fn glass(self) -> Self {
         self.bg(glass_fill()).border_1().border_color(glass_edge()).rounded(gpui_kit::px(14.)).shadow_lg()
     }
-    /// A floating popover or menu in glass.
+    /// A floating popover, menu or toast in liquid glass.
     fn glass_pop(self) -> Self {
-        self.bg(glass_pop_fill()).border_1().border_color(glass_edge()).rounded(gpui_kit::px(14.)).shadow_lg()
+        self.bg(glass_pop_fill()).border_1().border_color(glass_pop_edge()).rounded(gpui_kit::px(14.)).shadow_lg()
     }
 }
 impl<T: gpui_kit::Styled> GlassExt for T {}

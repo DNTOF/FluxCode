@@ -15,7 +15,7 @@
 //! agent's answer.
 
 use crate::i18n::tr;
-use crate::theme::{self, c};
+use crate::theme::{self, c, GlassExt};
 use crate::workbench::Workbench;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{
@@ -776,11 +776,7 @@ impl Workbench {
             .w_full()
             .max_w(theme::u(440.))
             .max_h(relative(0.92))
-            .rounded(px(10.))
-            .border_1()
-            .border_color(c(theme::BORDER_STRONG))
-            .bg(c(theme::BG_ELEVATED))
-            .shadow_lg()
+            .glass_pop()
             .overflow_hidden()
             .on_mouse_down_out(cx.listener(|this, _, _, cx| {
                 if !this.agent.usage.confirm_credits {

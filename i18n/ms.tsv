@@ -1,0 +1,1248 @@
+File	Fail
+Edit	Edit
+View	Paparan
+Run	Jalankan
+Terminal	Terminal
+Help	Bantuan
+Go to File...	Pergi ke Fail...
+Open File...	Buka Fail...
+Open Folder...	Buka Folder...
+Open Folder in WSL...	Buka Folder dalam WSL...
+No WSL distro found.	Tiada distro WSL ditemui.
+Open this folder	Buka folder ini
+Open {path}	Buka {path}
+WSL	WSL
+Read WSL folders through a helper in the distro	Baca folder WSL melalui pembantu dalam distro
+Faster: the helper reads the distro's own disk instead of Windows' 9p share. It is FluxCode itself, built for Linux, taken from this build's release and installed once in ~/.fluxcode/helper. Off: folders are read through \\\\wsl.localhost, which works but is slower.	Lebih pantas: pembantu membaca cakera distro itu sendiri, bukan perkongsian 9p Windows. Ia ialah FluxCode sendiri, dibina untuk Linux, diambil daripada keluaran binaan ini dan dipasang sekali dalam ~/.fluxcode/helper. Mati: folder dibaca melalui \\\\wsl.localhost, yang berfungsi tetapi lebih perlahan.
+WSL is only available on Windows.	WSL hanya tersedia pada Windows.
+Windows	Windows
+How FluxCode shows up in Windows Explorer.	Cara FluxCode dipaparkan dalam Windows Explorer.
+Open with FluxCode	Buka dengan FluxCode
+Adds "Open with FluxCode" to the right-click menu of files and folders, and FluxCode to Open with for code and text files (.js, .ts, .json, .html, .css, .py and more). Types no app opens yet open in FluxCode on a double-click. For the rest, Windows asks you: pick FluxCode once in Open with, tick Always, or set it in Default apps. A file opened this way joins the FluxCode window that is already open.	Menambah "Open with FluxCode" pada menu klik kanan fail dan folder, dan FluxCode pada Open with untuk fail kod dan teks (.js, .ts, .json, .html, .css, .py dan lain-lain). Jenis fail yang belum ada aplikasi akan dibuka dalam FluxCode apabila diklik dua kali. Untuk yang lain, Windows akan bertanya: pilih FluxCode sekali dalam Open with, tandakan Always, atau tetapkan dalam Default apps. Fail yang dibuka begini masuk ke tetingkap FluxCode yang sudah terbuka.
+Default apps…	Aplikasi lalai…
+FluxCode is in Explorer's right-click menu and in Open with	FluxCode kini ada dalam menu klik kanan Explorer dan dalam Open with
+Removed FluxCode from Explorer's right-click menu and Open with	FluxCode dialih keluar daripada menu klik kanan Explorer dan Open with
+Could not change the Explorer entries: {0}	Tidak dapat menukar entri Explorer: {0}
+Couldn't reach {name}.	Tidak dapat menghubungi {name}.
+New File...	Fail Baharu...
+New Folder...	Folder Baharu...
+Save	Simpan
+Save All	Simpan Semua
+Settings	Tetapan
+Close Editor	Tutup Editor
+Exit	Keluar
+Undo	Buat Asal
+Redo	Buat Semula
+Cut	Potong
+Copy	Salin
+Paste	Tampal
+Find	Cari
+Find in Files	Cari dalam Fail
+Explorer	Explorer
+Search	Carian
+Source Control	Kawalan Sumber
+AI Agent	Ejen AI
+Toggle Sidebar	Tunjuk/Sembunyi Bar Sisi
+Toggle Panel	Tunjuk/Sembunyi Panel
+Output	Output
+Run File	Jalankan Fail
+Stop	Henti
+Live Preview	Pratonton Langsung
+Toggle Terminal	Tunjuk/Sembunyi Terminal
+Next Color Theme	Tema Warna Seterusnya
+About FluxCode	Perihal FluxCode
+FluxCode	FluxCode
+Search files in {f}	Cari fail dalam {f}
+Go to File (Ctrl+P)	Pergi ke Fail (Ctrl+P)
+EXPLORER	EXPLORER
+SEARCH	CARIAN
+RUN	JALANKAN
+SOURCE CONTROL	KAWALAN SUMBER
+WORKSPACE	RUANG KERJA
+New File	Fail baharu
+New Folder	Folder baharu
+Refresh	Muat semula
+You have not yet opened a folder.	Anda belum membuka sebarang folder.
+Open folder	Buka folder
+Open file	Buka fail
+Run {f}	Jalankan {f}
+Open a file to run it.	Buka fail untuk menjalankannya.
+Searching…	Sedang mencari…
+{0}{1} results in {2} files	{0}{1} hasil dalam {2} fail
+Match Case	Padankan Huruf Besar/Kecil
+Match Whole Word	Padankan Perkataan Penuh
+Rename...	Namakan Semula...
+Delete	Padam
+Copy Path	Salin Laluan
+Reveal in File Explorer	Tunjukkan dalam File Explorer
+Create	Cipta
+File name	Nama fail
+Folder name	Nama folder
+Delete {name}?	Padam {name}?
+Cancel	Batal
+"{name}" is not a valid name	"{name}" bukan nama yang sah
+Open Folder	Buka Folder
+Remove Folder from Workspace	Alih Keluar Folder daripada Ruang Kerja
+Added {n} to the workspace	{n} ditambah ke ruang kerja
+1 folder	1 folder
+{n} folders	{n} folder
+Removed {name} from the workspace	{name} dialih keluar daripada ruang kerja
+Drop folders to open them, or files to edit them	Lepaskan folder untuk membukanya, atau fail untuk mengeditnya
+Keep {current} open and add {what} next to it, or close {current} and work in {what}.	Kekalkan {current} terbuka dan tambah {what} di sebelahnya, atau tutup {current} dan bekerja dalam {what}.
+Keep {current} open and add them next to it, or close {current} and work in them.	Kekalkan {current} terbuka dan tambah semuanya di sebelahnya, atau tutup {current} dan bekerja di dalamnya.
+Open {what}	Buka {what}
+Add to workspace	Tambah ke ruang kerja
+Switch to it	Beralih ke sini
+Saved {0}	{0} disimpan
+Save failed: {e}	Gagal menyimpan: {e}
+Large file: syntax colors are off	Fail besar: warna sintaks dimatikan
+{0} is too large to open ({1} MB).	{0} terlalu besar untuk dibuka ({1} MB).
+Ln {0}, Col {1}	Baris {0}, Lajur {1}
+Running	Sedang berjalan
+A native code editor that runs as one process.	Editor kod asli yang berjalan sebagai satu proses.
+Find in files	Cari dalam fail
+Toggle terminal	Tunjuk/sembunyi terminal
+Run file	Jalankan fail
+OpenCode	OpenCode
+Next color theme	Tema warna seterusnya
+Word document	Dokumen Word
+the document's text	teks dokumen
+Spreadsheet	Hamparan
+every sheet as tab-separated rows	setiap helaian sebagai baris dipisahkan tab
+Slides	Slaid
+the text of each slide	teks setiap slaid
+{label} · {size} · showing {what}, read only	{label} · {size} · memaparkan {what}, baca sahaja
+{label} · {size} · couldn't read it ({e}), showing the bytes	{label} · {size} · tidak dapat dibaca ({e}), memaparkan bait
+, first {0} shown	, {0} pertama dipaparkan
+{what} · {size}{more} · hex view, read only	{what} · {size}{more} · paparan hex, baca sahaja
+.{e} binary file	Fail binari .{e}
+Hex	Hex
+Archive	Arkib
+ZIP archive · {size} · {files} files, {0} unpacked · size, space saved, path	Arkib ZIP · {size} · {files} fail, {0} selepas dinyahmampat · saiz, ruang dijimatkan, laluan
+{pages} pages · 	{pages} halaman · 
+1 page · 	1 halaman · 
+PDF · {pages_s}{size} · showing its text, read only	PDF · {pages_s}{size} · memaparkan teksnya, baca sahaja
+PDF · {pages_s}{size} · no readable text (scanned or custom fonts), showing the bytes	PDF · {pages_s}{size} · tiada teks yang boleh dibaca (diimbas atau fon tersuai), memaparkan bait
+SQLite database · {size} · {tables} tables with their SQL and row counts, read only	Pangkalan data SQLite · {size} · {tables} jadual dengan SQL dan bilangan barisnya, baca sahaja
+TERMINAL	TERMINAL
+OUTPUT	OUTPUT
+Type a command, then press Enter	Taip arahan, kemudian tekan Enter
+Type a command	Taip arahan
+Running. Type here if the program asks for something	Sedang berjalan. Taip di sini jika program meminta sesuatu
+Type a command after the ❯ and press Enter to run it.	Taip arahan selepas ❯ dan tekan Enter untuk menjalankannya.
+For example:  dir  lists the files here,  cd folder  goes into a folder,  py app.py  runs a Python file.	Contohnya:  dir  menyenaraikan fail di sini,  cd folder  masuk ke folder,  py app.py  menjalankan fail Python.
+↑ ↓ history  ·  Tab completes names  ·  Ctrl+C stops  ·  typos like  pip i  are fixed for you	↑ ↓ sejarah  ·  Tab melengkapkan nama  ·  Ctrl+C menghentikan  ·  salah taip seperti  pip i  dibetulkan untuk anda
+{shown}, line {line}	{shown}, baris {line}
+No folder named '{arg}' here.	Tiada folder bernama '{arg}' di sini.
+{0}   … {more} more	{0}   … {more} lagi
+Open a file to run it	Buka fail untuk menjalankannya
+Don't know how to run {0}	Tidak tahu cara menjalankan {0}
+Don't know how to run {0} in WSL	Tidak tahu cara menjalankan {0} dalam WSL
+A worktree inside a WSL folder isn't supported yet.	Worktree dalam folder WSL belum disokong.
+Couldn't start '{program}': {e}	Tidak dapat memulakan '{program}': {e}
+Failed (exit code {c})	Gagal (kod keluar {c})
+{0} doesn't exist	{0} tidak wujud
+The terminal is busy: the fix is in the prompt, press Enter when it's free	Terminal sedang sibuk: pembetulan sudah ada dalam prompt, tekan Enter apabila ia lapang
+↳ auto-corrected	↳ dibetulkan secara automatik
+in {0}	dalam {0}
+Fix	Betulkan
+Open a folder or an HTML file to preview it	Buka folder atau fail HTML untuk pratonton
+Preview server failed: {e}	Pelayan pratonton gagal: {e}
+WebView2 is not available: {e}	WebView2 tidak tersedia: {e}
+HTML preview runs a WebView	Pratonton HTML menjalankan WebView
+This preview opens a WebView (WebView2), not FluxCode's native Rust UI. The page runs in the system's web view, so it is not part of the native editor.	Pratonton ini membuka WebView (WebView2), bukan UI Rust asli FluxCode. Halaman berjalan dalam paparan web sistem, jadi ia bukan sebahagian daripada editor asli.
+Do not show again	Jangan tunjukkan lagi
+Continue	Teruskan
+Live Preview: {url} (reloads on save)	Pratonton Langsung: {url} (dimuat semula apabila disimpan)
+Type part of a file name	Taip sebahagian nama fail
+No file matches. Try fewer letters.	Tiada fail yang sepadan. Cuba kurangkan huruf.
+Message (Enter to commit)	Mesej (Enter untuk commit)
+Source Control is busy, try again in a moment	Kawalan Sumber sedang sibuk, cuba lagi sebentar
+Synced with the remote	Diselaraskan dengan remote
+Open a folder to use Source Control.	Buka folder untuk menggunakan Kawalan Sumber.
+This folder is not a Git repository.	Folder ini bukan repositori Git.
+Initialize Repository	Mulakan Repositori
+Git repository created	Repositori Git dicipta
+Commit & Push	Commit & Push
+Commit & Sync	Commit & Sync
+Commit (Amend)	Commit (Amend)
+Open	Buka
+Show changes	Tunjukkan perubahan
+Discard?	Buang?
+Discard changes (click twice)	Buang perubahan (klik dua kali)
+Show staged changes	Tunjukkan perubahan yang di-stage
+Unstage All	Unstage Semua
+Stage All	Stage Semua
+No changes. The working tree matches the last commit.	Tiada perubahan. Working tree sama dengan commit terakhir.
+Branch published	Cabang diterbitkan
+Create a pull request on GitHub (gh pr create --fill)	Cipta pull request di GitHub (gh pr create --fill)
+gh workflow run on the current branch (needs workflow_dispatch)	gh workflow run pada cabang semasa (memerlukan workflow_dispatch)
+Pull	Pull
+Push	Push
+Sync (Pull, then Push)	Sync (Pull, kemudian Push)
+Fetch	Fetch
+Stage All Changes	Stage Semua Perubahan
+Unstage All Changes	Unstage Semua Perubahan
+Create Pull Request	Cipta Pull Request
+Open Repository on GitHub	Buka Repositori di GitHub
+Pulled	Pull selesai
+Pushed	Push selesai
+Fetched	Fetch selesai
+Appearance	Penampilan
+Color theme. Ctrl+K Ctrl+T switches to the next one from anywhere.	Tema warna. Ctrl+K Ctrl+T beralih ke tema seterusnya dari mana-mana sahaja.
+Color theme: {name}	Tema warna: {name}
+Language	Bahasa
+Menus, panels and messages. Automatic follows Windows.	Menu, panel dan mesej. Automatik mengikut Windows.
+Automatic	Automatik
+Interface size	Saiz antara muka
+Menus, tabs, the explorer, panels and icons. The editor font has its own size below.	Menu, tab, explorer, panel dan ikon. Fon editor ada saiznya sendiri di bawah.
+Background image	Imej latar
+A picture of your own behind the panels. Stays on your PC. Current: {0}	Gambar anda sendiri di belakang panel. Kekal dalam PC anda. Semasa: {0}
+Background visibility	Keterlihatan latar
+Strong: the picture shows clearly. Over very bright pictures, dim text (line numbers, hints) can drop below comfortable contrast.	Kuat: gambar kelihatan jelas. Pada gambar yang sangat terang, teks malap (nombor baris, petunjuk) mungkin kurang kontras.
+How much of the picture shows through the panels. The code side of the editor always gets less of it than the right edge.	Sejauh mana gambar kelihatan melalui panel. Bahagian kod dalam editor sentiasa kurang berbanding tepi kanan.
+{0} is not an image FluxCode can show (PNG, JPEG, WebP, GIF or BMP).	{0} bukan imej yang boleh dipaparkan oleh FluxCode (PNG, JPEG, WebP, GIF atau BMP).
+{0} was not found. Choose another image or remove it.	{0} tidak ditemui. Pilih imej lain atau alih keluar.
+Background image set	Imej latar ditetapkan
+Background image removed	Imej latar dialih keluar
+Change image…	Tukar imej…
+Choose image…	Pilih imej…
+Remove	Alih keluar
+Close	Tutup
+On	Hidup
+Off	Mati
+Active	Aktif
+Editor	Editor
+Font size	Saiz fon
+Font size of the editor and terminal, in pixels.	Saiz fon editor dan terminal, dalam piksel.
+Tab size	Saiz tab
+Spaces per indentation level (applies to newly opened files).	Bilangan ruang bagi setiap aras inden (untuk fail yang baru dibuka).
+Word wrap	Balut baris
+Wrap long lines at the edge of the editor.	Balut baris panjang di tepi editor.
+Whitespace dots	Titik ruang kosong
+Show each space as a faint dot, next to the guide lines that mark how far each block reaches.	Tunjukkan setiap ruang sebagai titik samar, di sebelah garis panduan yang menandakan sejauh mana setiap blok.
+Auto save	Simpan automatik
+Save a file shortly after you stop typing.	Simpan fail sejurus selepas anda berhenti menaip.
+AI agents and GitHub	Ejen AI dan GitHub
+AI agent: turn off when idle	Ejen AI: matikan apabila melahu
+After 10 idle minutes the agent process stops and frees its memory (OpenCode uses several hundred MB). Your next message starts it again and continues the same chat.	Selepas 10 minit melahu, proses ejen berhenti dan membebaskan memorinya (OpenCode menggunakan beberapa ratus MB). Mesej anda yang seterusnya akan memulakannya semula dan meneruskan sembang yang sama.
+Agent panel on the right	Panel ejen di sebelah kanan
+Dock the agent chat beside the editor instead of in the side bar. The arrow button in its header does the same.	Letakkan sembang ejen di sebelah editor dan bukan di bar sisi. Butang anak panah pada pengepalanya melakukan perkara yang sama.
+GitHub	GitHub
+Sign in so gh, git and OpenCode inside FluxCode can use your account (GH_TOKEN).	Log masuk supaya gh, git dan OpenCode dalam FluxCode boleh menggunakan akaun anda (GH_TOKEN).
+Stored in {0}	Disimpan dalam {0}
+Signed in to GitHub	Telah log masuk ke GitHub
+Sign out	Log keluar
+Sign in with token	Log masuk dengan token
+Use GitHub CLI login	Guna log masuk GitHub CLI
+Personal access token	Token akses peribadi
+Ask {name}…	Tanya {name}…
+Choose the agent	Pilih ejen
+No saved chats yet. Chats are saved after each answer.	Belum ada sembang yang disimpan. Sembang disimpan selepas setiap jawapan.
+Delete this chat	Padam sembang ini
+New chat	Sembang baharu
+Selection · line {a}	Pilihan · baris {a}
+Selection · lines {a}-{b}	Pilihan · baris {a}-{b}
+Last failed command	Arahan terakhir yang gagal
+Terminal output	Output terminal
+Workspace	Ruang kerja
+No file is open: the code was copied instead	Tiada fail dibuka: kod disalin sebagai ganti
+Resume this session here	Sambung semula sesi ini di sini
+No command matches	Tiada arahan yang sepadan
+No file matches	Tiada fail yang sepadan
+↑↓ choose · Tab or Enter adds · Esc closes	↑↓ pilih · Tab atau Enter menambah · Esc menutup
+Use OpenCode	Guna OpenCode
+Insert at the cursor in the open file (replaces the selection)	Sisipkan pada kursor dalam fail yang dibuka (menggantikan pilihan)
+Thinking	Sedang berfikir
+Keep all	Kekalkan semua
+Keep	Kekalkan
+Send now	Hantar sekarang
+Stop the current answer and send this now (the agent keeps the context)	Hentikan jawapan semasa dan hantar ini sekarang (ejen mengekalkan konteks)
+Remove from the queue	Alih keluar daripada baris gilir
+Attach files: images, PDF, Word, Excel, PowerPoint, code… (or drop / paste them)	Lampirkan fail: imej, PDF, Word, Excel, PowerPoint, kod… (atau lepaskan / tampal)
+Mention a file in the project	Sebut fail dalam projek
+Stop the answer	Hentikan jawapan
+FluxCode is open source under the GPL-3.0 license and still in development, so expect rough edges and frequent builds. The code, every build and the issue tracker are on GitHub.	FluxCode ialah sumber terbuka di bawah lesen GPL-3.0 dan masih dalam pembangunan, jadi mungkin ada kekurangan dan binaan baharu kerap dikeluarkan. Kod, setiap binaan dan penjejak isu ada di GitHub.
+A MuaraAI project. Copyright (C) 2026 MuaraAI and contributors.	Projek MuaraAI. Hak cipta (C) 2026 MuaraAI dan penyumbang.
+Open the repository	Buka repositori
+Report a problem	Laporkan masalah
+What changed	Apa yang berubah
+Check for Updates	Semak Kemas Kini
+FluxCode Development, {0} (copied)	FluxCode Development, {0} (disalin)
+Development build {0}	Binaan pembangunan {0}
+Updates	Kemas kini
+Check for new builds	Semak binaan baharu
+FluxCode asks github.com for its list of releases at start and every 6 hours. Nothing about you, this PC or your files is sent. This is {0}.	FluxCode meminta senarai keluaran daripada github.com semasa dimulakan dan setiap 6 jam. Tiada maklumat tentang anda, PC ini atau fail anda dihantar. Ini ialah {0}.
+Check now	Semak sekarang
+Checking for a new build…	Menyemak binaan baharu…
+{0} is available	{0} sudah tersedia
+You have the newest build ({0})	Anda mempunyai binaan terbaharu ({0})
+Could not check for updates: {0}	Tidak dapat menyemak kemas kini: {0}
+Installed, but FluxCode could not restart ({0}). Open it again.	Telah dipasang, tetapi FluxCode tidak dapat dimulakan semula ({0}). Sila bukanya semula.
+Installing…	Memasang…
+The update did not finish	Kemas kini tidak selesai
+Later	Nanti
+{0} of {1} MB	{0} daripada {1} MB
+FluxCode restarts on its own in a moment. Your open files and folders come back.	FluxCode akan dimulakan semula sebentar lagi. Fail dan folder yang terbuka akan dibuka semula.
+Try again	Cuba lagi
+Update and restart	Kemas kini dan mula semula
+What's new	Apa yang baharu
+AI agent	Ejen AI
+Commit message	Mesej commit
+Agent	Ejen
+Open or close the AI agent (Ctrl+L)	Buka atau tutup ejen AI (Ctrl+L)
+Remove Git from This Folder…	Alih Keluar Git daripada Folder Ini…
+Removing Git…	Mengalih keluar Git…
+Git removed from {0}. The .git folder is in the Recycle Bin.	Git dialih keluar daripada {0}. Folder .git berada dalam Recycle Bin.
+{0} added to .gitignore	{0} ditambah ke .gitignore
+Remove Git from {0}?	Alih keluar Git daripada {0}?
+The .git folder (commits, branches, settings) goes to the Recycle Bin. Your files stay as they are.	Folder .git (commit, cabang, tetapan) akan dipindahkan ke Recycle Bin. Fail anda kekal seperti sedia ada.
+Remove Git	Alih Keluar Git
+{n} untracked files	{n} fail tidak dijejak
+Folders with the most of them. Ignore the ones git should not track (they go to .gitignore).	Folder yang paling banyak mengandunginya. Abaikan yang tidak patut dijejak oleh git (ia dimasukkan ke .gitignore).
+Ignore	Abaikan
+… and {n} more files (Stage All includes them)	… dan {n} fail lagi (Stage Semua turut merangkuminya)
+Mode	Mod
+Idle	Melahu
+Turns off after 10 quiet minutes to free memory	Dimatikan selepas 10 minit senyap untuk membebaskan memori
+1 file	1 fail
+{n} files	{n} fail
+new	baharu
+Show the diff	Tunjukkan diff
+Undo this file	Buat asal fail ini
+Changes	Perubahan
+Undo all	Buat asal semua
+{name} is in use by another program (a running server, for example), so it can't be opened now	{name} sedang digunakan oleh program lain (contohnya pelayan yang sedang berjalan), jadi ia tidak boleh dibuka sekarang
+Couldn't open {name}: {e}	Tidak dapat membuka {name}: {e}
+Memory	Memori
+This project	Projek ini
+All projects	Semua projek
+Normal	Biasa
+File:	Fail:
+Access: {level}. What the agent may do without asking	Akses: {level}. Perkara yang boleh dilakukan oleh ejen tanpa bertanya
+AI agent: access	Ejen AI: akses
+Read only: it reads and explains, edits and commands are refused. Read & write: it edits files (Undo is under the chat), commands ask first. Full access: nothing asks.	Baca sahaja: ia membaca dan menerangkan, suntingan dan arahan ditolak. Baca & tulis: ia mengedit fail (Buat Asal ada di bawah sembang), arahan bertanya dahulu. Akses penuh: tiada yang bertanya.
+Read only	Baca sahaja
+Read & write	Baca & tulis
+Full access	Akses penuh
+Access	Akses
+Read only: reads and explains	Baca sahaja: membaca dan menerangkan
+Read & write: edits files, commands ask	Baca & tulis: mengedit fail, arahan bertanya
+Full access: nothing asks	Akses penuh: tiada yang bertanya
+Refused (read only): {0}	Ditolak (baca sahaja): {0}
+FluxCode is in read-only mode: files can't be changed. Describe the change instead.	FluxCode dalam mod baca sahaja: fail tidak boleh diubah. Sila terangkan perubahan itu sahaja.
+Allow once	Benarkan sekali
+Always allow	Sentiasa benarkan
+Reject	Tolak
+Always reject	Sentiasa tolak
+1 file changed by the agent	1 fail diubah oleh ejen
+{n} files changed by the agent	{n} fail diubah oleh ejen
+Mura, not installed	Mura, belum dipasang
+Mura isn't installed on this PC (FluxCode looks on PATH and in ~/.local/bin). Build it from github.com/MuaraAI/Mura-Harness, or pick another agent in the menu above.	Mura belum dipasang pada PC ini (FluxCode mencarinya dalam PATH dan ~/.local/bin). Bina daripada github.com/MuaraAI/Mura-Harness, atau pilih ejen lain dalam menu di atas.
+Queue it (Enter): sent when the answer ends · Shift+Enter new line	Masukkan ke baris gilir (Enter): dihantar apabila jawapan tamat · Shift+Enter baris baharu
+Send (Enter) · Shift+Enter new line	Hantar (Enter) · Shift+Enter baris baharu
+Open the file	Buka fail
+Go to it	Pergi ke sana
+Leave it out of the message	Jangan sertakan dalam mesej
+Send again: {names}	Hantar semula: {names}
+Incoming	Masuk
+Allow joining over the internet	Benarkan sertai melalui internet
+Code together in real time, from your own PC.	Tulis kod bersama secara masa nyata, dari PC anda sendiri.
+Edits go straight between your PC and each guest, encrypted with the invite code. No account or server needed.	Suntingan dihantar terus antara PC anda dan setiap tetamu, disulitkan dengan kod jemputan. Tiada akaun atau pelayan diperlukan.
+Every way in that opened is in the code; a guest's FluxCode tries them all and keeps the first that answers. The relay only passes bytes encrypted with the code's secret. If someone can't connect, allow FluxCode through the firewall.	Setiap laluan masuk yang dibuka ada dalam kod; FluxCode tetamu mencuba semuanya dan menggunakan yang pertama menjawab. Relay hanya menghantar bait yang disulitkan dengan rahsia kod. Jika seseorang tidak dapat bersambung, benarkan FluxCode melalui tembok api.
+From the internet	Dari internet
+Guests can join from anywhere.	Tetamu boleh menyertai dari mana-mana sahaja.
+Host this folder	Hos folder ini
+Join with a code	Sertai dengan kod
+Less	Kurang
+New folder	Folder baharu
+No shared file matches.	Tiada fail kongsi yang sepadan.
+Off for this session. To allow it, end the session and host again with internet joining on.	Dimatikan untuk sesi ini. Untuk membenarkannya, tamatkan sesi dan hos semula dengan penyertaan internet dihidupkan.
+Only people on your network can join. No way in from the internet opened (see Ways in).	Hanya orang dalam rangkaian anda boleh menyertai. Tiada laluan masuk dari internet dibuka (lihat Laluan masuk).
+Opening ways in from the internet. The code updates as they open.	Membuka laluan masuk dari internet. Kod dikemas kini apabila setiap laluan dibuka.
+Sign in to GitHub in Settings	Log masuk ke GitHub dalam Tetapan
+The code changed after you copied it. Copy it again before you send it.	Kod telah berubah selepas anda menyalinnya. Salin semula sebelum menghantarnya.
+Through your router, or an encrypted relay.	Melalui penghala anda, atau relay yang disulitkan.
+Use my GitHub name	Guna nama GitHub saya
+Use your clone of the same repository. The host's version of each file you open replaces yours.	Guna klon anda bagi repositori yang sama. Versi hos bagi setiap fail yang anda buka akan menggantikan versi anda.
+Anyone with this code can edit {folder} with you. Send it only to people you trust.	Sesiapa yang mempunyai kod ini boleh mengedit {folder} bersama anda. Hantar hanya kepada orang yang anda percayai.
+In {host}'s {folder}	Dalam {folder} milik {host}
+You appear as @{name}.	Anda dipaparkan sebagai @{name}.
+You appear as {name}.	Anda dipaparkan sebagai {name}.
+Finished	Selesai
+Stopped	Dihentikan
+Nothing has run yet. Press F5 to run the open file, or pick a task under Run.	Belum ada yang dijalankan. Tekan F5 untuk menjalankan fail yang dibuka, atau pilih tugasan di bawah Jalankan.
+Built into FluxCode	Terbina dalam FluxCode
+Installed from a file	Dipasang daripada fail
+By {who}	Oleh {who}
+Their tasks are in the Run view too (Ctrl+Shift+D).	Tugasannya juga ada dalam paparan Jalankan (Ctrl+Shift+D).
+Install the extension to build and run them here.	Pasang sambungan untuk membina dan menjalankannya di sini.
+A Gradle project for your server's Paper version, with the Gradle wrapper.	Projek Gradle untuk versi Paper pelayan anda, dengan Gradle wrapper.
+A behavior pack and its resource pack, ready to deploy.	Behavior pack dan resource pack-nya, sedia untuk dideploy.
+What it adds to the Run view.	Apa yang ditambahnya pada paparan Jalankan.
+The folder itself	Folder ini sendiri
+Running {task}…	Menjalankan {task}…
+Running {what}	Menjalankan {what}
+More	Lagi
+More tasks	Tugasan lain
+About {ext}	Perihal {ext}
+Runs in the Terminal: {line}	Berjalan dalam Terminal: {line}
+for {name}	untuk {name}
+Suggested extensions	Sambungan dicadangkan
+Run {f} (F5)	Jalankan {f} (F5)
+{f} can't be run	{f} tidak boleh dijalankan
+F5 runs Python, JavaScript, TypeScript, PowerShell, batch, shell, Rust and Go files. Build tasks for a project come from its extension.	F5 menjalankan fail Python, JavaScript, TypeScript, PowerShell, batch, shell, Rust dan Go. Tugasan binaan untuk projek datang daripada sambungannya.
+Nothing to run yet	Belum ada apa-apa untuk dijalankan
+Open a project folder to get its build tasks here, or open a script and press F5.	Buka folder projek untuk mendapatkan tugasan binaannya di sini, atau buka skrip dan tekan F5.
+Looking for projects…	Mencari projek…
+Build tasks show up here for each project an extension knows.	Tugasan binaan dipaparkan di sini untuk setiap projek yang dikenali oleh sambungan.
+No project here has an installed extension. Open a script and press F5, or find an extension for your project.	Tiada projek di sini yang mempunyai sambungan dipasang. Buka skrip dan tekan F5, atau cari sambungan untuk projek anda.
+Browse extensions	Layari sambungan
+Show the output	Tunjukkan output
+Install packages	Pasang pakej
+Reading	Membaca
+Read	Dibaca
+Editing	Mengedit
+Edited	Diedit
+Deleting	Memadam
+Deleted	Dipadam
+Moving	Memindahkan
+Moved	Dipindahkan
+Searching	Mencari
+Searched	Dicari
+the web	web
+a page	satu halaman
+Ran	Dijalankan
+Fetching	Mengambil
+Thought	Telah berfikir
+Done	Selesai
+Failed	Gagal
+5-hour limit	Had 5 jam
+Weekly limit	Had mingguan
+Close (Esc)	Tutup (Esc)
+Context	Konteks
+Context: {used} of {size} tokens. Click for usage and limits.	Konteks: {used} daripada {size} token. Klik untuk penggunaan dan had.
+Cost so far {cost}	Kos setakat ini {cost}
+Default	Lalai
+Reset	Set semula
+Free	Percuma
+{c} context · {o} out	{c} konteks · {o} keluar
+{c} context	{c} konteks
+Limits reset by themselves at the times above.	Had ditetapkan semula dengan sendirinya pada masa di atas.
+Read a page	Membaca halaman
+Reading a page	Sedang membaca halaman
+Read it again	Baca semula
+Reading your limits from the agent…	Membaca had anda daripada ejen…
+Request	Minta
+Request usage credits	Minta kredit penggunaan
+Request usage credits?	Minta kredit penggunaan?
+Requesting…	Sedang meminta…
+Resets in {t}	Set semula dalam {t}
+Searched the web	Telah mencari di web
+Searched the web · {n} sources	Telah mencari di web · {n} sumber
+Searching the web	Mencari di web
+Show all {n}	Tunjukkan semua {n}
+Show fewer	Tunjukkan lebih sedikit
+The agent asks your plan for extra usage, so you can keep working after a limit. Your admin may approve it, or it may be turned off for your organization.	Ejen meminta penggunaan tambahan daripada pelan anda, supaya anda boleh terus bekerja selepas mencapai had. Pentadbir anda mungkin meluluskannya, atau ia mungkin dimatikan untuk organisasi anda.
+The agent didn't report any limits.	Ejen tidak melaporkan sebarang had.
+The search failed	Carian gagal
+Turn the agent on to read your limits: it knows them, FluxCode doesn't.	Hidupkan ejen untuk membaca had anda: ejen mengetahuinya, FluxCode tidak.
+Usage	Penggunaan
+Usage: limits, context and cost	Penggunaan: had, konteks dan kos
+What this chat holds now. A new chat (/new) starts it empty.	Kandungan sembang ini sekarang. Sembang baharu (/new) bermula kosong.
+{i} / {o} per 1M	{i} / {o} setiap 1J
+Limits	Had
+What uses your limits, last 24 hours	Apa yang menggunakan had anda, 24 jam terakhir
+Claude 5.5 · newest, the most for each token	Claude 5.5 · terbaharu, paling banyak hasil bagi setiap token
+Claude 5	Claude 5
+Claude 4 · older: more tokens for the same work	Claude 4 · lebih lama: lebih banyak token untuk kerja yang sama
+Older	Lebih lama
+fast and cheap, for small edits	pantas dan murah, untuk suntingan kecil
+good results with fewer tokens	hasil yang baik dengan token yang lebih sedikit
+more thinking for harder problems	lebih banyak berfikir untuk masalah yang lebih sukar
+deep work on big changes, many tokens	kerja mendalam untuk perubahan besar, banyak token
+as much thinking as it takes, costs most	berfikir seberapa banyak yang perlu, kos paling tinggi
+the agent's own default	lalai ejen itu sendiri
+About	Perihal
+Accept Minecraft's EULA first: set eula=true in eula.txt (it opens now).	Terima EULA Minecraft dahulu: tetapkan eula=true dalam eula.txt (ia dibuka sekarang).
+Add the Gradle wrapper	Tambah Gradle wrapper
+All	Semua
+Background image and more in Settings	Imej latar dan lain-lain dalam Tetapan
+Check the manifests	Semak manifest
+Color theme	Tema warna
+Color theme (Ctrl+K Ctrl+T for the next one)	Tema warna (Ctrl+K Ctrl+T untuk tema seterusnya)
+Couldn't install it: {e}	Tidak dapat memasangnya: {e}
+Deploy to Minecraft	Deploy ke Minecraft
+Deploy to the test server	Deploy ke pelayan ujian
+Done by FluxCode itself	Dilakukan oleh FluxCode sendiri
+Download page	Halaman muat turun
+EXTENSIONS	SAMBUNGAN
+Extensions	Sambungan
+F5 runs the active file (Python, Node, PowerShell, batch, Rust via cargo). Output appears in the Output panel. Projects get their build, test and deploy buttons above from their extension (Ctrl+Shift+X).	F5 menjalankan fail aktif (Python, Node, PowerShell, batch, Rust melalui cargo). Output dipaparkan dalam panel Output. Projek mendapat butang bina, uji dan deploy di atas daripada sambungannya (Ctrl+Shift+X).
+FluxCompile runs it with {what}	FluxCompile menjalankannya dengan {what}
+For {name}	Untuk {name}
+Goes into {dir}	Dimasukkan ke {dir}
+In this folder	Dalam folder ini
+Install extension	Pasang sambungan
+Install from a file (extension.json)	Pasang daripada fail (extension.json)
+Install the extension to get its tasks here.	Pasang sambungan untuk mendapatkan tugasannya di sini.
+JDK {v}: {path}	JDK {v}: {path}
+Made {dir}	{dir} dicipta
+Name	Nama
+Needs	Memerlukan
+New Paper plugin	Plugin Paper baharu
+New add-on	Add-on baharu
+No extension is for a project in this folder.	Tiada sambungan untuk projek dalam folder ini.
+No extension matches.	Tiada sambungan yang sepadan.
+No test server found: a folder with a plugins folder and a paper-*.jar, above the plugin or in the workspace.	Tiada pelayan ujian ditemui: folder yang mengandungi folder plugins dan paper-*.jar, di atas plugin atau dalam ruang kerja.
+Not found	Tidak ditemui
+Nothing installed yet: pick one under All.	Belum ada yang dipasang: pilih satu di bawah Semua.
+One task per script in package.json	Satu tugasan bagi setiap skrip dalam package.json
+Open a folder first: the new project goes into it.	Buka folder dahulu: projek baharu akan dimasukkan ke dalamnya.
+Open a folder to see which extensions it uses.	Buka folder untuk melihat sambungan yang digunakannya.
+Pack the add-on	Pek add-on
+Search extensions	Cari sambungan
+Start server	Mulakan pelayan
+Tasks	Tugasan
+The preview is the HTML Preview extension: install it to use it	Pratonton ialah sambungan HTML Preview: pasangnya untuk menggunakannya
+The terminal is busy: stop what runs there first (Ctrl+C)	Terminal sedang sibuk: hentikan apa yang berjalan di sana dahulu (Ctrl+C)
+This file	Fail ini
+This folder	Folder ini
+Uninstall	Nyahpasang
+Used in {names}	Digunakan dalam {names}
+View: Show Extensions	Paparan: Tunjukkan Sambungan
+built in	terbina dalam
+{ext}: {task}	{ext}: {task}
+Marketplace	Marketplace
+Couldn't reach the Marketplace: {e}	Tidak dapat menghubungi Marketplace: {e}
+No Marketplace extension matches.	Tiada sambungan Marketplace yang sepadan.
+Searching the Marketplace…	Mencari di Marketplace…
+{n} results	{n} hasil
+Loading more…	Memuatkan lagi…
+Couldn't load more: {e} · Retry	Tidak dapat memuatkan lagi: {e} · Cuba semula
+No VS Code extension installed yet: find one under Marketplace.	Belum ada sambungan VS Code dipasang: cari satu di bawah Marketplace.
+No installed extension matches.	Tiada sambungan dipasang yang sepadan.
+Install from VSIX	Pasang daripada VSIX
+Installed {name}	{name} dipasang
+The file is not a VSIX package.	Fail ini bukan pakej VSIX.
+Relevance	Kaitan
+Updated	Dikemas kini
+All categories	Semua kategori
+Programming Languages	Bahasa Pengaturcaraan
+Themes	Tema
+Snippets	Snippet
+Linters	Linter
+Formatters	Pemformat
+Debuggers	Penyahpepijat
+Keymaps	Peta kekunci
+AI	AI
+Chat	Sembang
+Data Science	Sains Data
+Machine Learning	Pembelajaran Mesin
+Notebooks	Notebook
+Testing	Pengujian
+SCM Providers	Penyedia SCM
+Language Packs	Pek Bahasa
+Extension Packs	Pek Sambungan
+Visualization	Visualisasi
+Education	Pendidikan
+Azure	Azure
+Other	Lain-lain
+Installing	Memasang
+Removing	Mengalih keluar
+Couldn't install {name}: {e}	Tidak dapat memasang {name}: {e}
+Couldn't uninstall it: {e}	Tidak dapat menyahpasangnya: {e}
+Update to {v}	Kemas kini ke {v}
+Open on the Marketplace website	Buka di laman web Marketplace
+Identifier	Pengecam
+Version	Versi
+Last updated	Kali terakhir dikemas kini
+Categories	Kategori
+Installs	Pemasangan
+Rating	Penarafan
+{n} ratings	{n} penarafan
+installed	dipasang
+README	README
+Loading the README…	Memuatkan README…
+This extension has no README.	Sambungan ini tiada README.
+It declares {list}.	Ia mengisytiharkan {list}.
+It declares no themes, languages or snippets.	Ia tidak mengisytiharkan sebarang tema, bahasa atau snippet.
+Install it to see what it declares (themes, languages, snippets).	Pasangnya untuk melihat apa yang diisytiharkannya (tema, bahasa, snippet).
+VS Code's JavaScript extension host isn't available in FluxCode, so code that runs inside VS Code (commands, debuggers, language servers started by the extension) doesn't run here.	Hos sambungan JavaScript VS Code tidak tersedia dalam FluxCode, jadi kod yang berjalan di dalam VS Code (arahan, penyahpepijat, pelayan bahasa yang dimulakan oleh sambungan) tidak berjalan di sini.
+Grammars, snippets and icon themes aren't applied yet.	Tatabahasa, snippet dan tema ikon belum digunakan.
+Its color themes are in the theme menu; click one to use it:	Tema warnanya ada dalam menu tema; klik satu untuk menggunakannya:
+Nothing it declares is applied: FluxCode applies color themes and the file types of languages.	Tiada apa yang diisytiharkannya digunakan: FluxCode menggunakan tema warna dan jenis fail bagi bahasa.
+Files open as {list}.	Fail dibuka sebagai {list}.
+Couldn't read: {list}	Tidak dapat dibaca: {list}
+VS Code theme from {ext}	Tema VS Code daripada {ext}
+Added to the color themes: {list}. Pick one below or from the theme menu in the status bar.	Ditambah pada tema warna: {list}. Pilih satu di bawah atau daripada menu tema dalam bar status.
+1 color theme	1 tema warna
+{n} color themes	{n} tema warna
+1 file icon theme	1 tema ikon fail
+{n} file icon themes	{n} tema ikon fail
+1 language	1 bahasa
+{n} languages	{n} bahasa
+1 grammar	1 tatabahasa
+{n} grammars	{n} tatabahasa
+snippets	snippet
+1 command	1 arahan
+{n} commands	{n} arahan
+1 keybinding	1 ikatan kekunci
+{n} keybindings	{n} ikatan kekunci
+1 debugger	1 penyahpepijat
+{n} debuggers	{n} penyahpepijat
+The extension's name or version has characters FluxCode won't use in a folder name.	Nama atau versi sambungan mengandungi aksara yang tidak akan digunakan oleh FluxCode dalam nama folder.
+The Marketplace lists no package for it.	Marketplace tidak menyenaraikan sebarang pakej untuknya.
+The package unpacks to more than 1 GB.	Pakej ini melebihi 1 GB selepas dinyahmampat.
+The package has no extension/package.json.	Pakej ini tiada extension/package.json.
+{name} asks for Java {w}, which isn't installed here. Install it from the extension's page (Needs), then build again.	{name} memerlukan Java {w}, yang belum dipasang di sini. Pasangnya dari halaman sambungan (Memerlukan), kemudian bina semula.
+▸ {n} Gradle tasks	▸ {n} tugasan Gradle
+▸ {n} Gradle tasks · {task}	▸ {n} tugasan Gradle · {task}
+Ink and ivory, ochre accent	Dakwat dan gading, aksen oker
+Paper and ink, umber accent	Kertas dan dakwat, aksen umber
+Grey UI, red only for errors	UI kelabu, merah hanya untuk ralat
+Dark oxblood, clay accent	Merah darah gelap, aksen tanah liat
+Mist canvas, river-blue accent	Kanvas kabus, aksen biru sungai
+Night water, river-blue accent	Air malam, aksen biru sungai
+Before	Sebelum
+installed now	dipasang sekarang
+in the new build	dalam binaan baharu
+{n} builds since yours	{n} binaan sejak versi anda
+{n} commits on {up} that this checkout doesn't have yet	{n} commit pada {up} yang belum ada dalam checkout ini
+Update ready	Kemas kini sedia
+Update ready: {0}	Kemas kini sedia: {0}
+Update	Kemas kini
+Build from {0}	Binaan daripada {0}
+{0}\nInstalled: {1}	{0}\nDipasang: {1}
+Downloading the update	Memuat turun kemas kini
+Later (the Update button stays in the title bar)	Nanti (butang Kemas Kini kekal dalam bar tajuk)
+Not now: hide this until more commits arrive	Bukan sekarang: sembunyikan sehingga ada commit baharu
+In {hash}, not pulled yet	Dalam {hash}, belum di-pull
+Pull them in (git pull)	Tarik semuanya (git pull)
+Pull them in (your changes are set aside and put back: git pull --autostash)	Tarik semuanya (perubahan anda diketepikan dan dikembalikan semula: git pull --autostash)
+Reading the changed files…	Membaca fail yang berubah…
+Show what changed	Tunjukkan apa yang berubah
+… and {n} more files	… dan {n} fail lagi
+… and {n} older ones	… dan {n} yang lebih lama
+Model, effort and mode	Model, usaha dan mod
+Couldn't change the setting: {m}	Tidak dapat menukar tetapan: {m}
+{name} settings: model, effort, mode…	Tetapan {name}: model, usaha, mod…
+{name} settings	Tetapan {name}
+{name} is starting. Its models and settings show here in a moment.	{name} sedang dimulakan. Model dan tetapannya akan dipaparkan di sini sebentar lagi.
+{name} lists its models and settings once it is on.	{name} menyenaraikan model dan tetapannya sebaik sahaja ia dihidupkan.
+Turn {name} on	Hidupkan {name}
+Effort	Usaha
+How long the model thinks before it answers. More thinking is slower and more careful.	Berapa lama model berfikir sebelum menjawab. Lebih banyak berfikir bermakna lebih perlahan dan lebih teliti.
+Model	Model
+Free (OpenCode Zen)	Percuma (OpenCode Zen)
+Agent mode	Mod ejen
+In FluxCode	Dalam FluxCode
+Turn off after 10 idle minutes to free memory	Matikan selepas 10 minit melahu untuk membebaskan memori
+Open OpenCode's config file	Buka fail konfigurasi OpenCode
+Edit this message	Edit mesej ini
+Edited: the answer starts over from this message.	Diedit: jawapan bermula semula dari mesej ini.
+Editing your message. Enter sends it and the answer starts over from there. Esc cancels.	Mengedit mesej anda. Enter menghantarnya dan jawapan bermula semula dari situ. Esc membatalkan.
+Starting…	Memulakan…
+Ready	Sedia
+This looks like a problem with the model. Pick another one with the model button under the message box, then send again.	Ini nampaknya masalah dengan model. Pilih model lain dengan butang model di bawah kotak mesej, kemudian hantar semula.
+Working…	Sedang bekerja…
+You	Anda
+Search files in the workspace	Cari fail dalam ruang kerja
+Start a new chat	Mulakan sembang baharu
+Saved chats and agent sessions for this folder	Sembang yang disimpan dan sesi ejen untuk folder ini
+Turn the agent off	Matikan ejen
+Attached: {0}	Dilampirkan: {0}
+Hide (Ctrl+L)	Sembunyikan (Ctrl+L)
+Continued with {name}. It gets the conversation with {old} above as context.	Diteruskan dengan {name}. Ia menerima perbualan dengan {old} di atas sebagai konteks.
+Back to the chat	Kembali ke sembang
+Saved chats	Sembang yang disimpan
+Move to the left side bar	Pindah ke bar sisi kiri
+Move to the right side	Pindah ke sebelah kanan
+Reverted {0}	{0} dikembalikan
+Undo failed: {e}	Buat asal gagal: {e}
+Wait for the current answer, then open the session again.	Tunggu jawapan semasa selesai, kemudian buka sesi itu semula.
+Inserted 1 line into {name}	1 baris disisipkan ke dalam {name}
+Inserted {lines} lines into {name}	{lines} baris disisipkan ke dalam {name}
+Reading {name}'s sessions…	Membaca sesi {name}…
+Sent with your message. Click to leave it out	Dihantar bersama mesej anda. Klik untuk tidak menyertakannya
+Left out. Click to send it	Tidak disertakan. Klik untuk menghantarnya
+Opening the session…	Membuka sesi…
+Type @ to add a file. Your open file, selection and last error go along when they help.	Taip @ untuk menambah fail. Fail yang dibuka, pilihan dan ralat terakhir anda turut dihantar apabila ia membantu.
+Off for now. Your first message turns it on. Type @ to add a file.	Dimatikan buat masa ini. Mesej pertama anda akan menghidupkannya. Taip @ untuk menambah fail.
+Ask {name}	Tanya {name}
+Allow: {0}?	Benarkan: {0}?
+Waiting for {name} to finish, then these are sent together	Menunggu {name} selesai, kemudian semua ini dihantar bersama
+Sent as soon as {name} is ready	Dihantar sebaik sahaja {name} sedia
+Not sent: {name} couldn't start. Switch the agent in the title menu, they will go to it	Tidak dihantar: {name} tidak dapat dimulakan. Tukar ejen dalam menu tajuk, mesej akan dihantar kepadanya
+Sent with your next message	Dihantar bersama mesej anda yang seterusnya
+Download	Muat turun
+Get	Dapatkan
+Agent settings	Tetapan ejen
+Remove {name}	Alih keluar {name}
+Reading the ACP registry	Membaca registri ACP
+Could not read the ACP registry	Tidak dapat membaca registri ACP
+This agent is no longer in the ACP registry.	Ejen ini tiada lagi dalam registri ACP.
+Downloading	Memuat turun
+Checking the download	Menyemak muat turun
+Unpacking	Menyahmampat
+Installing with npm	Memasang dengan npm
+Installing {name}	Memasang {name}
+{name} wasn't installed. {why}	{name} tidak dipasang. {why}
+{name} isn't installed	{name} belum dipasang
+{name} isn't installed yet. Download it from the agent menu above, or pick another agent.	{name} belum dipasang. Muat turunnya dari menu ejen di atas, atau pilih ejen lain.
+Pick an agent to start	Pilih ejen untuk bermula
+Download it, or pick an agent you have in the menu above.	Muat turunnya, atau pilih ejen yang anda ada dalam menu di atas.
+Every agent here speaks the Agent Client Protocol. FluxCode downloads it into its own folder and starts it only while you use it.	Setiap ejen di sini menggunakan Agent Client Protocol. FluxCode memuat turunnya ke dalam foldernya sendiri dan hanya memulakannya semasa anda menggunakannya.
+Edit files	Edit fail
+The menu above lists every agent in the ACP registry.	Menu di atas menyenaraikan setiap ejen dalam registri ACP.
+Reads files and answers. Changes nothing.	Membaca fail dan menjawab. Tidak mengubah apa-apa.
+Edits files. Asks before running commands.	Mengedit fail. Bertanya sebelum menjalankan arahan.
+Edits files and runs commands without asking.	Mengedit fail dan menjalankan arahan tanpa bertanya.
+Permissions: {level}	Kebenaran: {level}
+What the agent may do without asking	Perkara yang boleh dilakukan oleh ejen tanpa bertanya
+On this PC	Pada PC ini
+Available	Tersedia
+More in the ACP registry	Lagi dalam registri ACP
+Installed	Dipasang
+Not installed	Tidak dipasang
+Back	Kembali
+{done} of {total} MB	{done} daripada {total} MB
+{done} of {total} files	{done} daripada {total} fail
+{done} files	{done} fail
+{name} wasn't installed	{name} tidak dipasang
+A new line keeps the indentation, and indents one more level after { or :.	Baris baharu mengekalkan inden, dan menambah satu aras inden selepas { atau :.
+Agent: Agent Settings	Ejen: Tetapan Ejen
+Agent: Open or Close the Agent	Ejen: Buka atau Tutup Ejen
+Arrows in the gutter that fold a block away.	Anak panah dalam gutter untuk melipat sesuatu blok.
+Close brackets and quotes	Tutup kurungan dan petikan
+Code folding	Lipatan kod
+Command Palette...	Palet Arahan...
+Copy Line Down	Salin Baris ke Bawah
+Copy Line Up	Salin Baris ke Atas
+Current line: {cur} of {total}. Type a line number to go there.	Baris semasa: {cur} daripada {total}. Taip nombor baris untuk pergi ke sana.
+Cursor padding	Ruang sekeliling kursor
+Delete Line	Padam Baris
+Editor font: {n} px	Fon editor: {n} px
+File: Go to File	Fail: Pergi ke Fail
+File: Open File	Fail: Buka Fail
+File: Open Folder	Fail: Buka Folder
+File: Save	Fail: Simpan
+File: Save All	Fail: Simpan Semua
+Font	Fon
+Full changelog on GitHub	Log perubahan penuh di GitHub
+Go to Line	Pergi ke Baris
+Go to line {l}, column {col}.	Pergi ke baris {l}, lajur {col}.
+Go to line {l}.	Pergi ke baris {l}.
+Help: About FluxCode	Bantuan: Perihal FluxCode
+Help: Check for Updates	Bantuan: Semak Kemas Kini
+Help: What's New	Bantuan: Apa yang Baharu
+Insert Line Above	Sisipkan Baris di Atas
+Insert Line Below	Sisipkan Baris di Bawah
+Copilot suggestions	Cadangan Copilot
+Ghost-text completions from GitHub Copilot, a moment after you stop typing. Tab accepts, Esc dismisses. The Copilot language server does the work in its own process, so the editor stays light.	Pelengkapan teks bayang daripada GitHub Copilot, sejurus selepas anda berhenti menaip. Tab menerima, Esc menolak. Pelayan bahasa Copilot berjalan dalam prosesnya sendiri, jadi editor kekal ringan.
+Sign in so the editor can suggest the next lines of code. Needs the Copilot language server installed once, and a Copilot plan (a free plan exists).	Log masuk supaya editor boleh mencadangkan baris kod seterusnya. Memerlukan pelayan bahasa Copilot dipasang sekali, dan pelan Copilot (pelan percuma tersedia).
+Off. Turn Copilot suggestions on in the Editor section.	Mati. Hidupkan cadangan Copilot dalam bahagian Editor.
+Starting the Copilot server...	Memulakan pelayan Copilot...
+Not installed. Install it once with: npm install -g @github/copilot-language-server (Node.js 20.8 or later).	Belum dipasang. Pasang sekali dengan: npm install -g @github/copilot-language-server (Node.js 20.8 atau lebih baharu).
+Ready. Suggestions appear as ghost text a moment after you stop typing.	Sedia. Cadangan dipaparkan sebagai teks bayang sejurus selepas anda berhenti menaip.
+Not signed in to Copilot yet.	Belum log masuk ke Copilot.
+Copilot has a temporary problem.	Copilot mengalami masalah sementara.
+Copilot ignores this file.	Copilot mengabaikan fail ini.
+Signed in to Copilot	Telah log masuk ke Copilot
+Signed out of Copilot	Telah log keluar daripada Copilot
+Copy code	Salin kod
+Sign in	Log masuk
+GitHub Copilot	GitHub Copilot
+Your sign-in code: {code}	Kod log masuk anda: {code}
+Install server	Pasang pelayan
+Get Node.js	Dapatkan Node.js
+Copilot server installed.	Pelayan Copilot telah dipasang.
+npm's global folder is not writable; see the npm docs on EACCES, or install the server by hand.	Folder global npm tidak boleh ditulis; lihat dokumentasi npm tentang EACCES, atau pasang pelayan secara manual.
+Install failed: {e}	Pemasangan gagal: {e}
+Copilot: install server	Copilot: pasang pelayan
+Copilot: sign in	Copilot: log masuk
+Copilot suggestions are not set up yet. Click to open Settings.	Cadangan Copilot belum disediakan. Klik untuk membuka Tetapan.
+Keyboard shortcuts	Pintasan papan kekunci
+Leave room below the end of a file, so its last lines can sit mid-screen.	Tinggalkan ruang di bawah hujung fail, supaya baris terakhirnya boleh berada di tengah skrin.
+Line numbers	Nombor baris
+Lines kept visible above and below the cursor as it moves (0: the editor's default).	Baris yang kekal kelihatan di atas dan di bawah kursor semasa ia bergerak (0: lalai editor).
+Markdown / HTML: Open Preview to the Side	Markdown / HTML: Buka Pratonton di Sebelah
+Move Line Down	Alih Baris ke Bawah
+Move Line Up	Alih Baris ke Atas
+No command matches.	Tiada arahan yang sepadan.
+No notes for this build.	Tiada nota untuk binaan ini.
+Numbers in the gutter left of the code.	Nombor dalam gutter di sebelah kiri kod.
+Preferences: Next Color Theme	Keutamaan: Tema Warna Seterusnya
+Preferences: Open Settings	Keutamaan: Buka Tetapan
+Run: Run File	Jalankan: Jalankan Fail
+Run: Stop	Jalankan: Henti
+Scroll past the last line	Tatal melepasi baris terakhir
+Search: Find in Files	Carian: Cari dalam Fail
+Smart indent	Inden pintar
+The editor and terminal font. Fonts that are not installed fall back to the system's monospace font.	Fon editor dan terminal. Fon yang tidak dipasang akan menggunakan fon monospace sistem.
+Toggle Line Comment	Togol Ulasan Baris
+Type part of a file name ( > commands, : a line, wsl: a distro )	Taip sebahagian nama fail ( > arahan, : baris, wsl: distro )
+Typing ( [ { or a quote adds its closing pair.	Menaip ( [ { atau tanda petik akan menambah pasangan penutupnya.
+VS Code's keys. Ctrl+Shift+P (or F1) opens every command with its keys; type to filter.	Kekunci VS Code. Ctrl+Shift+P (atau F1) membuka setiap arahan dengan kekuncinya; taip untuk menapis.
+View: Close All Editors	Paparan: Tutup Semua Editor
+View: Close Editor	Paparan: Tutup Editor
+View: Next Editor	Paparan: Editor Seterusnya
+View: Previous Editor	Paparan: Editor Sebelumnya
+View: Reopen Closed Editor	Paparan: Buka Semula Editor yang Ditutup
+View: Reset Zoom	Paparan: Set Semula Zum
+View: Show Explorer	Paparan: Tunjukkan Explorer
+View: Show Output	Paparan: Tunjukkan Output
+View: Show Run	Paparan: Tunjukkan Jalankan
+View: Show Source Control	Paparan: Tunjukkan Kawalan Sumber
+View: Toggle Panel	Paparan: Tunjuk/Sembunyi Panel
+View: Toggle Side Bar	Paparan: Tunjuk/Sembunyi Bar Sisi
+View: Toggle Terminal	Paparan: Tunjuk/Sembunyi Terminal
+View: Toggle Word Wrap	Paparan: Togol Balut Baris
+View: Zoom In (editor font)	Paparan: Zum Masuk (fon editor)
+View: Zoom Out (editor font)	Paparan: Zum Keluar (fon editor)
+What's New	Apa yang Baharu
+What's new in FluxCode	Apa yang baharu dalam FluxCode
+Word wrap off	Balut baris dimatikan
+Word wrap on	Balut baris dihidupkan
+Agent instructions (soul files)	Arahan ejen (fail soul)
+Answer “{q}” first.	Jawab “{q}” dahulu.
+Mura's character is built into the program. It follows these project files:	Watak Mura terbina dalam program. Ia mengikut fail projek ini:
+No	Tidak
+Yes	Ya
+No agent installed yet. The agent panel (Ctrl+L) lists agents to download.	Belum ada ejen dipasang. Panel ejen (Ctrl+L) menyenaraikan ejen untuk dimuat turun.
+Open the page	Buka halaman
+Pick one, or type your own.	Pilih satu, atau taip jawapan anda sendiri.
+Remove {name}?	Alih keluar {name}?
+Remove {name}…	Alih keluar {name}…
+Send answer	Hantar jawapan
+Skills and commands from {name}	Kemahiran dan arahan daripada {name}
+Skip	Langkau
+That is not “{name}”. Check the spelling (capital letters count).	Itu bukan “{name}”. Semak ejaan (huruf besar diambil kira).
+The files each installed agent reads for its standing instructions and character. Open one to read or edit it; a missing one can be created empty.	Fail yang dibaca oleh setiap ejen yang dipasang untuk arahan tetap dan wataknya. Buka satu untuk membaca atau mengeditnya; fail yang tiada boleh dicipta kosong.
+This deletes {path}: the program and its files. Your chats stay. To be sure it is the right agent, type {name} twice.	Ini memadam {path}: program dan failnya. Sembang anda kekal. Untuk memastikan ejen yang betul, taip {name} dua kali.
+Type it again	Taip sekali lagi
+Type my own answer	Taip jawapan saya sendiri
+Type the name	Taip nama
+Type your answer	Taip jawapan anda
+Your answer goes back to the agent.	Jawapan anda dihantar semula kepada ejen.
+project	projek
+{name} asks	{name} bertanya
+{name}'s own commands appear once it is on	Arahan {name} sendiri dipaparkan sebaik sahaja ia dihidupkan
+↑↓ choose · Tab fills · Enter runs · Esc closes	↑↓ pilih · Tab mengisi · Enter menjalankan · Esc menutup
+Activity	Aktiviti
+Connecting…	Menyambung…
+Copy invite code	Salin kod jemputan
+Diff	Diff
+Edits show here as people make them. An edit made by an AI agent says which agent, model and effort.	Suntingan dipaparkan di sini semasa orang membuatnya. Suntingan oleh ejen AI menyatakan ejen, model dan usahanya.
+Files arrive from the host as you open them, into a folder of their own.	Fail tiba daripada hos semasa anda membukanya, ke dalam folder tersendiri.
+Find a shared file	Cari fail kongsi
+Host a session	Hos sesi
+Hosting {folder}	Mengehos {folder}
+Invite code copied	Kod jemputan disalin
+Join	Sertai
+Join a session	Sertai sesi
+LIVE SHARE	LIVE SHARE
+Leave	Tinggalkan
+Open a folder first: the session shares it.	Buka folder dahulu: sesi akan berkongsi folder itu.
+Open your copy of the project first, or join into a new folder.	Buka salinan projek anda dahulu, atau sertai ke dalam folder baharu.
+Others see you as @{name} (GitHub).	Orang lain melihat anda sebagai @{name} (GitHub).
+Others see you as {name}. Sign in to GitHub in Settings so they see your GitHub name.	Orang lain melihat anda sebagai {name}. Log masuk ke GitHub dalam Tetapan supaya mereka melihat nama GitHub anda.
+Paste an invite code (FLUX1-…)	Tampal kod jemputan (FLUX1-…)
+Someone	Seseorang
+Start hosting	Mula mengehos
+That file can't be opened as text.	Fail itu tidak boleh dibuka sebagai teks.
+That file can't be shared as text.	Fail itu tidak boleh dikongsi sebagai teks.
+That file is not there any more.	Fail itu sudah tiada.
+That file is outside the shared folder.	Fail itu berada di luar folder kongsi.
+That file is too large to share live (over 16 MB).	Fail itu terlalu besar untuk dikongsi secara langsung (melebihi 16 MB).
+The host ended the session.	Hos telah menamatkan sesi.
+The session ended ({why}).	Sesi tamat ({why}).
+Your open folder should be your clone of the same repository; the host's version of each file you open replaces yours.	Folder yang anda buka sepatutnya klon anda bagi repositori yang sama; versi hos bagi setiap fail yang anda buka akan menggantikan versi anda.
+host	hos
+just now	sebentar tadi
+you	anda
+{m} min ago	{m} min lalu
+{name} joined the session	{name} menyertai sesi
+{name} left the session	{name} meninggalkan sesi
+Builds since yours	Binaan sejak versi anda
+Could not read the new build's notes. {why}	Tidak dapat membaca nota binaan baharu. {why}
+Reading the new build's notes…	Membaca nota binaan baharu…
+Release page	Halaman keluaran
+The new build has no notes beyond the list above.	Binaan baharu tiada nota selain senarai di atas.
+What the new build changes	Apa yang diubah oleh binaan baharu
+Yours, installed now	Versi anda, yang dipasang sekarang
+A new folder	Folder baharu
+Anyone with this code can join, from anywhere.	Sesiapa yang mempunyai kod ini boleh menyertai, dari mana-mana sahaja.
+Checking…	Menyemak…
+Connected	Bersambung
+Copied	Disalin
+Dismiss	Tolak
+End	Tamatkan
+End the session for everyone	Tamatkan sesi untuk semua orang
+Files go to	Fail dimasukkan ke
+For guests with IPv6, when your router lets connections in.	Untuk tetamu yang mempunyai IPv6, apabila penghala anda membenarkan sambungan masuk.
+Let people join over the internet	Benarkan orang menyertai melalui internet
+Live	Langsung
+My open folder	Folder yang saya buka
+No file open	Tiada fail dibuka
+No network connection.	Tiada sambungan rangkaian.
+Off: you chose same network only.	Mati: anda memilih rangkaian yang sama sahaja.
+Only people on your network can join.	Hanya orang dalam rangkaian anda boleh menyertai.
+Only people on your network can join: no way in from the internet worked (see below).	Hanya orang dalam rangkaian anda boleh menyertai: tiada laluan masuk dari internet yang berjaya (lihat di bawah).
+Opening ways in from the internet. The code updates as each one opens.	Membuka laluan masuk dari internet. Kod dikemas kini apabila setiap laluan dibuka.
+Through your router, our relay, or a public one if ours is down. Only encrypted bytes pass through. No VPN, no server of your own.	Melalui penghala anda, relay kami, atau relay awam jika relay kami tergendala. Hanya bait yang disulitkan melaluinya. Tiada VPN, tiada pelayan sendiri.
+People	Orang
+Public IPv6	IPv6 awam
+Relay (MuaraAI)	Relay (MuaraAI)
+Relay (public)	Relay (awam)
+Router port (UPnP)	Port penghala (UPnP)
+Same network	Rangkaian yang sama
+Share {folder}. Your PC is the server: guests connect straight to it, encrypted.	Kongsi {folder}. PC anda ialah pelayannya: tetamu bersambung terus kepadanya, secara disulitkan.
+Shared files	Fail kongsi
+Straight to the host over the internet, encrypted.	Terus ke hos melalui internet, disulitkan.
+Straight to the host over your network, encrypted.	Terus ke hos melalui rangkaian anda, disulitkan.
+The relay only passes bytes encrypted with the invite code's secret. If someone can't connect straight to you, allow FluxCode through the firewall.	Relay hanya menghantar bait yang disulitkan dengan rahsia kod jemputan. Jika seseorang tidak dapat bersambung terus kepada anda, benarkan FluxCode melalui tembok api.
+The router did not answer (UPnP is off in its settings, or it has none).	Penghala tidak menjawab (UPnP dimatikan dalam tetapannya, atau ia tiada UPnP).
+The router offers no port forwarding over UPnP.	Penghala tidak menyediakan pemajuan port melalui UPnP.
+The router opened the port but did not give its public address.	Penghala membuka port tetapi tidak memberikan alamat awamnya.
+The router opened the port, but its own internet address ({ip}) is private: your provider shares one public address between customers (carrier-grade NAT). The relay works instead.	Penghala membuka port, tetapi alamat internetnya sendiri ({ip}) adalah peribadi: penyedia anda berkongsi satu alamat awam antara pelanggan (carrier-grade NAT). Relay digunakan sebagai ganti.
+The router refused to open port {port} (another device may use it).	Penghala enggan membuka port {port} (mungkin peranti lain menggunakannya).
+The router's UPnP description could not be read.	Keterangan UPnP penghala tidak dapat dibaca.
+This PC has a public IPv6 address, but the session could not listen on it.	PC ini mempunyai alamat IPv6 awam, tetapi sesi tidak dapat mendengar padanya.
+This session is full.	Sesi ini sudah penuh.
+Through the MuaraAI relay, encrypted end to end: the relay can't read it.	Melalui relay MuaraAI, disulitkan hujung ke hujung: relay tidak dapat membacanya.
+Through the public relay, encrypted end to end: the relay can't read it.	Melalui relay awam, disulitkan hujung ke hujung: relay tidak dapat membacanya.
+Too many requests, slow down.	Terlalu banyak permintaan, sila perlahankan.
+Ways in	Laluan masuk
+Works from any network.	Berfungsi dari mana-mana rangkaian.
+Your internet provider gives this PC no public IPv6 address.	Penyedia internet anda tidak memberikan alamat IPv6 awam kepada PC ini.
+{host}'s {folder}	{folder} milik {host}
+{relay} closed the tunnel. Opening a new one; new guests need a fresh code.	{relay} menutup terowong. Membuka terowong baharu; tetamu baharu memerlukan kod baharu.
+{relay} could not be reached ({e}). A firewall or the network may block it.	{relay} tidak dapat dihubungi ({e}). Tembok api atau rangkaian mungkin menyekatnya.
+{relay} did not answer ({e}).	{relay} tidak menjawab ({e}).
+{relay} refused: {why}	{relay} menolak: {why}
+{relay} did not ask for a secret. Check `--secret` on the relay.	{relay} tidak meminta rahsia. Semak `--secret` pada relay.
+{why} Trying again in a few seconds.	{why} Mencuba lagi dalam beberapa saat.
+Guests with IPv6 may join over the internet; everyone else only from your network.	Tetamu yang mempunyai IPv6 mungkin boleh menyertai melalui internet; orang lain hanya dari rangkaian anda.
+The code changed after you copied it (a new way in opened). Copy it again before you send it.	Kod telah berubah selepas anda menyalinnya (laluan masuk baharu dibuka). Salin semula sebelum menghantarnya.
+Agents	Ejen
+Available to download	Tersedia untuk dimuat turun
+Error	Ralat
+Nothing matches “{q}”	Tiada yang sepadan dengan “{q}”
+Nothing to choose yet: the agent lists these once it is on.	Belum ada pilihan: ejen menyenaraikannya sebaik sahaja ia dihidupkan.
+Starting	Memulakan
+Working	Sedang bekerja
+↑↓ Enter · Esc	↑↓ Enter · Esc
+Search agents	Cari ejen
+Search models	Cari model
+Permissions	Kebenaran
+Address	Alamat
+Anyone with this code can join {folder} and edit it with you. Send it only to the people you invite.	Sesiapa yang mempunyai kod ini boleh menyertai {folder} dan mengeditnya bersama anda. Hantar hanya kepada orang yang anda jemput.
+Click to copy	Klik untuk menyalin
+Code together in real time. Your PC is the server: no account, no VPN, no server to rent.	Tulis kod bersama secara masa nyata. PC anda ialah pelayannya: tiada akaun, tiada VPN, tiada pelayan untuk disewa.
+Connected · {host}'s {folder}	Bersambung · {folder} milik {host}
+Connection	Sambungan
+End session	Tamatkan sesi
+Every way in that opened is in the code. A guest's FluxCode tries them all at once and keeps the first that answers.	Setiap laluan masuk yang dibuka ada dalam kod. FluxCode tetamu mencuba semuanya serentak dan menggunakan yang pertama menjawab.
+Files on this PC	Fail pada PC ini
+Invite code	Kod jemputan
+Live share	Live share
+Live · hosting {folder}	Langsung · mengehos {folder}
+Nobody else yet. They show here as soon as they join.	Belum ada orang lain. Mereka akan dipaparkan di sini sebaik sahaja menyertai.
+Not in a session	Tiada dalam sesi
+Only you so far.	Hanya anda setakat ini.
+Open a file to edit it with the others. It comes from the host and stays in sync.	Buka fail untuk mengeditnya bersama yang lain. Fail datang daripada hos dan kekal selari.
+Paste the code the host sent you.	Tampal kod yang dihantar oleh hos.
+Share {folder} with the people you invite. Edits go straight between your PC and each guest, encrypted with the invite code.	Kongsi {folder} dengan orang yang anda jemput. Suntingan dihantar terus antara PC anda dan setiap tetamu, disulitkan dengan kod jemputan.
+open	dibuka
+Host	Hos
+Start hosting and copy the invite code.	Mula mengehos dan salin kod jemputan.
+Send the code	Hantar kod
+In any chat or e-mail. It works on the same network and over the internet.	Melalui mana-mana sembang atau e-mel. Ia berfungsi dalam rangkaian yang sama dan melalui internet.
+Code together	Tulis kod bersama
+Edits merge live. An edit an AI agent made says which agent and model.	Suntingan digabungkan secara langsung. Suntingan oleh ejen AI menyatakan ejen dan modelnya.
+Contents	Kandungan
+Couldn't save {name}: {e}	Tidak dapat menyimpan {name}: {e}
+Danger	Bahaya
+Details	Butiran
+{n} blocks · read in {ms} ms · text in {size}	{n} blok · dibaca dalam {ms} ms · teks {size}
+Reading the rest…	Membaca selebihnya…
+Still reading the document; Source opens in a moment.	Masih membaca dokumen; Sumber akan dibuka sebentar lagi.
+Note	Nota
+Preview	Pratonton
+Save as Markdown	Simpan sebagai Markdown
+Saved {name}	{name} disimpan
+Source	Sumber
+Tip	Petua
+Warning	Amaran
+Write {name} next to it, as GitHub Markdown (flowcharts become Mermaid)	Tulis {name} di sebelahnya, sebagai Markdown GitHub (carta alir menjadi Mermaid)
+and {n} more headings	dan {n} tajuk lagi
+Agents have no browser.	Ejen tidak mempunyai pelayar.
+Agents open pages in {name} (its own profile, not yours) through {pkg} {v}. Applies from the next session.	Ejen membuka halaman dalam {name} (profilnya sendiri, bukan profil anda) melalui {pkg} {v}. Berkuat kuasa mulai sesi seterusnya.
+Browser	Pelayar
+Browser tools are ready: agents can open and use web pages from their next session.	Alat pelayar sedia: ejen boleh membuka dan menggunakan halaman web mulai sesi seterusnya.
+Browser tools could not be installed: {e}	Alat pelayar tidak dapat dipasang: {e}
+Install	Pasang
+Installing the tools for {name}…	Memasang alat untuk {name}…
+No Chrome, Brave, Edge or Chromium found on this PC.	Tiada Chrome, Brave, Edge atau Chromium ditemui pada PC ini.
+No window	Tanpa tetingkap
+Show the browser while the agent uses it, or run it out of sight	Tunjukkan pelayar semasa ejen menggunakannya, atau jalankannya secara tersembunyi
+The browser needs Node.js 20 or newer (nodejs.org).	Pelayar memerlukan Node.js 20 atau lebih baharu (nodejs.org).
+The browser needs Node.js 20.19 or newer; this PC has {v}.	Pelayar memerlukan Node.js 20.19 atau lebih baharu; PC ini mempunyai {v}.
+The browser tools are already being installed.	Alat pelayar sedang dipasang.
+The browser tools were installed but can't be found.	Alat pelayar telah dipasang tetapi tidak dapat ditemui.
+With a window	Dengan tetingkap
+npm isn't on PATH (it comes with Node.js).	npm tiada dalam PATH (ia disertakan bersama Node.js).
+recommended	disyorkan
+{name} is found; its tools for agents ({pkg}, about 15 MB) aren't installed yet.	{name} ditemui; alatnya untuk ejen ({pkg}, kira-kira 15 MB) belum dipasang.
+Agent settings: model, permissions, browser	Tetapan ejen: model, kebenaran, pelayar
+Waiting for you	Menunggu anda
+{name} is waiting for you	{name} sedang menunggu anda
+Paused	Dijeda
+Paused · {n} more after this	Dijeda · {n} lagi selepas ini
+Run a command	Jalankan arahan
+Change a file	Ubah fail
+Delete a file	Padam fail
+Move or rename a file	Alih atau namakan semula fail
+Read files	Baca fail
+Open a web page	Buka halaman web
+Use a tool	Guna alat
+Turn on full access	Hidupkan akses penuh
+Allows this request and every next one: commands and any file on this PC, without asking. Switch it off in the agent's settings.	Membenarkan permintaan ini dan setiap permintaan seterusnya: arahan dan sebarang fail pada PC ini, tanpa bertanya. Matikannya dalam tetapan ejen.
+Asks first	Bertanya dahulu
+Model: {m}	Model: {m}
+Model: {m} · effort {e}	Model: {m} · usaha {e}
+Mode: {m}	Mod: {m}
+Usage: context (free model, no limits)	Penggunaan: konteks (model percuma, tiada had)
+{name} is a free model	{name} ialah model percuma
+It runs on OpenCode Zen's free tier, so there is no plan, no usage limit and no cost to show here. The context below still fills up as the chat grows.	Ia berjalan pada peringkat percuma OpenCode Zen, jadi tiada pelan, had penggunaan atau kos untuk dipaparkan di sini. Konteks di bawah tetap bertambah apabila sembang berkembang.
+Context: {used} of {size} tokens ({pct}%). Click for usage.	Konteks: {used} daripada {size} token ({pct}%). Klik untuk penggunaan.
+Which model answers, how hard it thinks, and how it works.	Model yang menjawab, sejauh mana ia berfikir, dan cara ia bekerja.
+What the agent may do on this PC without asking you first.	Perkara yang boleh dilakukan oleh ejen pada PC ini tanpa bertanya kepada anda dahulu.
+When the agent stops on its own, and your saved chats.	Bila ejen berhenti dengan sendiri, dan sembang anda yang disimpan.
+The browser agents open pages in.	Pelayar tempat ejen membuka halaman.
+The program behind the chat.	Program di sebalik sembang.
+Session	Sesi
+Esc closes	Esc untuk menutup
+{n} models. Free ones first, then by provider.	{n} model. Yang percuma dahulu, kemudian mengikut penyedia.
+Models	Model
+Full access to this PC	Akses penuh kepada PC ini
+On: whenever the agent asks to run a command or use a file anywhere on this PC, the answer is yes. Nothing waits for you.	Hidup: setiap kali ejen meminta untuk menjalankan arahan atau menggunakan fail di mana-mana pada PC ini, jawapannya ya. Tiada apa yang menunggu anda.
+Off: when the agent asks to run a command, change a file or open a folder outside the project, the request shows in the chat and it waits for your answer.	Mati: apabila ejen meminta untuk menjalankan arahan, mengubah fail atau membuka folder di luar projek, permintaan itu dipaparkan dalam sembang dan ia menunggu jawapan anda.
+Edit files, ask for commands	Edit fail, tanya untuk arahan
+Full access is on. Turn it off before you let the agent work in a folder you don't trust.	Akses penuh dihidupkan. Matikannya sebelum anda membiarkan ejen bekerja dalam folder yang anda tidak percayai.
+Without full access	Tanpa akses penuh
+Used again when you switch full access off.	Digunakan semula apabila anda mematikan akses penuh.
+Reads always go through. Choose whether edits ask too.	Bacaan sentiasa dibenarkan. Pilih sama ada suntingan juga perlu bertanya.
+Tell me when it waits	Beritahu saya apabila ia menunggu
+The request shows in the chat and the taskbar button flashes while FluxCode is in the background.	Permintaan dipaparkan dalam sembang dan butang bar tugas berkelip semasa FluxCode berada di latar belakang.
+The agent's own rules still come first: what its config denies stays denied, even with full access, and what it allows never reaches you.	Peraturan ejen itu sendiri tetap didahulukan: apa yang ditolak oleh konfigurasinya kekal ditolak, walaupun dengan akses penuh, dan apa yang dibenarkannya tidak akan sampai kepada anda.
+Stop when idle	Henti apabila melahu
+Turns the agent off after 10 quiet minutes to free memory. Your next message starts it again in the same chat.	Mematikan ejen selepas 10 minit senyap untuk membebaskan memori. Mesej anda yang seterusnya memulakannya semula dalam sembang yang sama.
+1 chat saved on this PC.	1 sembang disimpan pada PC ini.
+{n} chats saved on this PC.	{n} sembang disimpan pada PC ini.
+Switch agent	Tukar ejen
+Program	Program
+OpenCode's config	Konfigurasi OpenCode
+Providers, models and agents of your own.	Penyedia, model dan ejen anda sendiri.
+Deletes the program FluxCode downloaded. Your chats stay.	Memadam program yang dimuat turun oleh FluxCode. Sembang anda kekal.
+Remove…	Alih keluar…
+Browser for agents	Pelayar untuk ejen
+Copy the selection (Ctrl+C)	Salin pilihan (Ctrl+C)
+Show {n} earlier	Tunjukkan {n} yang lebih awal
+· {n} hidden	· {n} tersembunyi
+More · mode: {m}	Lagi · mod: {m}
+Own worktree (on): remove it	Worktree sendiri (hidup): alih keluar
+Work in its own git worktree	Bekerja dalam git worktree sendiri
+Close Others	Tutup Yang Lain
+Close to the Right	Tutup di Sebelah Kanan
+Close Saved	Tutup Yang Disimpan
+Close All	Tutup Semua
+Copy Relative Path	Salin Laluan Relatif
+Edit as text	Edit sebagai teks
+Follow the agent's edits	Ikut suntingan ejen
+When the agent changes a file, it opens in the editor and the change is typed in line by line while the view follows it. Takes under a second and never slows the agent.	Apabila ejen mengubah fail, fail itu dibuka dalam editor dan perubahan ditaip baris demi baris sambil paparan mengikutinya. Mengambil masa kurang sesaat dan tidak sekali-kali melambatkan ejen.
+1 thought	1 fikiran
+{n} thoughts	{n} fikiran
+1 tool	1 alat
+{n} tools	{n} alat
+Worked	Selesai bekerja
+Back beside the editor	Kembali di sebelah editor
+Fill the window	Penuhi tetingkap
+Move to the right side bar	Pindah ke bar sisi kanan
+Move to the right	Pindah ke kanan
+Need more room?	Perlukan lebih ruang?
+A worktree needs a git repository: this folder isn't one yet (Source Control can make it one).	Worktree memerlukan repositori git: folder ini belum lagi (Kawalan Sumber boleh menjadikannya repositori).
+Working in its own worktree on branch {b}. Your checkout stays as it is until you merge.	Bekerja dalam worktree sendiri pada cabang {b}. Checkout anda kekal seperti sedia ada sehingga anda merge.
+Couldn't make a worktree: {e}	Tidak dapat mencipta worktree: {e}
+Merged the agent's branch into your checkout.	Cabang ejen telah di-merge ke dalam checkout anda.
+Merge stopped: {e}	Merge terhenti: {e}
+Back in your checkout; the worktree is removed.	Kembali ke checkout anda; worktree telah dialih keluar.
+Couldn't remove the worktree: {e}	Tidak dapat mengalih keluar worktree: {e}
+Now using the account {name}.	Kini menggunakan akaun {name}.
+Now using the default account.	Kini menggunakan akaun lalai.
+{name} finished in “{chat}”.	{name} selesai dalam “{chat}”.
+{name} waits for your answer in “{chat}”.	{name} menunggu jawapan anda dalam “{chat}”.
+This chat works in its own worktree: remove it first to pick another folder.	Sembang ini bekerja dalam worktree sendiri: alih keluar worktree itu dahulu untuk memilih folder lain.
+Now working in {folder}.	Kini bekerja dalam {folder}.
+Work in this folder	Bekerja dalam folder ini
+Folder	Folder
+The open folder ({name})	Folder yang dibuka ({name})
+{name} (pick another…)	{name} (pilih yang lain…)
+Another folder…	Folder lain…
+Use the open folder	Guna folder yang dibuka
+Account {n}	Akaun {n}
+Working in its own worktree: click to remove it and go back to your checkout	Bekerja dalam worktree sendiri: klik untuk mengalih keluarnya dan kembali ke checkout anda
+Work in its own git worktree, so it doesn't touch your checkout	Bekerja dalam git worktree sendiri, supaya ia tidak menyentuh checkout anda
+Account	Akaun
+Default account	Akaun lalai
+Add account and sign in…	Tambah akaun dan log masuk…
+Waiting for {name} to sign in… (cancel)	Menunggu {name} log masuk… (batal)
+Sign out of {name}	Log keluar daripada {name}
+Signed in: {name} added and in use.	Telah log masuk: {name} ditambah dan sedang digunakan.
+{name} wasn't signed in, so it wasn't added.	{name} tidak log masuk, jadi ia tidak ditambah.
+Signed out of {name}; using the default account.	Telah log keluar daripada {name}; menggunakan akaun lalai.
+Signed out of {name}.	Telah log keluar daripada {name}.
+Merge	Merge
+Theme, language, interface size, and the picture behind the panels.	Tema, bahasa, saiz antara muka dan gambar di belakang panel.
+Font, wrapping, line numbers, and the Copilot suggestions the editor shows as you type.	Fon, balut baris, nombor baris dan cadangan Copilot yang dipaparkan oleh editor semasa anda menaip.
+Read folders inside a WSL distro through a helper, instead of the slow Windows share.	Baca folder dalam distro WSL melalui pembantu, dan bukan melalui perkongsian Windows yang perlahan.
+What the agent may do, how it docks, and the GitHub and Copilot sign-ins.	Perkara yang boleh dilakukan oleh ejen, kedudukannya, dan log masuk GitHub serta Copilot.
+Check for new development builds and whether FluxCode looks for them.	Semak binaan pembangunan baharu dan sama ada FluxCode mencarinya.
+What FluxCode is, where its code lives, and how to report a problem.	Apa itu FluxCode, di mana kodnya berada, dan cara melaporkan masalah.
+Agent instructions	Arahan ejen
+Move to Left Side Bar	Pindah ke Bar Sisi Kiri
+Move to Right Side Bar	Pindah ke Bar Sisi Kanan
+Run and Debug	Jalankan dan Nyahpepijat
+Hide	Sembunyikan
+Liquid glass	Kaca cecair
+Translucent panels over a blurred window, with floating cards. Off gives solid panels (a little lighter on the GPU).	Panel lut sinar di atas tetingkap yang dikaburkan, dengan kad terapung. Mati memberikan panel padu (lebih ringan sedikit untuk GPU).
+Usage limit reached	Had penggunaan dicapai
+Resets {0} (in {1})	Ditetapkan semula {0} (dalam {1})
+Resets {0}	Ditetapkan semula {0}
+Resume at reset	Sambung semula selepas set semula
+Continue now	Teruskan sekarang
+Continuing after the usage limit.	Meneruskan selepas had penggunaan.
+Token saver	Penjimat token
+Caveman	Caveman
+Lean code	Kod ringkas
+Quiet tools	Alat senyap
+Short answers: no filler, no recap.	Jawapan pendek: tiada kata pengisi, tiada rumusan.
+Diffs and changed lines, not whole files.	Diff dan baris yang berubah, bukan keseluruhan fail.
+Reads and prints only what the task needs.	Membaca dan mencetak hanya apa yang diperlukan oleh tugasan.
+Lite	Ringan
+Full	Penuh
+Ultra	Ultra
+Packs changed just now.	Pek diubah sebentar tadi.
+Packs changed {0}m ago; they go out with your next message.	Pek diubah {0}m lalu; ia dihantar bersama mesej anda yang seterusnya.
+Guidance goes out with your next message, then every few turns.	Panduan dihantar bersama mesej anda yang seterusnya, kemudian setiap beberapa giliran.
+Turn all off	Matikan semua
+Chats	Sembang
+Now	Sekarang
+No chats yet. Each answer saves the chat here.	Belum ada sembang. Setiap jawapan menyimpan sembang di sini.
+Untitled chat	Sembang tanpa tajuk
+Files the agent edits show up here, with a diff a click away.	Fail yang diedit oleh ejen dipaparkan di sini, dengan diff hanya satu klik jauhnya.
+Yesterday	Semalam
+Only the chat	Sembang sahaja
+Show chats and changes	Tunjukkan sembang dan perubahan
+Chat name	Nama sembang
+Rename (or double-click)	Namakan semula (atau klik dua kali)
+Hide chats	Sembunyikan sembang
+Hide changes	Sembunyikan perubahan
+Free model: no plan limits to count.	Model percuma: tiada had pelan untuk dikira.
+Turn the agent on to read your limits.	Hidupkan ejen untuk membaca had anda.
+Limits show here once the agent reports them.	Had dipaparkan di sini sebaik sahaja ejen melaporkannya.
+Experimental	Percubaan
+Ocean	Lautan
+River	Sungai
+Beach	Pantai
+Mountains	Gunung-ganang
+Anime	Anime
+None	Tiada
+Animated background	Latar beranimasi
+Background animation	Animasi latar
+Your background image shows instead. Remove it to see the scene.	Imej latar anda dipaparkan sebagai ganti. Alih keluar imej itu untuk melihat pemandangan.
+A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.	Video piksel berulang di belakang panel: lautan, sungai, pantai, gunung-ganang atau senja anime. Dimuat turun sekali (beberapa MB) pada kali pertama anda memilihnya.
+Off keeps the scene's first frame as a still picture (nothing decodes while you work).	Mati mengekalkan bingkai pertama pemandangan sebagai gambar pegun (tiada penyahkodan semasa anda bekerja).
+{0} more matches	{0} padanan lagi
+Checking Copilot…	Menyemak Copilot…
+Ready, signed in as {user}. Suggestions appear as ghost text a moment after you stop typing; Tab accepts.	Sedia, log masuk sebagai {user}. Cadangan dipaparkan sebagai teks bayang sejurus selepas anda berhenti menaip; Tab menerima.
+{user} has no Copilot plan yet (a free plan exists at github.com/features/copilot).	{user} belum mempunyai pelan Copilot (pelan percuma tersedia di github.com/features/copilot).
+Word wrap is on for this file (Alt+Z)	Balut baris dihidupkan untuk fail ini (Alt+Z)
+Wrap long lines in this file (Alt+Z)	Balut baris panjang dalam fail ini (Alt+Z)
+Fit	Muat
+Fitted to the editor. Click for 100%	Dimuatkan pada editor. Klik untuk 100%
+Click to fit the image to the editor	Klik untuk memuatkan imej pada editor
+Zoom out (Ctrl+click, Ctrl+scroll)	Zum keluar (Ctrl+klik, Ctrl+tatal)
+Zoom in (click the image, Ctrl+scroll)	Zum masuk (klik imej, Ctrl+tatal)
+Save as Markdown: writes {name} next to it, as GitHub Markdown (flowcharts become Mermaid)	Simpan sebagai Markdown: menulis {name} di sebelahnya, sebagai Markdown GitHub (carta alir menjadi Mermaid)
+Recommended	Disyorkan
+By date	Mengikut tarikh
+Most recent	Terkini
+By folder	Mengikut folder
+By agent	Mengikut ejen
+Working now	Sedang bekerja
+Archived	Diarkibkan
+Today	Hari ini
+This week	Minggu ini
+Earlier	Lebih awal
+No folder	Tiada folder
+Unknown agent	Ejen tidak diketahui
+Take out of the archive	Keluarkan daripada arkib
+Nothing archived. Chats untouched for a week move here on their own; the archive button on a chat moves it now.	Tiada yang diarkibkan. Sembang yang tidak disentuh selama seminggu akan berpindah ke sini dengan sendirinya; butang arkib pada sembang memindahkannya sekarang.
+No chat is working right now.	Tiada sembang yang sedang bekerja sekarang.
+Every chat is in the archive.	Setiap sembang berada dalam arkib.
+Archived chats ({n})	Sembang diarkibkan ({n})
+Sort by	Isih mengikut
+Category	Kategori
+Updated {d}	Dikemas kini {d}
+Installing the Copilot server…	Memasang pelayan Copilot…
+npm is downloading @github/copilot-language-server; this usually takes a minute or two. You can keep working.	npm sedang memuat turun @github/copilot-language-server; ini biasanya mengambil masa satu atau dua minit. Anda boleh terus bekerja.
+Copilot: installing…	Copilot: memasang…
+Pinned	Disematkan
+Unpin	Nyahsemat
+Pin to the top	Semat di atas
+Show {n} more chats	Tunjukkan {n} sembang lagi
+Show only active and pinned	Tunjukkan yang aktif dan disematkan sahaja
+Context {pct}% full: compacting it…	Konteks {pct}% penuh: sedang memadatkannya…
+Context {pct}% full: the chat goes on in a fresh session that carries its recent messages.	Konteks {pct}% penuh: sembang diteruskan dalam sesi baharu yang membawa mesej terkininya.
+Context compacted: the conversation continues with a summary, using fewer tokens.	Konteks dipadatkan: perbualan diteruskan dengan ringkasan, menggunakan lebih sedikit token.
+Couldn't compact the context this time; it will try again after the next answer.	Tidak dapat memadatkan konteks kali ini; ia akan dicuba lagi selepas jawapan seterusnya.
+Brief, in full sentences: no greetings, no recap.	Ringkas, dalam ayat penuh: tiada ucapan salam, tiada rumusan.
+Telegraphic: keywords and symbols, no prose around code.	Telegrafik: kata kunci dan simbol, tiada prosa di sekitar kod.
+Terse: no filler or pleasantries; fragments are fine.	Padat: tiada kata pengisi atau basa-basi; ayat tergantung tidak mengapa.
+Short answers	Jawapan pendek
+Auto compact	Padat automatik
+When the context is {at}% full, the chat is summarized so later messages cost less.	Apabila konteks {at}% penuh, sembang diringkaskan supaya mesej seterusnya lebih murah.
+Context now	Konteks sekarang
+about {pct}% fewer tokens	kira-kira {pct}% kurang token
+Changes apply from your next message.	Perubahan berkuat kuasa mulai mesej anda yang seterusnya.
+A few lines of guidance go out with your next message and again every few turns, so they cost almost nothing.	Beberapa baris panduan dihantar bersama mesej anda yang seterusnya dan setiap beberapa giliran, jadi kosnya hampir tiada.
+Answers	Jawapan
+Code and tools	Kod dan alat
+Shows changed lines or a small diff, never whole files again.	Menunjukkan baris yang berubah atau diff kecil, tidak lagi keseluruhan fail.
+Reads only the lines it needs and keeps command output short.	Membaca hanya baris yang diperlukan dan memastikan output arahan pendek.
+Sign-in code copied: paste it on the GitHub page that opened, then click Authorize.	Kod log masuk disalin: tampalkannya pada halaman GitHub yang dibuka, kemudian klik Authorize.
+Paste it on github.com/login/device and click Authorize; this page updates by itself.	Tampalkannya di github.com/login/device dan klik Authorize; halaman ini dikemas kini dengan sendirinya.
+Open GitHub	Buka GitHub
+Short answers, Lite: brief, in full sentences; no greetings, no recap.	Jawapan pendek, Ringan: ringkas, dalam ayat penuh; tiada ucapan salam, tiada rumusan.
+Short answers, Ultra: telegraphic, keywords and symbols; no prose around code.	Jawapan pendek, Ultra: telegrafik, kata kunci dan simbol; tiada prosa di sekitar kod.
+Short answers, Full: terse; no filler or pleasantries, fragments are fine.	Jawapan pendek, Penuh: padat; tiada kata pengisi atau basa-basi, ayat tergantung tidak mengapa.
+{n}% now	{n}% sekarang
+About this many fewer output tokens (an estimate). Guidance goes out with your next message, then every few turns.	Kira-kira sebanyak ini kurang token output (anggaran). Panduan dihantar bersama mesej anda yang seterusnya, kemudian setiap beberapa giliran.
+Applies from your next message	Berkuat kuasa mulai mesej anda yang seterusnya
+Workspace overview: on. The agent gets the folders and open files with your message. Click to leave it out.	Gambaran ruang kerja: hidup. Ejen menerima folder dan fail yang dibuka bersama mesej anda. Klik untuk tidak menyertakannya.
+Workspace overview: off. Click to send the folders and open files with your message.	Gambaran ruang kerja: mati. Klik untuk menghantar folder dan fail yang dibuka bersama mesej anda.
+{name} is not available yet: it is still being built.	{name} belum tersedia: ia masih sedang dibina.
+Not available	Tidak tersedia
+Restarting in a moment; your files come back.	Dimulakan semula sebentar lagi; fail anda akan dibuka semula.
+Restart to update	Mulakan semula untuk mengemas kini
+Restart	Mula semula
+Install the update and restart FluxCode; your open files come back.	Pasang kemas kini dan mulakan semula FluxCode; fail yang dibuka akan kembali.
+Screenshot	Tangkapan skrin
+{n} screenshots	{n} tangkapan skrin
+Show the preview	Tunjukkan pratonton
+Hide the preview	Sembunyikan pratonton
+Full screen	Skrin penuh
+Open in a tab	Buka dalam tab
+Copy the file path	Salin laluan fail

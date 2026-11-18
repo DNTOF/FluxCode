@@ -3,7 +3,7 @@
 //! text, the accent), so you pick by looking. Escape or a click outside closes it.
 
 use crate::i18n::tr;
-use crate::theme::{self, c};
+use crate::theme::{self, c, GlassExt};
 use crate::workbench::*;
 use gpui_kit::component::{h_flex, v_flex, Icon, IconName};
 use gpui_kit::{prelude::FluentBuilder, *};
@@ -110,11 +110,7 @@ impl Workbench {
                 .bottom(theme::u(30.))
                 .w(theme::u(272.))
                 .max_w(relative(0.92))
-                .rounded(px(8.))
-                .border_1()
-                .border_color(c(theme::BORDER_STRONG))
-                .bg(c(theme::BG_ELEVATED))
-                .shadow_md()
+                .glass_pop()
                 .occlude()
                 .on_mouse_down_out(cx.listener(|this, _, _, cx| {
                     this.pop_closed_outside("theme");
