@@ -1439,6 +1439,13 @@ pub const ID: &[(&str, &str)] = &[
     ("Sign-in code copied: paste it on the GitHub page that opened, then click Authorize.", "Kode masuk disalin: tempel di halaman GitHub yang terbuka, lalu klik Authorize."),
     ("Paste it on github.com/login/device and click Authorize; this page updates by itself.", "Tempel di github.com/login/device lalu klik Authorize; halaman ini akan berubah sendiri."),
     ("Open GitHub", "Buka GitHub"),
+    ("Screenshot", "Tangkapan layar"),
+    ("{n} screenshots", "{n} tangkapan layar"),
+    ("Show the preview", "Tampilkan pratinjau"),
+    ("Hide the preview", "Sembunyikan pratinjau"),
+    ("Full screen", "Layar penuh"),
+    ("Open in a tab", "Buka di tab"),
+    ("Copy the file path", "Salin path file"),
 ];
 
 #[cfg(test)]
