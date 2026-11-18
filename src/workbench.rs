@@ -373,6 +373,10 @@ pub struct Workbench {
     pub(crate) side_anim: std::cell::Cell<(bool, u64)>,
     /// Agent full screen last frame, and a count of the switches: the view fades over.
     pub(crate) full_anim: std::cell::Cell<(bool, u64)>,
+    /// The editor's wash over a background scene or picture: whether a file was
+    /// showing last frame, and a count of the switches, so the wash fades in when a
+    /// file opens and out when the last one closes instead of snapping.
+    pub(crate) wash: std::cell::Cell<(bool, u64)>,
     pub(crate) out_run: Option<crate::panel::RunInfo>,
     /// Position while walking the history with Up/Down.
     pub(crate) term_hist_ix: Option<usize>,
@@ -608,6 +612,7 @@ impl Workbench {
             tabs_scroll: ScrollHandle::new(),
             side_anim: std::cell::Cell::new((false, 0)),
             full_anim: std::cell::Cell::new((false, 0)),
+            wash: std::cell::Cell::new((false, 0)),
             out_run: None,
             term_hist_ix: None,
             problems: Vec::new(),
@@ -664,6 +669,7 @@ impl Workbench {
         this.start_update_checks(cx);
         crate::boot::mark("  update check scheduled");
         this.start_copilot(cx);
+        cx.background_spawn(async { crate::agent::shots::prune_cache() }).detach();
         crate::memtrim::watch(window, cx);
         this
     }
@@ -2485,10 +2491,33 @@ impl Workbench {
         if let Some(page) = &self.whats_new {
             return self.render_whats_new(page, cx);
         }
+        // Over a scene or picture the empty page shows it clear; the wash that keeps
+        // code readable fades in with the first file (and out with the last).
+        let backdrop = theme::has_backdrop() || crate::scene::active();
+        let (had, mut gen) = self.wash.get();
+        if had != self.active.is_some() {
+            gen += 1;
+            self.wash.set((self.active.is_some(), gen));
+        }
+        let wash_layer = |fade_in: bool| {
+            let layer = div().absolute().top_0().left_0().size_full().bg(theme::editor_wash());
+            if gen == 0 {
+                return layer.when(!fade_in, |d| d.opacity(0.)).into_any_element();
+            }
+            layer
+                .with_animation(
+                    SharedString::from(format!("wash-{gen}")),
+                    Animation::new(std::time::Duration::from_millis(if fade_in { 260 } else { 320 })).with_easing(gpui_kit::ease_in_out),
+                    move |d, t| d.opacity(if fade_in { t } else { 1. - t }),
+                )
+                .into_any_element()
+        };
         match self.active {
             Some(ix) => v_flex()
+                .relative()
                 .size_full()
-                .bg(theme::editor_wash())
+                .when(!backdrop, |v| v.bg(theme::editor_wash()))
+                .when(backdrop, |v| v.child(wash_layer(true)))
                 .child(self.render_tabs(cx))
                 .child(self.render_editor_header(ix, cx))
                 .when(self.docs[ix].image.is_some(), |v| v.child(div().flex_1().min_h_0().child(self.render_image(ix, window, cx))))
@@ -2578,7 +2607,8 @@ impl Workbench {
                 .items_center()
                 .justify_center()
                 .overflow_hidden()
-                .bg(theme::editor_wash())
+                .when(!backdrop, |d| d.bg(theme::editor_wash()))
+                .when(backdrop, |d| d.child(wash_layer(false)))
                 .child(self.welcome_probe(cx))
                 .when(self.welcome_w.get() >= 84., |d| d.child(ui::meander(48., c(theme::FG_STRONG), c(theme::ACCENT_TEXT))))
                 .into_any_element(),
@@ -2587,7 +2617,8 @@ impl Workbench {
                 .relative()
                 .size_full()
                 .overflow_y_scroll()
-                .bg(theme::editor_wash())
+                .when(!backdrop, |d| d.bg(theme::editor_wash()))
+                .when(backdrop, |d| d.child(wash_layer(false)))
                 .child(self.welcome_probe(cx))
                 .child(
                     // flex_none: taller than the window it grows (and scrolls) instead of
@@ -3232,6 +3263,8 @@ impl Render for Workbench {
             .children(self.render_update(cx))
             .children(self.render_theme_menu(cx))
             .children(self.render_agent_settings(window, cx))
+            // A picture the agent took, full screen over everything.
+            .children(self.render_lightbox(window, cx))
             .child(selection_guard())
     }
 }

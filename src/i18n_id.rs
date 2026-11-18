@@ -1453,6 +1453,13 @@ pub const ID: &[(&str, &str)] = &[
     ("Restart to update", "Mulai ulang untuk update"),
     ("Restart", "Mulai ulang"),
     ("Install the update and restart FluxCode; your open files come back.", "Pasang update lalu mulai ulang FluxCode; file yang terbuka kembali lagi."),
+    ("Screenshot", "Tangkapan layar"),
+    ("{n} screenshots", "{n} tangkapan layar"),
+    ("Show the preview", "Tampilkan pratinjau"),
+    ("Hide the preview", "Sembunyikan pratinjau"),
+    ("Full screen", "Layar penuh"),
+    ("Open in a tab", "Buka di tab"),
+    ("Copy the file path", "Salin path file"),
 ];
 
 #[cfg(test)]
