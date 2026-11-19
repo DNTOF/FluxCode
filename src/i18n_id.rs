@@ -1487,6 +1487,9 @@ pub const ID: &[(&str, &str)] = &[
     ("Hide (the update goes on)", "Sembunyikan (pembaruan tetap jalan)"),
     ("The next chat uses the new version.", "Chat berikutnya memakai versi baru."),
     ("Agent updates", "Pembaruan agen"),
+    ("Unmatched {b}", "{b} tanpa pasangan"),
+    ("{b} does not close {open}", "{b} tidak menutup {open}"),
+    ("Unclosed {b}", "{b} belum ditutup"),
 ];
 
 #[cfg(test)]

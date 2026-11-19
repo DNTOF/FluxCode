@@ -10,6 +10,14 @@
 //   @en / @id                the Markdown that follows is English / Indonesian
 // Lines starting with // before the first @release are comments.
 
+@release 2026-11-19
+@title en: Unmatched brackets underlined as you type
+@title id: Kurung tanpa pasangan digarisbawahi saat mengetik
+@en
+A bracket that has no partner now gets a red underline a moment after you stop typing, so an extra `}` or a missing `)` shows up before you run anything ([#105](https://github.com/MuaraAI/FluxCode/issues/105)). Hover it to read what is wrong: unmatched, not closed, or closing the wrong kind. It works in Python, Rust, JavaScript, TypeScript, C, C++, C#, Java, Kotlin, Go, Swift, Dart, PHP, JSON and CSS, and skips brackets inside strings and comments. FluxCode checks the brackets only, not the rest of the syntax, and adds nothing to its size for it.
+@id
+Kurung yang tidak punya pasangan sekarang diberi garis bawah merah sesaat setelah kamu berhenti mengetik, jadi `}` yang kelebihan atau `)` yang kurang langsung kelihatan sebelum kamu menjalankan apa pun ([#105](https://github.com/MuaraAI/FluxCode/issues/105)). Arahkan kursor ke garisnya untuk membaca masalahnya: tanpa pasangan, belum ditutup, atau menutup jenis kurung yang salah. Fitur ini jalan di Python, Rust, JavaScript, TypeScript, C, C++, C#, Java, Kotlin, Go, Swift, Dart, PHP, JSON, dan CSS, dan melewati kurung di dalam string dan komentar. FluxCode hanya memeriksa kurungnya, bukan seluruh sintaks, dan ukurannya tidak bertambah karenanya.
+
 @release 2026-11-18
 @title en: Agents you already have, found
 @title id: Agent yang sudah ada, langsung ketemu

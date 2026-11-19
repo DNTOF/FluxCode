@@ -1276,3 +1276,6 @@ Your PC takes it easily: {used}.	PC anda mampu dengan mudah: {used}.
 It runs fine here: {used}. It is the heaviest thing FluxCode does while you type.	Ia berjalan lancar di sini: {used}. Ini perkara paling berat yang dilakukan FluxCode semasa anda menaip.
 Heavy for this PC: {used}. Leave it off unless you want the motion.	Berat untuk PC ini: {used}. Biarkan ia dimatikan melainkan anda mahukan pergerakannya.
 You are on battery: it drains a little faster while the scene moves.	Anda menggunakan bateri: ia susut sedikit lebih cepat semasa adegan bergerak.
+Unmatched {b}	{b} tiada pasangan
+{b} does not close {open}	{b} tidak menutup {open}
+Unclosed {b}	{b} belum ditutup

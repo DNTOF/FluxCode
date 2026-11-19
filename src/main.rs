@@ -18,6 +18,7 @@ mod editor_cmds;
 mod agent;
 mod agent_ask;
 mod agent_ctx;
+mod brackets;
 mod complete;
 mod core;
 mod diff;
