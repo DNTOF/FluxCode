@@ -10,6 +10,22 @@
 //   @en / @id                the Markdown that follows is English / Indonesian
 // Lines starting with // before the first @release are comments.
 
+@release 2026-11-18
+@title en: Agents you already have, found
+@title id: Agent yang sudah ada, langsung ketemu
+@en
+FluxCode now finds the agents already on your PC the way Windows does: on the PATH as Windows has it right now (an agent installed while FluxCode is open shows up the next time you open the agent list) and in the folders installers use, such as npm, pnpm, bun, Scoop, WinGet and `~/.local/bin`. **OpenCode 2** installed with npm is used as it is, without a second download, and a download button for an agent that is already there just switches to it. When **Claude Code** or **Codex** is installed, the list says so: only their small ACP bridge is added. The agent list also fits a narrow panel now: the maker's name goes first, the badges shrink to a star, and nothing runs into the state or the download button.
+@id
+FluxCode sekarang menemukan agent yang sudah ada di PC kamu seperti cara Windows mencarinya: dari PATH Windows saat itu juga (agent yang dipasang saat FluxCode terbuka muncul begitu daftar agent dibuka lagi) dan dari folder yang dipakai installer, seperti npm, pnpm, bun, Scoop, WinGet dan `~/.local/bin`. **OpenCode 2** yang dipasang lewat npm langsung dipakai, tanpa diunduh lagi, dan tombol unduh untuk agent yang ternyata sudah ada cukup beralih ke agent itu. Kalau **Claude Code** atau **Codex** sudah terpasang, daftar memberitahunya: tinggal jembatan ACP-nya yang kecil yang ditambahkan. Daftar agent juga pas di panel sempit: nama pembuat disembunyikan dulu, badge mengecil jadi bintang, dan tidak ada lagi yang menabrak status atau tombol unduh.
+
+@release 2026-11-18
+@title en: Twelve live backgrounds, and FluxSky
+@title id: Dua belas latar hidup, dan FluxSky
+@en
+The animated backgrounds are new: **twelve scenes drawn live** instead of pixel videos. Clouds at dusk, a moonlit ocean, mountains in fog, the northern lights, a pine forest with fireflies, a lake, a beach at sunset, dunes, a city with its windows going on and off, rain, snow and a galaxy. They take their colors from your theme, so changing the theme recolors the scene at once (light themes turn it to day), they fit any window size, and nothing is downloaded or decoded. Settings > Appearance shows each one as a live preview in your theme. **Background animation is now off by default**: the scene stands still and costs no CPU. Turned on, the scene moves (about 10 to 15% of one CPU core while FluxCode is in front), and FluxCode first measures what your PC can take and tells you whether it is light, fine or heavy there. The new **FluxSky** theme (violet night with a peach accent, from the website's dusk) brings the clouds with it, and the background you had comes back when you pick another theme. Changing theme now fades smoothly from the old colors to the new ones.
+@id
+Latar beranimasi sekarang baru: **dua belas scene yang digambar langsung**, bukan video piksel lagi. Awan senja, laut di bawah bulan, pegunungan berkabut, aurora, hutan pinus dengan kunang-kunang, danau, pantai saat matahari terbenam, bukit pasir, kota dengan jendela yang menyala dan padam, hujan, salju, dan galaksi. Warnanya diambil dari tema kamu, jadi ganti tema langsung mewarnai ulang scene-nya (tema terang mengubahnya jadi siang), pas di ukuran jendela apa pun, dan tidak ada yang diunduh atau di-decode. Pengaturan > Tampilan menampilkan masing-masing sebagai pratinjau hidup dalam tema kamu. **Animasi latar sekarang mati secara default**: scene-nya diam dan tidak memakai CPU. Kalau dinyalakan, scene bergerak (sekitar 10 sampai 15% dari satu core CPU saat FluxCode di depan), dan FluxCode lebih dulu mengukur apakah PC kamu sanggup, lalu memberi tahu apakah ringan, cukup, atau berat di PC itu. Tema baru **FluxSky** (ungu malam dengan aksen persik, dari senja di website) membawa awannya sendiri, dan latar yang kamu pakai sebelumnya kembali saat memilih tema lain. Ganti tema sekarang berpindah warna dengan halus, bukan melompat.
+
 @release 2026-11-16
 @title en: Open with FluxCode
 @title id: Buka dengan FluxCode

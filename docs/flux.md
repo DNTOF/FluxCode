@@ -107,7 +107,8 @@ FluxCode draws only those on screen.
 
 - `width=` in pixels or as a share of the page (`60%`); `align=right` floats it right.
 - `dark=` is shown instead when the theme is dark (on GitHub too, through `<picture>`).
-- `link=` is what a click opens; `caption=` goes under it.
+- `link=` is what a click opens; `caption=` goes under it, and `caption-id=` is the
+  Indonesian one where it differs.
 - A GIF plays in FluxCode as it is. Images from the web aren't fetched: the document
   stays offline, and shows a link instead.
 - `@video` shows the poster with a play button; a click plays the video in the system's

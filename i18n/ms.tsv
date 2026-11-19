@@ -1162,8 +1162,6 @@ None	Tiada
 Animated background	Latar beranimasi
 Background animation	Animasi latar
 Your background image shows instead. Remove it to see the scene.	Imej latar anda dipaparkan sebagai ganti. Alih keluar imej itu untuk melihat pemandangan.
-A looping pixel video behind the panels: ocean, river, beach, mountains or anime dusk. Downloaded once (a few MB) the first time you pick it.	Video piksel berulang di belakang panel: lautan, sungai, pantai, gunung-ganang atau senja anime. Dimuat turun sekali (beberapa MB) pada kali pertama anda memilihnya.
-Off keeps the scene's first frame as a still picture (nothing decodes while you work).	Mati mengekalkan bingkai pertama pemandangan sebagai gambar pegun (tiada penyahkodan semasa anda bekerja).
 {0} more matches	{0} padanan lagi
 Checking Copilot…	Menyemak Copilot…
 Ready, signed in as {user}. Suggestions appear as ghost text a moment after you stop typing; Tab accepts.	Sedia, log masuk sebagai {user}. Cadangan dipaparkan sebagai teks bayang sejurus selepas anda berhenti menaip; Tab menerima.
@@ -1246,6 +1244,19 @@ Hide the preview	Sembunyikan pratonton
 Full screen	Skrin penuh
 Open in a tab	Buka dalam tab
 Copy the file path	Salin laluan fail
+{name} is already on this PC: FluxCode uses that copy.	{name} sudah ada pada PC ini: FluxCode menggunakan salinan itu.
+{cli} found · adds its ACP bridge	{cli} ditemui · tambah jambatan ACP-nya
+Clouds	Awan
+Dusk sky and clouds, peach accent	Langit senja dan awan, aksen pic
+Twelve scenes drawn live in your theme's colors: change the theme and the scene changes with it. Nothing to download, and they fit any window size.	Dua belas adegan yang dilukis secara langsung dalam warna tema anda: tukar tema dan adegan turut berubah. Tiada muat turun, dan ia muat pada sebarang saiz tetingkap.
+Lake	Tasik
+City	Bandar
+Aurora	Aurora
+Rain	Hujan
+Snow	Salji
+Dunes	Bukit pasir
+Forest	Hutan
+Galaxy	Galaksi
 {0} has an update	{0} ada kemas kini
 Updating {0}	Mengemas kini {0}
 {0} is up to date	{0} sudah terkini
@@ -1254,3 +1265,14 @@ Update all ({0})	Kemas kini semua ({0})
 Hide (the update goes on)	Sembunyikan (kemas kini diteruskan)
 The next chat uses the new version.	Sembang seterusnya menggunakan versi baharu.
 Agent updates	Kemas kini ejen
+Off by default: the scene stands still and costs nothing while you work. On, it moves 24 times a second, which takes about 10 to 15% of one CPU core while FluxCode is in front (much less behind other windows). Turning it on checks what your PC can take.	Mati secara lalai: adegan pegun dan tidak membebankan apa-apa semasa anda bekerja. Apabila dihidupkan, ia bergerak 24 kali sesaat, menggunakan kira-kira 10 hingga 15% satu teras CPU semasa FluxCode di hadapan (jauh kurang di belakang tetingkap lain). Menghidupkannya akan menyemak sama ada PC anda mampu.
+Checking what your PC can take: watching FluxCode's CPU use for a few seconds…	Menyemak sama ada PC anda mampu: memantau penggunaan CPU FluxCode selama beberapa saat…
+Turn it off	Matikan
+{cores} cores, {ram} RAM	{cores} teras, RAM {ram}
+Couldn't measure it here. With {spec}, it may be heavy: leave it off if FluxCode feels slow.	Tidak dapat diukur di sini. Dengan {spec}, ia mungkin berat: matikan jika FluxCode terasa perlahan.
+Couldn't measure it here, but {spec} should take it.	Tidak dapat diukur di sini, tetapi {spec} sepatutnya mampu.
+{pct}% of one core ({whole}% of the whole CPU, {spec})	{pct}% satu teras ({whole}% seluruh CPU, {spec})
+Your PC takes it easily: {used}.	PC anda mampu dengan mudah: {used}.
+It runs fine here: {used}. It is the heaviest thing FluxCode does while you type.	Ia berjalan lancar di sini: {used}. Ini perkara paling berat yang dilakukan FluxCode semasa anda menaip.
+Heavy for this PC: {used}. Leave it off unless you want the motion.	Berat untuk PC ini: {used}. Biarkan ia dimatikan melainkan anda mahukan pergerakannya.
+You are on battery: it drains a little faster while the scene moves.	Anda menggunakan bateri: ia susut sedikit lebih cepat semasa adegan bergerak.

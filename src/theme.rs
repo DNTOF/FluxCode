@@ -1,4 +1,9 @@
-//! Color themes: FluxDark, FluxCream, FluxMono and FluxRed.
+//! Color themes: FluxDark, FluxCream, FluxMono, FluxRed, FluxMuara (light and dark)
+//! and FluxSky (the website's dusk, with its clouds behind the panels).
+//!
+//! Changing theme fades: for `FADE` every color is mixed from the old palette to the
+//! new one (`fade_from`), so the whole window glides into the new colors instead of
+//! jumping.
 //!
 //! Every color in the UI is a token (`theme::FG`, `theme::ACCENT`, ...). `c(token)`
 //! reads the active palette, so switching themes only needs `set` + `apply` and a
@@ -147,7 +152,7 @@ impl Palette {
 // state colors are >= 4.5:1 on every surface, and still >= 4.5:1 over a white (dark
 // themes) or black (FluxCream) image pixel at the Balanced strength. Text on accent
 // fills >= 5.1:1.
-pub static PALETTES: [Palette; 6] = [
+pub static PALETTES: [Palette; 7] = [
     Palette {
         id: "flux-dark",
         name: "FluxDark",
@@ -322,7 +327,115 @@ pub static PALETTES: [Palette; 6] = [
         selection: 0x28496b,
         syntax: None,
     },
+
+    Palette {
+        id: "flux-sky",
+        name: "FluxSky",
+        note: "Dusk sky and clouds, peach accent",
+        dark: true,
+        // The website's dusk (fluxcode.muaraai.com): violet night surfaces from the top
+        // of its sky, the warm horizon glow as the accent. Picked with no background of
+        // its own, it brings the drifting clouds behind the panels (`scene::Scene::Sky`).
+        title: 0x15131f,
+        side: 0x191626,
+        editor: 0x1c1929,
+        elevated: 0x252136,
+        hover: 0x2e2942,
+        border: 0x332d47,
+        border_strong: 0x433b5a,
+        fg: 0xe4def0,
+        strong: 0xf6f2fc,
+        muted: 0xb3abc6,
+        dim: 0xa9a1bd,
+        accent: 0xe9a07c,
+        on_accent: 0x1a1220,
+        accent_text: 0xf2b896,
+        blue: 0x9fb6ec,
+        green: 0x93cfa8,
+        warn: 0xe8c27a,
+        danger: 0xf08a9a,
+        folder: 0xd9ad8c,
+        select: 0x2d2840,
+        selection: 0x4a3a58,
+        syntax: None,
+    },
 ];
+
+/// How long a theme change takes to fade from the old colors to the new.
+pub const FADE: std::time::Duration = std::time::Duration::from_millis(340);
+/// The palette a theme change fades from (null: no fade running).
+static FROM: AtomicPtr<Palette> = AtomicPtr::new(std::ptr::null_mut());
+/// When that fade started, in ms since `CLOCK`.
+static FADE_AT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static CLOCK: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
+fn now_ms() -> u64 {
+    CLOCK.get_or_init(std::time::Instant::now).elapsed().as_millis() as u64
+}
+
+/// Fade from `old` into whatever `set` selects next. Call it before `set`.
+pub fn fade_from(old: &'static Palette) {
+    FADE_AT.store(now_ms(), Ordering::Relaxed);
+    FROM.store(old as *const Palette as *mut Palette, Ordering::Relaxed);
+}
+
+/// The running fade: the palette it comes from and how far it is (0..1, eased).
+fn fade() -> Option<(&'static Palette, f32)> {
+    let p = FROM.load(Ordering::Relaxed);
+    if p.is_null() {
+        return None;
+    }
+    let t = (now_ms().saturating_sub(FADE_AT.load(Ordering::Relaxed))) as f32 / FADE.as_millis() as f32;
+    if t >= 1. {
+        FROM.store(std::ptr::null_mut(), Ordering::Relaxed);
+        return None;
+    }
+    // Ease in and out (cubic): it leaves gently and settles gently.
+    let e = if t < 0.5 { 4. * t * t * t } else { 1. - (-2. * t + 2.).powi(3) / 2. };
+    // SAFETY: as `ACTIVE`, only ever a `&'static Palette`.
+    Some((unsafe { &*p }, e))
+}
+
+/// A theme change is still fading: the window needs another frame.
+pub fn fading() -> bool {
+    fade().is_some()
+}
+
+/// A token's color right now: the active palette's, or mid-fade a mix of both.
+fn now(t: Tok) -> Hsla {
+    let to = palette().hex(t);
+    match fade() {
+        Some((from, e)) => rgb(mix(from.hex(t), to, e)).into(),
+        None => rgb(to).into(),
+    }
+}
+
+/// A token's color right now as hex, mid-fade the mix: for drawings that take their
+/// colors from the theme (the animated backgrounds), so they change with it.
+pub fn live(t: Tok) -> u32 {
+    let to = palette().hex(t);
+    match fade() {
+        Some((from, e)) => mix(from.hex(t), to, e),
+        None => to,
+    }
+}
+
+/// Whether the theme is dark right now (mid-fade, it turns halfway through).
+pub fn live_dark() -> bool {
+    match fade() {
+        Some((from, e)) if e < 0.5 => from.dark,
+        _ => palette().dark,
+    }
+}
+
+/// Mix two colors channel by channel (`e` 0: `a`, 1: `b`).
+pub fn mix(a: u32, b: u32, e: f32) -> u32 {
+    let ch = |s: u32| {
+        let (x, y) = (((a >> s) & 0xff) as f32, ((b >> s) & 0xff) as f32);
+        ((x + (y - x) * e).round().clamp(0., 255.) as u32) << s
+    };
+    ch(16) | ch(8) | ch(0)
+}
 
 
 /// How much of the background image reaches the eye through the panels.
@@ -501,7 +614,7 @@ pub fn c(p: impl Into<Paint>) -> Hsla {
     match p.into() {
         Paint::Hex(h) => rgb(h).into(),
         Paint::Tok(t) => {
-            let col: Hsla = rgb(palette().hex(t)).into();
+            let col: Hsla = now(t);
             match (image(), t) {
                 // Panels become translucent over the image; the title bar and popovers stay
                 // nearly solid (menus and window buttons sit on them).
@@ -547,7 +660,7 @@ pub fn welcome_tint() -> Background {
 }
 
 pub fn editor_wash() -> Background {
-    let base: Hsla = rgb(palette().editor).into();
+    let base: Hsla = now(Tok::BgEditor);
     match image() {
         None if glass() => base.opacity(0.88).into(),
         None => base.into(),
@@ -564,7 +677,12 @@ pub fn editor_wash() -> Background {
 /// Push the active palette into gpui-component's theme (inputs, menus, editor).
 pub fn apply(cx: &mut App) {
     let p = palette();
-    Theme::change(if p.dark { ThemeMode::Dark } else { ThemeMode::Light }, None, cx);
+    // Mid-fade, the controls switch between light and dark halfway through.
+    let dark = match fade() {
+        Some((from, e)) if e < 0.5 => from.dark,
+        _ => p.dark,
+    };
+    Theme::change(if dark { ThemeMode::Dark } else { ThemeMode::Light }, None, cx);
     Theme::update(cx, |t| {
         t.font_size = u(13.);
         t.mono_font_family = "Cascadia Code".into();
@@ -615,7 +733,7 @@ pub fn apply(cx: &mut App) {
         k.list_active = c(SELECT);
         k.list_active_border = gpui_kit::transparent_black();
         // Menus and dropdowns from gpui-kit: the same light glass as FluxCode's own.
-        k.popover = if glass() { Hsla::from(rgb(p.elevated)).opacity(0.94) } else { rgb(p.elevated).into() };
+        k.popover = if glass() { now(Tok::BgElevated).opacity(0.94) } else { now(Tok::BgElevated) };
         k.popover_foreground = c(FG);
         k.window_border = c(BORDER);
         k.scrollbar = gpui_kit::transparent_black();
@@ -700,6 +818,14 @@ mod tests {
     }
 
     #[test]
+    fn a_theme_change_fades_between_the_palettes() {
+        assert_eq!(mix(0x000000, 0xffffff, 0.), 0x000000);
+        assert_eq!(mix(0x000000, 0xffffff, 1.), 0xffffff);
+        assert_eq!(mix(0x102030, 0x304050, 0.5), 0x203040);
+        assert!(find("flux-sky").is_some_and(|p| p.dark));
+    }
+
+    #[test]
     fn flux_muara_comes_in_light_and_dark() {
         for id in ["flux-muara", "flux-muara-dark"] {
             assert!(PALETTES.iter().any(|p| p.id == id), "{id} palette is missing");
@@ -718,7 +844,7 @@ pub fn glass_fill() -> Background {
 /// soft shadow. GPUI can't blur what is under a panel, so it stays opaque enough
 /// for text on top to read; with liquid glass off in Settings it is solid.
 pub fn glass_pop_fill() -> Background {
-    let base: Hsla = rgb(palette().hex(Tok::BgElevated)).into();
+    let base: Hsla = now(Tok::BgElevated);
     if !glass() {
         return base.into();
     }
@@ -736,7 +862,7 @@ pub fn glass_pop_edge() -> Hsla {
 }
 
 fn glass_with(top_a: f32, bottom_a: f32) -> Background {
-    let base: Hsla = rgb(palette().hex(Tok::BgElevated)).into();
+    let base: Hsla = now(Tok::BgElevated);
     if !glass() && image().is_none() {
         return base.into();
     }

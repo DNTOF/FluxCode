@@ -141,6 +141,16 @@ impl Workbench {
         if m == Menu::Model {
             self.agent_menu_load_catalog(cx);
         }
+        if m == Menu::Agent {
+            // Agents installed or removed outside FluxCode since the last look show up
+            // without a restart: the PC is looked at again in the background.
+            let scan = cx.background_spawn(async { crate::acp::rescan() });
+            cx.spawn(async move |this, cx| {
+                scan.await;
+                _ = this.update(cx, |_, cx| cx.notify());
+            })
+            .detach();
+        }
         let st = &mut self.agent.menu;
         let q = st.query.clone();
         q.update(cx, |s, cx| {
@@ -356,7 +366,13 @@ impl Workbench {
         let mut known: Vec<_> = crate::acp::KNOWN.iter().filter(|k| !installed.iter().any(|i| i == k.id)).collect();
         known.sort_by_key(|k| !crate::acp::recommended(k.id));
         for k in known {
-            rows.push(get(k.id.to_string(), k.name.to_string(), k.by.into(), &avail));
+            // Its own program is here already (Claude Code, Codex): only the small ACP
+            // bridge is downloaded, and it uses that program's sign-in.
+            let sub: SharedString = match crate::acp::cli_without_bridge(k.id) {
+                Some(cli) => crate::trf!("{cli} found · adds its ACP bridge"; cli => cli).into(),
+                None => k.by.into(),
+            };
+            rows.push(get(k.id.to_string(), k.name.to_string(), sub, &avail));
         }
         let more: SharedString = tr("More in the ACP registry").into();
         for e in reg.iter().filter(|e| crate::acp::known(&e.id).is_none() && !crate::acp::hidden(&e.id) && !installed.iter().any(|i| *i == e.id) && e.method().is_some()) {
@@ -484,12 +500,12 @@ impl Workbench {
         };
         let trail: Option<AnyElement> = match &r.trail {
             Trail::Download => Some(Icon::new(IconName::Download).size(theme::u(14.)).text_color(c(theme::FG_MUTED)).into_any_element()),
-            Trail::Note(t) => Some(div().text_xs().text_color(c(theme::FG_DIM)).child(t.clone()).into_any_element()),
+            Trail::Note(t) => Some(div().whitespace_nowrap().text_xs().text_color(c(theme::FG_DIM)).child(t.clone()).into_any_element()),
             Trail::State(tok, t) => Some(
                 h_flex()
                     .gap_1()
                     .child(div().size(px(6.)).rounded_full().bg(c(*tok)))
-                    .child(div().text_xs().text_color(c(if *tok == theme::FG_DIM { theme::FG_DIM } else { theme::FG_MUTED })).child(t.clone()))
+                    .child(div().whitespace_nowrap().text_xs().text_color(c(if *tok == theme::FG_DIM { theme::FG_DIM } else { theme::FG_MUTED })).child(t.clone()))
                     .into_any_element(),
             ),
             Trail::Cols(ctx, out, free) => Some(
@@ -535,17 +551,32 @@ impl Workbench {
                     // A model: its name takes the row; the numbers sit in their columns.
                     h_flex().flex_1().min_w_0().child(name.flex_1().min_w_0().truncate())
                 } else {
-                    // One line: the name, then who makes it, cut to fit.
+                    // One line: the name, its badge, then who makes it, cut to fit. The
+                    // line follows the panel's width: narrower, the maker goes first, then
+                    // the badges shrink to their icon, and the name is cut last, so
+                    // nothing ever runs into the state or the download button.
                     let exp = matches!(&r.lead, Lead::Agent(id) if crate::acp::experimental(id));
                     let rec = matches!(&r.lead, Lead::Agent(id) if crate::acp::recommended(id));
-                    h_flex()
+                    let w = self.agent.compose_w.get();
+                    let fit = |at: f32| w <= 0. || w >= f32::from(theme::u(at));
+                    let (show_sub, wide_badge) = (fit(400.), fit(290.));
+                    // "Claude Code found · …" says why this download is small: when the
+                    // row is too narrow for it beside the name, it goes under the name.
+                    let found = matches!((&r.lead, &r.act), (Lead::Agent(id), Act::Install(_)) if crate::acp::cli_without_bridge(id).is_some());
+                    let line = h_flex()
+                        .w_full()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .gap_2()
+                        .child(name.flex_shrink(1.).min_w(theme::u(48.)).truncate())
+                        .when(exp, |h| h.child(if wide_badge { experimental_badge() } else { experimental_dot() }))
+                        .when(rec, |h| h.child(if wide_badge { recommended_badge() } else { recommended_star() }))
+                        .when(show_sub && !r.sub.is_empty(), |h| h.child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(r.sub.clone())));
+                    v_flex()
                         .flex_1()
                         .min_w_0()
-                        .gap_2()
-                        .child(name.flex_shrink_0().max_w(relative(0.62)).truncate())
-                        .when(exp, |h| h.child(experimental_badge()))
-                        .when(rec, |h| h.child(recommended_badge()))
-                        .when(!r.sub.is_empty(), |h| h.child(div().flex_1().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(r.sub.clone())))
+                        .child(line)
+                        .when(!show_sub && found, |v| v.child(div().min_w_0().truncate().text_xs().text_color(c(theme::FG_DIM)).child(r.sub.clone())))
                 }
             })
             .children(trail.map(|t| div().flex_none().when(r.wrap, |d| d.pt(px(2.))).child(t)))
@@ -775,15 +806,16 @@ impl Workbench {
             .px_1()
             .py_1()
             .gap_1()
+            .overflow_hidden()
             .border_t_1()
             .border_color(c(theme::BORDER))
-            .child(link("ag-menu-settings", tr("Agent settings").into()).on_click(cx.listener(|this, _, w, cx| {
+            .child(link("ag-menu-settings", tr("Agent settings").into()).flex_none().on_click(cx.listener(|this, _, w, cx| {
                 this.agent_menu_close(false, w, cx);
                 this.agent_open_options(w, cx);
             })))
             .child(div().flex_1())
             .when(crate::acp::managed(&current), |h| {
-                h.child(link("ag-menu-remove", crate::trf!("Remove {name}…"; name => name).into()).on_click(cx.listener(move |this, _, w, cx| {
+                h.child(link("ag-menu-remove", crate::trf!("Remove {name}…"; name => name).into()).min_w_0().truncate().on_click(cx.listener(move |this, _, w, cx| {
                     this.agent_menu_close(false, w, cx);
                     this.agent_ask_uninstall(&current, w, cx);
                 })))
@@ -938,10 +970,22 @@ pub(crate) fn recommended_badge() -> Div {
         .border_1()
         .border_color(c(theme::ACCENT_TEXT).opacity(0.45))
         .bg(c(theme::ACCENT_TEXT).opacity(0.12))
+        .whitespace_nowrap()
         .text_size(theme::u(10.5))
         .text_color(c(theme::ACCENT_TEXT))
         .child(Icon::new(gpui_kit::assets::IconName::Star).size(theme::u(9.)))
         .child(tr("Recommended"))
+}
+
+/// The recommended mark where a narrow panel has no room for the pill: the star alone.
+fn recommended_star() -> Div {
+    div().flex_none().child(Icon::new(gpui_kit::assets::IconName::Star).size(theme::u(11.)).text_color(c(theme::ACCENT_TEXT)))
+}
+
+/// "Not available" where a narrow panel has no room for the pill: a hollow dot (the
+/// dimmed row already says it can't be picked).
+fn experimental_dot() -> Div {
+    div().flex_none().size(theme::u(7.)).rounded_full().border_1().border_color(c(theme::FG_DIM))
 }
 
 /// A small muted pill beside an agent that is still being built (it can't be picked).
@@ -953,6 +997,7 @@ pub(crate) fn experimental_badge() -> Div {
         .border_1()
         .border_color(c(theme::FG_DIM).opacity(0.4))
         .bg(c(theme::FG_DIM).opacity(0.12))
+        .whitespace_nowrap()
         .text_size(theme::u(10.5))
         .text_color(c(theme::FG_MUTED))
         .child(tr("Not available"))

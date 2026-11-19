@@ -4,7 +4,11 @@
 //! command line per agent. Three places can supply it, checked in this order:
 //!
 //! 1. An install FluxCode made itself, under `~/.fluxcode/agents/<id>/launch.json`.
-//! 2. A copy the user installed on PATH (the names in `KNOWN`).
+//! 2. A copy the user installed themselves (the names in `KNOWN`): FluxCode looks
+//!    where Windows does, on the PATH as the registry has it now (not only as it was
+//!    when FluxCode started) and in the folders installers use (npm, pnpm, bun,
+//!    Scoop, WinGet, `~/.local/bin`). An agent that is already there is never
+//!    downloaded again.
 //! 3. Nothing yet: the picker shows a download button, which installs from the
 //!    official ACP registry (cdn.agentclientprotocol.com). Native binaries are
 //!    preferred; npm packages go into the agent's own folder (not the global npm),
@@ -241,6 +245,9 @@ impl Launch {
             crate::proc::command(&s)
         };
         c.args(&self.args);
+        // Windows' PATH as it is now, so an agent finds node, git and its own helpers
+        // even when they were installed after FluxCode started.
+        c.env("PATH", fresh_path());
         for (k, v) in &self.env {
             c.env(k, v);
         }
@@ -264,7 +271,6 @@ fn launch_file(id: &str) -> PathBuf {
 /// 50 ms of start-up; instead each PATH folder is listed once (per `forget`) into a
 /// name index, and lookups are hash hits. The first folder on PATH wins, as in a shell.
 pub fn which(exe: &str) -> Option<PathBuf> {
-    static INDEX: Mutex<(u64, Option<std::sync::Arc<HashMap<String, PathBuf>>>)> = Mutex::new((0, None));
     let gen = GEN.load(std::sync::atomic::Ordering::Relaxed);
     let index = {
         let mut g = INDEX.lock().ok()?;
@@ -278,10 +284,79 @@ pub fn which(exe: &str) -> Option<PathBuf> {
     exts.iter().find_map(|e| index.get(&key(e)).filter(|p| p.is_file()).cloned())
 }
 
+/// The PATH as Windows has it now, not as it was when FluxCode started: FluxCode's own
+/// PATH first, then the user's and the machine's from the registry (an agent installed
+/// while FluxCode runs, or a FluxCode started from a shortcut with an old environment,
+/// is still found), then the folders installers put agents in without touching PATH.
+/// Agents started by FluxCode get this PATH too, so an npm agent finds `node`.
+pub fn fresh_path() -> std::ffi::OsString {
+    let mut dirs: Vec<PathBuf> = std::env::var_os("PATH").map(|p| std::env::split_paths(&p).collect()).unwrap_or_default();
+    #[cfg(windows)]
+    {
+        use crate::shell::reg::{get, HKCU, HKLM};
+        let user = get(HKCU, "Environment", Some("Path"));
+        let machine = get(HKLM, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment", Some("Path"));
+        for p in [user, machine].into_iter().flatten() {
+            dirs.extend(std::env::split_paths(&p));
+        }
+    }
+    dirs.extend(install_dirs());
+    let mut seen = std::collections::HashSet::new();
+    let dirs: Vec<PathBuf> = dirs
+        .into_iter()
+        .filter(|d| !d.as_os_str().is_empty())
+        .filter(|d| seen.insert(if cfg!(windows) { d.to_string_lossy().trim_end_matches(['\\', '/']).to_ascii_lowercase() } else { d.to_string_lossy().into_owned() }))
+        .collect();
+    std::env::join_paths(dirs).unwrap_or_else(|_| std::env::var_os("PATH").unwrap_or_default())
+}
+
+/// Folders agent installers use that may not be on PATH: npm, pnpm, bun, Volta and
+/// Scoop shims, WinGet links, `~/.local/bin` (Claude Code, Mura, uv), and the agents'
+/// own installers (`~/.opencode/bin`, GitHub Copilot CLI, Cursor's agent).
+fn install_dirs() -> Vec<PathBuf> {
+    let var = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let mut out = Vec::new();
+    if let Some(home) = var("USERPROFILE").or_else(|| var("HOME")) {
+        for rel in [".local/bin", ".opencode/bin", ".bun/bin", ".cargo/bin", ".volta/bin", "scoop/shims", ".deno/bin", ".npm-global/bin"] {
+            out.push(home.join(rel));
+        }
+    }
+    if let Some(app) = var("APPDATA") {
+        out.push(app.join("npm"));
+    }
+    if let Some(local) = var("LOCALAPPDATA") {
+        for rel in ["pnpm", "Microsoft/WinGet/Links", "GitHubCopilotCLI", "Programs/opencode", "cursor-agent", "Volta/bin"] {
+            out.push(local.join(rel));
+        }
+    }
+    if let Some(pf) = var("ProgramFiles") {
+        out.push(pf.join("nodejs"));
+    }
+    out
+}
+
+/// An npm `.cmd` shim whose only job is to start a native program next to it
+/// (`"%dp0%\node_modules\@opencode\cli\bin\opencode.exe" %*`): that program, so no
+/// cmd.exe sits between FluxCode and the agent. Shims that start `node` stay as they are.
+fn shim_target(cmd: &Path) -> Option<PathBuf> {
+    let ext = cmd.extension()?.to_str()?.to_ascii_lowercase();
+    if ext != "cmd" {
+        return None;
+    }
+    let text = std::fs::read_to_string(cmd).ok()?;
+    let dir = cmd.parent()?;
+    text.lines().rev().find_map(|line| {
+        let line = line.trim();
+        let rest = line.strip_prefix("\"%dp0%\\")?;
+        let (rel, _) = rest.split_once('"')?;
+        rel.to_ascii_lowercase().ends_with(".exe").then(|| dir.join(rel)).filter(|p| p.is_file())
+    })
+}
+
 /// Every file in the PATH folders, by name (lower-case on Windows), first folder first.
 fn path_index() -> HashMap<String, PathBuf> {
     let mut map = HashMap::new();
-    let Some(path) = std::env::var_os("PATH") else { return map };
+    let path = fresh_path();
     // Windows' own folders hold thousands of files and never an agent: skip them.
     let system = std::env::var("SystemRoot").map(|s| s.to_ascii_lowercase()).unwrap_or_default();
     for dir in std::env::split_paths(&path) {
@@ -300,6 +375,22 @@ fn path_index() -> HashMap<String, PathBuf> {
 
 /// Bumped by `forget`: cached lookups older than this are redone.
 static GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+/// The PATH folders' files for one `GEN` (see `which`).
+static INDEX: Mutex<(u64, Option<std::sync::Arc<HashMap<String, PathBuf>>>)> = Mutex::new((0, None));
+
+/// Look at the PC again for agents installed or removed outside FluxCode (blocking: run
+/// it off the UI thread). The folders are listed first and the new list takes over in
+/// one step, so the picker never lists the folders itself while it is open.
+pub fn rescan() {
+    let index = std::sync::Arc::new(path_index());
+    let next = GEN.load(std::sync::atomic::Ordering::Relaxed) + 1;
+    if let Ok(mut g) = INDEX.lock() {
+        *g = (next, Some(index));
+    }
+    GEN.store(next, std::sync::atomic::Ordering::Relaxed);
+    let _ = installed();
+}
 
 /// Where an agent can be started from, if anywhere. Results are cached until
 /// `forget` (an install or uninstall), so the panel can ask on every frame.
@@ -360,10 +451,93 @@ fn find(id: &str) -> Option<Launch> {
         return crate::agent::find_opencode().map(|cmd| Launch { cmd, args: vec!["acp".into()], ..Default::default() });
     }
     if id == "opencode-v2" {
-        // Only FluxCode's own install (the launch file above): see KNOWN.
-        return None;
+        // FluxCode's own install (the launch file above), else an OpenCode 2 the user
+        // installed (npm's native build, or the opencode.ai installer): never v1.
+        return opencode_v2().map(|(cmd, _)| Launch { cmd, args: vec!["acp".into()], ..Default::default() });
     }
-    k.path.iter().find_map(|(exe, args)| which(exe).map(|cmd| Launch { cmd, args: args.iter().map(|a| a.to_string()).collect(), ..Default::default() }))
+    k.path.iter().find_map(|(exe, args)| {
+        which(exe).map(|cmd| Launch { cmd: shim_target(&cmd).unwrap_or(cmd), args: args.iter().map(|a| a.to_string()).collect(), ..Default::default() })
+    })
+}
+
+/// An OpenCode 2 already on this PC, with its version: the native program behind npm's
+/// `opencode` / `opencode2` shims (`@opencode/cli`), or `opencode.exe` on PATH or in
+/// `~/.opencode/bin`. OpenCode 1 (`opencode-ai`) speaks an older ACP and is skipped.
+fn opencode_v2() -> Option<(PathBuf, String)> {
+    let mut cands: Vec<PathBuf> = Vec::new();
+    for name in ["opencode2", "opencode"] {
+        if let Some(p) = which(name) {
+            cands.push(shim_target(&p).unwrap_or(p));
+        }
+    }
+    let exe = if cfg!(windows) { "opencode.exe" } else { "opencode" };
+    cands.extend(install_dirs().into_iter().map(|d| d.join(exe)));
+    let mut seen = std::collections::HashSet::new();
+    cands
+        .into_iter()
+        .filter(|p| p.is_file() && seen.insert(p.clone()))
+        // A .cmd or .ps1 left over (a shim that runs node) is not the program itself.
+        .filter(|p| !matches!(p.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).as_deref(), Some("cmd" | "ps1" | "bat")))
+        .find_map(|p| {
+            let v = program_version(&p)?;
+            (major(&v) >= 2).then_some((p, v))
+        })
+}
+
+/// "2.3.0" -> 2.
+fn major(v: &str) -> u32 {
+    v.trim_start_matches('v').split('.').next().and_then(|m| m.trim().parse().ok()).unwrap_or(0)
+}
+
+/// A program's version: from the npm package.json above it when there is one (no
+/// process started), else from `<program> --version`, asked once per file and size.
+fn program_version(exe: &Path) -> Option<String> {
+    for up in exe.ancestors().skip(1).take(3) {
+        if let Ok(text) = std::fs::read_to_string(up.join("package.json")) {
+            if let Some(v) = serde_json::from_str::<Value>(&text).ok().and_then(|j| j["version"].as_str().map(String::from)) {
+                return Some(v);
+            }
+        }
+    }
+    static ASKED: Mutex<Option<HashMap<(PathBuf, u64), Option<String>>>> = Mutex::new(None);
+    let key = (exe.to_path_buf(), std::fs::metadata(exe).map(|m| m.len()).unwrap_or(0));
+    if let Some(v) = ASKED.lock().ok()?.get_or_insert_with(HashMap::new).get(&key) {
+        return v.clone();
+    }
+    let v = (|| {
+        let mut c = crate::proc::command(&exe.to_string_lossy());
+        c.arg("--version").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null());
+        let mut child = c.spawn().ok()?;
+        // A program that waits for input instead of printing a version is not waited for.
+        let start = std::time::Instant::now();
+        loop {
+            match child.try_wait().ok()? {
+                Some(_) => break,
+                None if start.elapsed() > std::time::Duration::from_secs(4) => {
+                    let _ = child.kill();
+                    return None;
+                }
+                None => std::thread::sleep(std::time::Duration::from_millis(20)),
+            }
+        }
+        let out = child.wait_with_output().ok()?;
+        let text = String::from_utf8_lossy(&out.stdout);
+        text.split_whitespace().map(|w| w.trim_start_matches('v')).find(|w| w.chars().next().is_some_and(|c| c.is_ascii_digit()) && w.contains('.')).map(String::from)
+    })();
+    ASKED.lock().ok()?.get_or_insert_with(HashMap::new).insert(key, v.clone());
+    v
+}
+
+/// The agent's own command-line program when it is on this PC but speaks ACP only
+/// through a bridge FluxCode still has to add (Claude Code, Codex): its name, for the
+/// picker to say so instead of offering a plain download.
+pub fn cli_without_bridge(id: &str) -> Option<&'static str> {
+    let (exe, name) = match id {
+        "claude-acp" => ("claude", "Claude Code"),
+        "codex-acp" => ("codex", "Codex CLI"),
+        _ => return None,
+    };
+    which(exe).map(|_| name)
 }
 
 // ---- the registry ----
@@ -1048,6 +1222,27 @@ fn sha256_of(file: &Path) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // npm's .cmd shims, and the backslashes in them, are Windows-only.
+    #[cfg(windows)]
+    #[test]
+    fn npm_shims_lead_to_their_native_program() {
+        let dir = std::env::temp_dir().join(format!("fluxcode-shim-{}", std::process::id()));
+        let bin = dir.join("node_modules").join("@opencode").join("cli").join("bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::write(bin.join("opencode.exe"), b"").unwrap();
+        std::fs::write(dir.join("node_modules").join("@opencode").join("cli").join("package.json"), r#"{"version":"2.3.0"}"#).unwrap();
+        let native = "@ECHO off\r\nGOTO start\r\n:start\r\nSETLOCAL\r\nCALL :find_dp0\r\n\"%dp0%\\node_modules\\@opencode\\cli\\bin\\opencode.exe\"   %*\r\n";
+        std::fs::write(dir.join("opencode.cmd"), native).unwrap();
+        let node = "@ECHO off\r\n\"%_prog%\"  \"%dp0%\\node_modules\\x\\cli.js\" %*\r\n";
+        std::fs::write(dir.join("x.cmd"), node).unwrap();
+        let exe = shim_target(&dir.join("opencode.cmd"));
+        assert_eq!(exe.as_deref(), Some(bin.join("opencode.exe").as_path()));
+        assert_eq!(shim_target(&dir.join("x.cmd")), None);
+        assert_eq!(program_version(&bin.join("opencode.exe")).as_deref(), Some("2.3.0"));
+        assert_eq!((major("2.3.0"), major("v1.19.5"), major("")), (2, 1, 0));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn commandcode_is_known_and_avoids_windows_cmd() {
