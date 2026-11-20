@@ -186,7 +186,6 @@ pub(crate) struct Doc {
     /// calling `files::icon_for` per tab per frame redid it on every render.
     pub icon: (crate::fluxicon::FluxIcon, Option<u32>),
     /// Highlighter token ("python", "kt", "Dockerfile"); "image" for an image tab.
-    #[allow(dead_code)]
     pub lang: &'static str,
     /// Status-bar name of the language or view ("Python", "Hex", "PDF").
     pub label: &'static str,
@@ -1018,6 +1017,17 @@ impl Workbench {
                     d.dirty = true;
                     d.gen += 1;
                     let gen = d.gen;
+                    // The bracket underline (brackets.rs) once typing pauses.
+                    let checked = editor.clone();
+                    cx.spawn(async move |this, cx| {
+                        cx.background_executor().timer(std::time::Duration::from_millis(300)).await;
+                        _ = this.update(cx, |this, cx| {
+                            if let Some(ix) = this.docs.iter().position(|d| d.editor == checked && d.gen == gen) {
+                                this.apply_problems_to(ix, cx);
+                            }
+                        });
+                    })
+                    .detach();
                     if auto {
                         cx.spawn(async move |this, cx| {
                             cx.background_executor().timer(std::time::Duration::from_millis(1000)).await;
@@ -1092,6 +1102,7 @@ impl Workbench {
             long_lines,
             wrap_override: None,
         });
+        self.apply_problems_to(self.docs.len() - 1, cx);
         self.activate(self.docs.len() - 1, window, cx);
         self.save_session(cx);
     }

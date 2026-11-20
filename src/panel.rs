@@ -573,33 +573,49 @@ impl Workbench {
 
     /// Show the current problems as underlines in the open editors.
     pub(crate) fn apply_problems(&mut self, cx: &mut Context<Self>) {
-        for d in &self.docs {
-            let mine: Vec<Problem> = self.problems.iter().filter(|p| same_path(&p.path, &d.path)).cloned().collect();
-            d.editor.update(cx, |ed, cx| {
-                let text = ed.value();
-                let Some(set) = ed.diagnostics_mut() else { return };
-                if set.is_empty() && mine.is_empty() {
-                    return;
-                }
-                set.clear();
-                for p in &mine {
-                    let row = p.line.saturating_sub(1);
-                    let src = text.split('\n').nth(row as usize).unwrap_or("").trim_end_matches('\r');
-                    let indent = (src.len() - src.trim_start().len()) as u32;
-                    let len = src.trim_end().chars().count() as u32;
-                    let (a, b) = match p.caret {
-                        Some((s, e)) if (indent + e as u32) <= len.max(1) && e > s => (indent + s as u32, indent + e as u32),
-                        _ => (indent, len.max(indent + 1)),
-                    };
-                    set.push(
-                        Diagnostic::new(Position::new(row, a)..Position::new(row, b), p.message.clone())
-                            .with_severity(DiagnosticSeverity::Error)
-                            .with_source("python"),
-                    );
-                }
-                cx.notify();
-            });
+        for ix in 0..self.docs.len() {
+            self.apply_problems_to(ix, cx);
         }
+    }
+
+    /// The underlines for one open editor: problems from the last run, plus the
+    /// first unmatched bracket as you type (brackets.rs).
+    pub(crate) fn apply_problems_to(&self, ix: usize, cx: &mut Context<Self>) {
+        let Some(d) = self.docs.get(ix) else { return };
+        let mine: Vec<Problem> = self.problems.iter().filter(|p| same_path(&p.path, &d.path)).cloned().collect();
+        let lang = (!d.read_only).then_some(d.lang);
+        d.editor.update(cx, |ed, cx| {
+            let text = ed.value();
+            let bracket = lang.and_then(|l| crate::brackets::first_problem(&text, l));
+            let Some(set) = ed.diagnostics_mut() else { return };
+            if set.is_empty() && mine.is_empty() && bracket.is_none() {
+                return;
+            }
+            set.clear();
+            for p in &mine {
+                let row = p.line.saturating_sub(1);
+                let src = text.split('\n').nth(row as usize).unwrap_or("").trim_end_matches('\r');
+                let indent = (src.len() - src.trim_start().len()) as u32;
+                let len = src.trim_end().chars().count() as u32;
+                let (a, b) = match p.caret {
+                    Some((s, e)) if (indent + e as u32) <= len.max(1) && e > s => (indent + s as u32, indent + e as u32),
+                    _ => (indent, len.max(indent + 1)),
+                };
+                set.push(
+                    Diagnostic::new(Position::new(row, a)..Position::new(row, b), p.message.clone())
+                        .with_severity(DiagnosticSeverity::Error)
+                        .with_source("python"),
+                );
+            }
+            if let Some((row, col, msg)) = bracket {
+                set.push(
+                    Diagnostic::new(Position::new(row, col)..Position::new(row, col + 1), msg)
+                        .with_severity(DiagnosticSeverity::Error)
+                        .with_source("FluxCode"),
+                );
+            }
+            cx.notify();
+        });
     }
 
     /// Open `path` at `line` (from a traceback link or the status bar).

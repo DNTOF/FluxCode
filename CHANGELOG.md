@@ -5,6 +5,17 @@ moment it was made, `BuildDev-YYYY-MM-DD-HH-MM-SS` (Asia/Jakarta time). Every ch
 merged into `main` becomes a build on the [Releases](https://github.com/MuaraAI/FluxCode/releases)
 page, and installed copies offer it on their own. Newest first.
 
+## Unmatched brackets underlined as you type (19 November 2026)
+
+- A bracket with no partner gets a red underline a moment after you stop typing,
+  so an extra `}` or a missing `)` shows before you run anything
+  ([#105](https://github.com/MuaraAI/FluxCode/issues/105)). Hover it to read
+  whether it is unmatched, not closed, or closes the wrong kind.
+- Works in Python, Rust, JavaScript, TypeScript, C, C++, C#, Java, Kotlin, Go,
+  Swift, Dart, PHP, JSON and CSS, and skips brackets inside strings and comments.
+  Only brackets are checked, not the rest of the syntax; no grammar is added, so
+  the program stays the same size.
+
 ## Open with FluxCode (16 November 2026)
 
 - Right-click a file or folder in Windows Explorer and pick **Open with

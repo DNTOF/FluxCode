@@ -1276,3 +1276,6 @@ Your PC takes it easily: {used}.	Votre PC le supporte sans peine : {used}.
 It runs fine here: {used}. It is the heaviest thing FluxCode does while you type.	Cela fonctionne bien ici : {used}. C'est ce que FluxCode fait de plus lourd pendant que vous tapez.
 Heavy for this PC: {used}. Leave it off unless you want the motion.	Lourd pour ce PC : {used}. Laissez-le désactivé sauf si vous tenez au mouvement.
 You are on battery: it drains a little faster while the scene moves.	Vous êtes sur batterie : elle se vide un peu plus vite pendant que la scène bouge.
+Unmatched {b}	{b} sans correspondance
+{b} does not close {open}	{b} ne ferme pas {open}
+Unclosed {b}	{b} non fermé

@@ -1276,3 +1276,6 @@ Your PC takes it easily: {used}.	PC kamu sanggup dengan santai: {used}.
 It runs fine here: {used}. It is the heaviest thing FluxCode does while you type.	Lancar di PC ini: {used}. Ini hal paling berat yang dikerjakan FluxCode saat kamu mengetik.
 Heavy for this PC: {used}. Leave it off unless you want the motion.	Berat untuk PC ini: {used}. Sebaiknya dimatikan kecuali kamu memang mau gerakannya.
 You are on battery: it drains a little faster while the scene moves.	Kamu sedang pakai baterai: baterai lebih cepat habis selama scene bergerak.
+Unmatched {b}	{b} tanpa pasangan
+{b} does not close {open}	{b} tidak menutup {open}
+Unclosed {b}	{b} belum ditutup
