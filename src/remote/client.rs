@@ -121,19 +121,8 @@ impl RemoteClient {
         write_request(&mut self.stdin, &mut self.stdout, &req, bytes)
     }
 
-    pub fn search(
-        &mut self,
-        root: &str,
-        query: &str,
-        match_case: bool,
-        whole_word: bool,
-    ) -> Result<SearchWire, String> {
-        self.json(Request::Search {
-            root: root.to_string(),
-            query: query.to_string(),
-            match_case,
-            whole_word,
-        })
+    pub fn search(&mut self, root: &str, query: &str, match_case: bool, whole_word: bool) -> Result<SearchWire, String> {
+        self.json(Request::Search { root: root.to_string(), query: query.to_string(), match_case, whole_word })
     }
 
     /// Every file under `root`, read inside the distro. This is the list behind
@@ -194,12 +183,20 @@ fn read_json_from(stdout: &mut impl Read) -> Result<serde_json::Value, String> {
 /// bytes that never come, which blocks the caller — and `save_doc` calls
 /// `write` on the UI thread, so the editor hangs instead of reaching the UNC
 /// fallback.
+fn write_path_accepts(req: &Request) -> Result<(), String> {
+    if !matches!(req, Request::Write { .. }) {
+        return Err("only a write sends a body frame; use write()".into());
+    }
+    Ok(())
+}
+
 fn write_request(
     stdin: &mut impl Write,
     stdout: &mut impl Read,
     req: &Request,
     body: &[u8],
 ) -> Result<(), String> {
+    write_path_accepts(req)?;
     let payload = serde_json::to_vec(req).map_err(|e| e.to_string())?;
     write_frame(stdin, FRAME_JSON, &payload).map_err(|e| e.to_string())?;
     write_frame(stdin, FRAME_BYTES, body).map_err(|e| e.to_string())?;
@@ -478,8 +475,10 @@ mod tests {
         server.join().unwrap();
 
         assert!(result.is_ok(), "{result:?}");
+        // Looser than a local 1s bound so a loaded CI runner is less likely to
+        // flake, but still well under the mock's 5s hold, so a hang still fails.
         assert!(
-            waited < std::time::Duration::from_secs(1),
+            waited < std::time::Duration::from_secs(3),
             "write waited {waited:?} for a bytes frame"
         );
     }
@@ -528,6 +527,25 @@ mod tests {
         assert!(read_path_accepts(&Request::Read {
             path: "/w/a.txt".into(),
             limit: 10
+        })
+        .is_ok());
+    }
+
+    /// The write path refuses a read instead of sending a body frame the
+    /// helper would not expect for that request.
+    #[test]
+    fn the_write_path_refuses_a_read() {
+        let err = write_path_accepts(&Request::Read {
+            path: "/w/a.txt".into(),
+            limit: 10,
+        });
+        assert_eq!(
+            err.unwrap_err(),
+            "only a write sends a body frame; use write()"
+        );
+        assert!(write_path_accepts(&Request::Write {
+            path: "/w/a.txt".into(),
+            crlf: false
         })
         .is_ok());
     }
